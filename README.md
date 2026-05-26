@@ -47,13 +47,16 @@ plugins/tpg-scheduler-codex-plugin/
 ```powershell
 cd plugins/tpg-scheduler-codex-plugin
 npm test
-npm run statusbericht:help
-npm run statusbericht:intelligence
+npm run status-report:help
+npm run status-report:intelligence
 ```
 
 ## Documentation
 
 - [Usage](docs/USAGE.md)
+- [Installation](docs/INSTALLATION.md)
+- [Validation](docs/VALIDATION.md)
+- [Examples](docs/EXAMPLES.md)
 - [Architecture](docs/ARCHITECTURE.md)
 - [Contributing](CONTRIBUTING.md)
 - [Security](SECURITY.md)

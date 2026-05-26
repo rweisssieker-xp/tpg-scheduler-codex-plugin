@@ -13,7 +13,7 @@ Run the sample intelligence report:
 
 ```powershell
 cd plugins/tpg-scheduler-codex-plugin
-npm run statusbericht:intelligence
+npm run status-report:intelligence
 ```
 
 Emit machine-readable JSON:
@@ -42,9 +42,9 @@ node ./scripts/statusbericht.js --intelligence ./scripts/fixtures/projects.sampl
 ## Important Commands
 
 ```powershell
-npm run statusbericht:help
-npm run statusbericht:dataverse
-npm run statusbericht:intelligence
+npm run status-report:help
+npm run status-report:dataverse
+npm run status-report:intelligence
 npm test
 ```
 

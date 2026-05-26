@@ -8,6 +8,8 @@ The plugin separates browser workflow guidance from deterministic project intell
 - `scripts/statusbericht.js` exposes CLI commands, Dataverse helper snippets, URL builders, and public exports.
 - `scripts/lib/project-intelligence.js` contains pure functions for risk, decision, governance, and AI/KI intelligence features.
 - Tests validate normalization, CLI behavior, and project intelligence outputs without requiring Dynamics access.
+- `scripts/validate-plugin.js` validates plugin metadata, documentation presence, skill naming, and write-safety wording.
+- `assets/icon.svg` provides a lightweight public plugin asset for repository and marketplace use.
 
 ## Core Modules
 
@@ -24,6 +26,7 @@ The plugin separates browser workflow guidance from deterministic project intell
 - Dynamics URL builders
 - status update draft helpers
 - public exports for project intelligence functions
+- plugin validation checks
 
 ### Project Intelligence
 
