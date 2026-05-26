@@ -1,9 +1,9 @@
 ---
-name: statusbericht
-description: Draft confirmation-gated Dynamics 365 TPG project status reports for projects where the current user is Projektleiter.
+name: status-report
+description: Use when drafting confirmation-gated Dynamics 365 TPG project status reports for projects led by the current user.
 ---
 
-# TPG Statusbericht
+# TPG Status Reporting
 
 Use this skill when the user asks to create, draft, collect, or update status reports for TPG projects in Dynamics 365.
 
@@ -17,7 +17,7 @@ Use this skill when the user asks to create, draft, collect, or update status re
   `https://posp365.crm4.dynamics.com/main.aspx?appid=1a66513c-266c-ef11-bfe2-6045bd8d5d87&forceUCI=1&pagetype=entitylist&etn=tpg_project&viewid=40761dc9-c0d4-ef11-a72e-7c1e52862247&viewType=4230`
 - Open each matching project record before asking for status input.
 - Ask for one status input per project.
-- Treat `kv`, case-insensitively after trimming whitespace, as:
+- Treat `kv`, case-insensitively after trimming whitespace, as this fixed German CRM status phrase:
   `Status unverändert seit letztem Bericht (keine inhaltlichen Änderungen)`
 - Preserve normal free text status input exactly except for surrounding whitespace.
 - Empty input means skip the current project after user confirmation.
@@ -137,7 +137,7 @@ If Dynamics asks for login, pause and let the user complete Microsoft login manu
 - When using `Xrm.WebApi`, keep reads narrow with `$select`; do not retrieve all columns for large project lists.
 - Default project `$select` columns:
   `tpg_projectid,tpg_projectnum,gbl_projectnumber,tpg_subject,tpg_projectstatus,tpg_lifecyclephase,tpg_overallkpi,tpg_progress,tpg_start,tpg_finish,gbl_laststatusupdate,_ownerid_value`
-- For statusbericht candidate discovery, use Dataverse as a candidate source only. Still open the project record and verify `Project Manager` is exactly `Reiner Weisssieker` before staging or saving anything.
+- For status-report candidate discovery, use Dataverse as a candidate source only. Still open the project record and verify `Project Manager` is exactly `Reiner Weisssieker` before staging or saving anything.
 - Known Status Update quick-create field logical names:
   - `tpg_reportdate`: Report Date
   - `tpg_project`: Project
@@ -253,7 +253,7 @@ If Dynamics asks for login, pause and let the user complete Microsoft login manu
 
 - Put the user's normalized status text into `Status Summary`.
 - Also put the same text into `Accomplished Activities / Current Status` unless the user provides a more structured status split.
-- For `kv`, use exactly:
+- For `kv`, use exactly this fixed German CRM status phrase:
   `Status unverändert seit letztem Bericht (keine inhaltlichen Änderungen)`
 - Leave optional activity fields blank unless the user supplies content for them.
 - Do not guess `Submitted To`; if Dynamics requires it and no default is present, ask the user before saving.

@@ -8,7 +8,7 @@
     "url": "https://posp365.crm4.dynamics.com/"
   },
   "homepage": "https://posp365.crm4.dynamics.com/",
-  "repository": "local",
+  "repository": "https://github.com/rweisssieker-xp/tpg-scheduler-codex-plugin",
   "license": "UNLICENSED",
   "keywords": [
     "dynamics-365",
@@ -31,12 +31,12 @@
       "Confirmation-Gated Write"
     ],
     "websiteURL": "https://posp365.crm4.dynamics.com/",
-    "privacyPolicyURL": "https://posp365.crm4.dynamics.com/",
-    "termsOfServiceURL": "https://posp365.crm4.dynamics.com/",
+    "privacyPolicyURL": "https://github.com/rweisssieker-xp/tpg-scheduler-codex-plugin/blob/main/SECURITY.md",
+    "termsOfServiceURL": "https://github.com/rweisssieker-xp/tpg-scheduler-codex-plugin/blob/main/LICENSE",
     "defaultPrompt": [
-      "Erstelle Statusberichte fuer meine TPG-Projekte.",
-      "Starte den TPG Statusbericht im Codex Browser.",
-      "Bereite CRM-Statusentwuerfe fuer meine Projekte vor."
+      "Create status reports for my TPG projects.",
+      "Start the TPG status reporting workflow in the Codex Browser.",
+      "Prepare CRM status drafts for my projects."
     ],
     "brandColor": "#2563EB"
   }
