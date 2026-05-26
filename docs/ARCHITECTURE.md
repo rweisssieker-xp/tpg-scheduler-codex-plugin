@@ -36,6 +36,15 @@ The plugin separates browser workflow guidance from deterministic project intell
 - escalation packs
 - trust contracts
 - safe writeback simulation
+- evidence gap detection
+- executive question generation
+- decision option scoring
+- portfolio constraint and dependency intelligence
+- commitment tracking
+- narrative drift detection
+- governance replay and PMO policy simulation
+- report quality benchmarking
+- human confirmation analytics
 
 ## Safety Boundaries
 

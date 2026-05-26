@@ -18,6 +18,18 @@ TPG-Scheduler-Codex-Plugin is a Codex plugin for confirmation-gated Dynamics 365
 - No-Surprise Forecast: flags likely escalation and silent risk signals before the next reporting cycle.
 - AI Escalation Pack: prepares evidence-backed escalation packets with impact, options, and required decisions.
 - Trust Contract: exposes evidence sources, completeness, safety rules, and confirmation requirements.
+- Evidence Gap Detector: identifies missing proof needed to make a status report decision-ready.
+- Executive Question Generator: creates steering questions for CIO/CEO review.
+- Decision Option Scoring: ranks alternatives by risk reduction, time gain, and effort.
+- Portfolio Constraint Radar: finds shared vendor, dependency, and owner constraints across projects.
+- Commitment Tracker: turns sponsor actions and decisions into follow-up commitments.
+- Risk Narrative Drift: detects recurring risks that were reworded instead of resolved.
+- Escalation Readiness Score: checks whether problem, owner, decision, and options are escalation-ready.
+- Governance Replay: reviews prior snapshots to show when warning signals first appeared.
+- PMO Policy Simulator: tests governance policies against current project data.
+- Cross-Project Dependency Intelligence: detects shared dependencies with active risk.
+- Report Quality Benchmark: compares project status quality across the portfolio.
+- Human Confirmation Analytics: measures accepted, edited, and rejected AI suggestions.
 
 ## Repository Layout
 

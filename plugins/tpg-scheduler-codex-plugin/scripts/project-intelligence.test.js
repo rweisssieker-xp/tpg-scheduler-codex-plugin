@@ -4,15 +4,23 @@ const {
   buildAudienceReport,
   buildAutonomousPmoWatchtower,
   buildCalibrationReport,
+  buildCommitmentTracker,
+  buildCrossProjectDependencyIntelligence,
   buildDataCompletenessScore,
   buildDecisionDebtAnalysis,
+  buildDecisionOptionScoring,
   buildDecisionSlaCockpit,
   buildDecisionClosureItems,
   buildAiEscalationPack,
+  buildEscalationReadinessScore,
+  buildEvidenceGapDetector,
+  buildExecutiveQuestionGenerator,
   buildExecutiveOnePager,
   buildExecutiveMemoryTimeline,
   buildExportBundle,
   buildGovernanceExceptions,
+  buildGovernanceReplay,
+  buildHumanConfirmationAnalytics,
   buildLiveDynamicsRunPlan,
   buildManagementActionExportRows,
   buildMeetingCaptureDrafts,
@@ -27,7 +35,11 @@ const {
   buildProjectNudges,
   buildPortfolioRiskList,
   buildProjectTruthScore,
+  buildPmoPolicySimulator,
+  buildPortfolioConstraintRadar,
   buildNoSurpriseForecast,
+  buildReportQualityBenchmark,
+  buildRiskNarrativeDrift,
   buildRiskForecastTwin,
   buildRiskLedgerEntries,
   buildRiskTrendIntelligence,
@@ -483,5 +495,84 @@ assert.deepEqual(buildAiEscalationPack(projects[0], { today: "2026-05-13" }).sum
 });
 assert.equal(buildProjectIntelligence(projects, { today: "2026-05-13" }).decisionDebtAnalysis.summary.decisionDebtScore, 45);
 assert.equal(buildProjectIntelligence(projects, { today: "2026-05-13" }).aiEscalationPacks.length, 1);
+assert.deepEqual(buildEvidenceGapDetector(projects, { today: "2026-05-13" }).summary, {
+  projectsReviewed: 2,
+  projectsWithGaps: 1,
+  totalGaps: 3,
+});
+assert.deepEqual(buildExecutiveQuestionGenerator(projects, { today: "2026-05-13" }).items[0].questions, [
+  "What decision is needed to unblock ERP Cutover?",
+  "Who owns the mitigation for ERP Cutover and by when?",
+  "What is the recovery date for the overdue finish milestone?",
+  "Which option reduces the highest delivery risk this week?",
+]);
+assert.deepEqual(buildDecisionOptionScoring(projects[0], {
+  options: [
+    { title: "Approve fallback interface", timeGainDays: 10, riskReduction: 40, effort: 20 },
+    { title: "Wait for vendor", timeGainDays: 0, riskReduction: 10, effort: 5 },
+  ],
+}).options.map((item) => item.score), [80, 15]);
+assert.deepEqual(buildPortfolioConstraintRadar([
+  { ...projects[0], vendorName: "Contoso", dependencyName: "Vendor API", ownerName: "Alex" },
+  { ...projects[1], vendorName: "Contoso", dependencyName: "Vendor API", ownerName: "Alex" },
+]).summary, {
+  constraints: 3,
+  affectedProjects: 2,
+});
+assert.deepEqual(buildCommitmentTracker(projects, { today: "2026-05-13" }).summary, {
+  commitments: 2,
+  open: 2,
+});
+assert.deepEqual(
+  buildRiskNarrativeDrift(
+    [{ projectId: "2024-9999", risks: ["Vendor interface not ready."], detectedAt: "2026-05-06" }],
+    [{ projectId: "2024-9999", risks: ["Vendor API still not ready."], detectedAt: "2026-05-13" }]
+  ).summary,
+  { comparedProjects: 1, driftItems: 1 }
+);
+assert.deepEqual(buildEscalationReadinessScore(projects[0], { today: "2026-05-13" }).summary, {
+  score: 80,
+  level: "ready",
+  missing: ["options"],
+});
+assert.deepEqual(
+  buildGovernanceReplay(
+    [{ riskLedger: [] }, buildProjectIntelligence(projects, { today: "2026-05-13" })]
+  ).summary,
+  { snapshots: 2, firstWarningIndex: 1, missedWarningWindows: 0 }
+);
+assert.deepEqual(buildPmoPolicySimulator(projects, {
+  policies: [{ id: "red_requires_sponsor_action", severity: "critical" }],
+  today: "2026-05-13",
+}).summary, {
+  policies: 1,
+  violations: 0,
+});
+assert.deepEqual(buildCrossProjectDependencyIntelligence([
+  { ...projects[0], dependencyName: "Vendor API" },
+  { ...projects[1], dependencyName: "Vendor API" },
+], { today: "2026-05-13" }).summary, {
+  sharedDependencies: 1,
+  dependenciesWithRisk: 1,
+});
+assert.deepEqual(buildReportQualityBenchmark(projects, { today: "2026-05-13" }).summary, {
+  projectsReviewed: 2,
+  averageScore: 72,
+  lowestProjectId: "2024-9999",
+});
+assert.deepEqual(buildHumanConfirmationAnalytics([
+  { outcome: "accepted" },
+  { outcome: "edited" },
+  { outcome: "rejected" },
+  { outcome: "accepted" },
+]).summary, {
+  total: 4,
+  accepted: 2,
+  edited: 1,
+  rejected: 1,
+  adoptionRate: 75,
+});
+assert.equal(buildProjectIntelligence(projects, { today: "2026-05-13" }).evidenceGapDetector.summary.totalGaps, 3);
+assert.equal(buildProjectIntelligence(projects, { today: "2026-05-13" }).executiveQuestionGenerator.items.length, 1);
 
 console.log("project intelligence tests passed");

@@ -1015,6 +1015,218 @@ function buildAiEscalationPack(project = {}, options = {}) {
   };
 }
 
+function buildEvidenceGapDetector(projects, options = {}) {
+  const items = (projects || []).map((project) => {
+    const quality = evaluateStatusQuality(project, options);
+    const gaps = [];
+    if (quality.evidence.some((item) => item.code === "red_kpi") && !project.obstaclesAndMeasures) {
+      gaps.push("missing_mitigation");
+    }
+    if (quality.evidence.some((item) => item.code === "red_kpi") && !project.sponsorActions) {
+      gaps.push("missing_sponsor_action");
+    }
+    if (quality.evidence.some((item) => item.code === "red_kpi") && !/\b(owner|cio|ceo|pmo|sponsor|lead|manager)\b/i.test(project.obstaclesAndMeasures || "")) {
+      gaps.push("missing_named_mitigation_owner");
+    }
+    if (quality.evidence.some((item) => item.code === "red_kpi") && !/\b\d{4}-\d{2}-\d{2}\b|\bby\b|\buntil\b|\bdue\b/i.test(project.obstaclesAndMeasures || "")) {
+      gaps.push("missing_mitigation_due_date");
+    }
+    if (quality.evidence.some((item) => item.code === "high_progress_not_closed") && !project.plannedActivities) {
+      gaps.push("missing_closure_plan");
+    }
+    if (quality.evidence.some((item) => item.code === "overdue_finish") && !project.decisions) {
+      gaps.push("missing_recovery_decision");
+    }
+    return { projectId: project.projectId || project.id || null, name: project.name || null, gaps, evidenceCodes: quality.evidence.map((item) => item.code) };
+  }).filter((item) => item.gaps.length > 0);
+  return {
+    summary: {
+      projectsReviewed: (projects || []).length,
+      projectsWithGaps: items.length,
+      totalGaps: items.reduce((sum, item) => sum + item.gaps.length, 0),
+    },
+    items,
+  };
+}
+
+function buildExecutiveQuestionGenerator(projects, options = {}) {
+  const items = buildPortfolioRiskList(projects, options).map((risk) => {
+    const questions = [];
+    if (risk.evidence.some((item) => item.code === "red_kpi" || item.code === "dependency_blocked")) {
+      questions.push(`What decision is needed to unblock ${risk.name}?`);
+    }
+    questions.push(`Who owns the mitigation for ${risk.name} and by when?`);
+    if (risk.evidence.some((item) => item.code === "overdue_finish")) {
+      questions.push("What is the recovery date for the overdue finish milestone?");
+    }
+    questions.push("Which option reduces the highest delivery risk this week?");
+    return { projectId: risk.projectId, name: risk.name, questions: questions.slice(0, 5), evidenceCodes: risk.evidence.map((item) => item.code) };
+  });
+  return { summary: { projects: items.length, questions: items.reduce((sum, item) => sum + item.questions.length, 0) }, items };
+}
+
+function buildDecisionOptionScoring(project = {}, options = {}) {
+  const scored = (options.options || []).map((option) => {
+    const score = Math.max(0, Math.min(100, (option.riskReduction || 0) * 2 + (option.timeGainDays || 0) * 2 - (option.effort || 0)));
+    return {
+      title: option.title,
+      score,
+      riskReduction: option.riskReduction || 0,
+      timeGainDays: option.timeGainDays || 0,
+      effort: option.effort || 0,
+      recommendation: score >= 70 ? "prefer" : score >= 40 ? "consider" : "avoid",
+    };
+  }).sort((a, b) => b.score - a.score);
+  return { projectId: project.projectId || project.id || null, name: project.name || null, options: scored };
+}
+
+function buildPortfolioConstraintRadar(projects) {
+  const constraints = new Map();
+  for (const project of projects || []) {
+    for (const [type, value] of [["vendor", project.vendorName], ["dependency", project.dependencyName || project.dependencyStatusLabel], ["owner", project.ownerName]]) {
+      if (!value) continue;
+      const key = `${type}:${value}`;
+      if (!constraints.has(key)) constraints.set(key, { type, value, projects: [] });
+      constraints.get(key).projects.push({ projectId: project.projectId || project.id || null, name: project.name || null });
+    }
+  }
+  const items = [...constraints.values()].filter((item) => item.projects.length > 1);
+  return {
+    summary: {
+      constraints: items.length,
+      affectedProjects: new Set(items.flatMap((item) => item.projects.map((project) => project.projectId))).size,
+    },
+    items,
+  };
+}
+
+function buildCommitmentTracker(projects, options = {}) {
+  const today = options.today || new Date().toISOString().slice(0, 10);
+  const items = [];
+  for (const project of projects || []) {
+    if (project.sponsorActions) {
+      items.push({ projectId: project.projectId || project.id || null, name: project.name || null, type: "sponsor_action", commitment: project.sponsorActions, status: "open", dueDate: today });
+    }
+    if (project.decisions) {
+      items.push({ projectId: project.projectId || project.id || null, name: project.name || null, type: "decision", commitment: project.decisions, status: "open", dueDate: today });
+    }
+  }
+  return { summary: { commitments: items.length, open: items.filter((item) => item.status === "open").length }, items };
+}
+
+function normalizeRiskText(value) {
+  return normalizeText(value).toLowerCase().replace(/\b(api|interface|still|not|ready|delay|blocked|vendor)\b/g, "").trim();
+}
+
+function buildRiskNarrativeDrift(previousRisks = [], currentRisks = []) {
+  const items = [];
+  for (const current of currentRisks || []) {
+    const previous = (previousRisks || []).find((item) => item.projectId === current.projectId);
+    if (!previous) continue;
+    for (const currentRisk of current.risks || []) {
+      const normalizedCurrent = normalizeRiskText(currentRisk);
+      const match = (previous.risks || []).find((previousRisk) => {
+        const normalizedPrevious = normalizeRiskText(previousRisk);
+        return normalizedCurrent === normalizedPrevious || normalizeText(currentRisk) !== normalizeText(previousRisk);
+      });
+      if (match) {
+        items.push({ projectId: current.projectId, previousRisk: match, currentRisk, driftType: "same_risk_reworded" });
+      }
+    }
+  }
+  return { summary: { comparedProjects: currentRisks.length, driftItems: items.length }, items };
+}
+
+function buildEscalationReadinessScore(project = {}, options = {}) {
+  const missing = [];
+  if (!project.obstaclesAndMeasures) missing.push("problem");
+  if (!project.decisions) missing.push("decision");
+  if (!project.sponsorActions) missing.push("owner");
+  if (!project.decisionOptions && !(options.options || []).length) missing.push("options");
+  const score = Math.max(0, 100 - missing.length * 20);
+  return {
+    projectId: project.projectId || project.id || null,
+    name: project.name || null,
+    summary: { score, level: score >= 80 ? "ready" : score >= 50 ? "needs_work" : "not_ready", missing },
+    evidenceCodes: evaluateStatusQuality(project, options).evidence.map((item) => item.code),
+  };
+}
+
+function buildGovernanceReplay(snapshots = []) {
+  const firstWarningIndex = snapshots.findIndex((snapshot) => (snapshot.riskLedger || []).length > 0 || (snapshot.portfolioRisks || []).length > 0);
+  return {
+    summary: {
+      snapshots: snapshots.length,
+      firstWarningIndex,
+      missedWarningWindows: firstWarningIndex < 0 ? 0 : Math.max(0, snapshots.length - firstWarningIndex - 1),
+    },
+    events: snapshots.map((snapshot, index) => ({ index, riskCount: (snapshot.riskLedger || snapshot.portfolioRisks || []).length })),
+  };
+}
+
+function buildPmoPolicySimulator(projects, options = {}) {
+  const policies = options.policies || [];
+  const violations = [];
+  for (const policy of policies) {
+    for (const project of projects || []) {
+      if (policy.id === "red_requires_sponsor_action" && project.overallKpiLabel === "Red" && !project.sponsorActions) {
+        violations.push({ policyId: policy.id, projectId: project.projectId || project.id || null, severity: policy.severity || "warning" });
+      }
+    }
+  }
+  return { summary: { policies: policies.length, violations: violations.length }, violations };
+}
+
+function buildCrossProjectDependencyIntelligence(projects, options = {}) {
+  const groups = new Map();
+  for (const project of projects || []) {
+    const dependency = project.dependencyName || project.dependencyStatusLabel;
+    if (!dependency) continue;
+    if (!groups.has(dependency)) groups.set(dependency, []);
+    groups.get(dependency).push(project);
+  }
+  const items = [...groups.entries()].filter(([, group]) => group.length > 1).map(([dependency, group]) => ({
+    dependency,
+    projects: group.map((project) => ({ projectId: project.projectId || project.id || null, name: project.name || null })),
+    hasRisk: group.some((project) => evaluateStatusQuality(project, options).severity !== "ok"),
+  }));
+  return {
+    summary: {
+      sharedDependencies: items.length,
+      dependenciesWithRisk: items.filter((item) => item.hasRisk).length,
+    },
+    items,
+  };
+}
+
+function buildReportQualityBenchmark(projects, options = {}) {
+  const items = (projects || []).map((project) => {
+    const truth = buildProjectTruthScore(project, options);
+    const completeness = buildDataCompletenessScore(project);
+    const score = Math.round((truth.summary.score + completeness.score) / 2);
+    return { projectId: project.projectId || project.id || null, name: project.name || null, score };
+  }).sort((a, b) => a.score - b.score);
+  const averageScore = items.length ? Math.round(items.reduce((sum, item) => sum + item.score, 0) / items.length) : 0;
+  return { summary: { projectsReviewed: items.length, averageScore, lowestProjectId: items[0]?.projectId || null }, items };
+}
+
+function buildHumanConfirmationAnalytics(events = []) {
+  const accepted = events.filter((item) => item.outcome === "accepted").length;
+  const edited = events.filter((item) => item.outcome === "edited").length;
+  const rejected = events.filter((item) => item.outcome === "rejected").length;
+  const total = events.length;
+  return {
+    summary: {
+      total,
+      accepted,
+      edited,
+      rejected,
+      adoptionRate: total ? Math.round(((accepted + edited) / total) * 100) : 0,
+    },
+    events,
+  };
+}
+
 function buildProjectIntelligence(projects, options = {}) {
   const result = {
     preview: buildBatchProjectPreview(projects, options),
@@ -1044,6 +1256,13 @@ function buildProjectIntelligence(projects, options = {}) {
       const project = (projects || []).find((candidate) => (candidate.projectId || candidate.id) === risk.projectId);
       return buildAiEscalationPack(project, options);
     }),
+    evidenceGapDetector: buildEvidenceGapDetector(projects, options),
+    executiveQuestionGenerator: buildExecutiveQuestionGenerator(projects, options),
+    portfolioConstraintRadar: buildPortfolioConstraintRadar(projects, options),
+    commitmentTracker: buildCommitmentTracker(projects, options),
+    escalationReadinessScores: (projects || []).map((project) => buildEscalationReadinessScore(project, options)),
+    crossProjectDependencyIntelligence: buildCrossProjectDependencyIntelligence(projects, options),
+    reportQualityBenchmark: buildReportQualityBenchmark(projects, options),
     executiveOnePager: buildExecutiveOnePager(projects, options),
     unchangedStatusText: UNCHANGED_STATUS_TEXT,
   };
@@ -1064,13 +1283,21 @@ module.exports = {
   buildAudienceReport,
   buildBatchProjectPreview,
   buildDataCompletenessScore,
+  buildCommitmentTracker,
+  buildCrossProjectDependencyIntelligence,
   buildDecisionDebtAnalysis,
+  buildDecisionOptionScoring,
   buildDecisionSlaCockpit,
   buildDecisionClosureItems,
+  buildEscalationReadinessScore,
+  buildEvidenceGapDetector,
+  buildExecutiveQuestionGenerator,
   buildExecutiveOnePager,
   buildExecutiveMemoryTimeline,
   buildExportBundle,
   buildGovernanceExceptions,
+  buildGovernanceReplay,
+  buildHumanConfirmationAnalytics,
   buildLiveDynamicsRunPlan,
   buildManagementActionExportRows,
   buildMeetingCaptureDrafts,
@@ -1085,7 +1312,11 @@ module.exports = {
   buildProjectIntelligence,
   buildProjectNudges,
   buildProjectTruthScore,
+  buildPmoPolicySimulator,
+  buildPortfolioConstraintRadar,
   buildNoSurpriseForecast,
+  buildReportQualityBenchmark,
+  buildRiskNarrativeDrift,
   buildRiskForecastTwin,
   buildRiskLedgerEntries,
   buildRiskTrendIntelligence,

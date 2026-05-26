@@ -208,6 +208,18 @@ If Dynamics asks for login, pause and let the user complete Microsoft login manu
 - `buildSponsorActionIntelligence` turns steering agenda items into concrete sponsor actions with owner, due date, priority, and evidence.
 - `buildNoSurpriseForecast` watches all projects for likely escalation and silent risk signals before the next status cycle.
 - `buildAiEscalationPack` builds a reviewed escalation packet with problem, impact, decision required, options, and evidence codes.
+- `buildEvidenceGapDetector` identifies missing proof, owners, due dates, and closure evidence.
+- `buildExecutiveQuestionGenerator` creates CIO/CEO steering questions for critical projects.
+- `buildDecisionOptionScoring` ranks decision options by risk reduction, time gain, and effort.
+- `buildPortfolioConstraintRadar` finds shared vendor, dependency, and owner constraints.
+- `buildCommitmentTracker` extracts sponsor actions and decisions into open commitments.
+- `buildRiskNarrativeDrift` detects recurring risks that were reworded across snapshots.
+- `buildEscalationReadinessScore` scores whether an escalation is decision-ready.
+- `buildGovernanceReplay` shows when warning signals first appeared across intelligence snapshots.
+- `buildPmoPolicySimulator` evaluates proposed PMO policies against current project data.
+- `buildCrossProjectDependencyIntelligence` detects shared dependencies with active risk.
+- `buildReportQualityBenchmark` compares status-report quality across projects.
+- `buildHumanConfirmationAnalytics` summarizes accepted, edited, and rejected AI suggestions.
 4. For every matching project:
    - open the project record by double-clicking the project name gridcell from the current visible DOM snapshot
    - or open the record URL built from `buildDynamicsProjectRecordUrl(projectId)` when the candidate came from Dataverse
