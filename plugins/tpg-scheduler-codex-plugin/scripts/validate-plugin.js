@@ -19,8 +19,13 @@ function assertFile(relativePath) {
 
 const plugin = readJson(".codex-plugin/plugin.json");
 const pkg = readJson("package.json");
+const rootPlugin = JSON.parse(fs.readFileSync(path.join(repoRoot, ".codex-plugin", "plugin.json"), "utf8"));
 
 assert.equal(plugin.name, "tpg-scheduler-codex-plugin");
+assert.equal(rootPlugin.name, plugin.name);
+assert.equal(rootPlugin.skills, "plugins/tpg-scheduler-codex-plugin/skills/");
+assert.equal(rootPlugin.mcpServers, "plugins/tpg-scheduler-codex-plugin/.mcp.json");
+assert.equal(rootPlugin.apps, "plugins/tpg-scheduler-codex-plugin/.app.json");
 assert.equal(plugin.interface.displayName, "TPG-Scheduler-Codex-Plugin");
 assert.match(plugin.repository, /^https:\/\/github\.com\/rweisssieker-xp\/tpg-scheduler-codex-plugin/);
 assert.equal(pkg.name, plugin.name);

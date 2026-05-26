@@ -23,6 +23,7 @@ npm run validate
 
 The validation script checks:
 
+- The repository root contains `.codex-plugin/plugin.json` for plugin scanners that evaluate the repo root.
 - Plugin and package names match.
 - Repository metadata points to GitHub.
 - Skill, app, and MCP paths exist.
