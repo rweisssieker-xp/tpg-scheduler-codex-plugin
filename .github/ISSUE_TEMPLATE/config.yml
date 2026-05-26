@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Security policy
+    url: https://github.com/rweisssieker-xp/tpg-scheduler-codex-plugin/blob/main/SECURITY.md
+    about: Please follow the security policy for sensitive reports.

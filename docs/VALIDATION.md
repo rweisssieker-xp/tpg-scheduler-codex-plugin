@@ -14,6 +14,7 @@ This runs:
 - Project intelligence tests.
 - CLI behavior tests.
 - Plugin metadata and documentation validation.
+- The same validation flow used by GitHub Actions CI.
 
 Run only plugin validation:
 
@@ -31,3 +32,14 @@ The validation script checks:
 - The primary skill is named `status-report`.
 - Critical CRM write-safety language remains present.
 - Public docs use en-US wording, except for the fixed German CRM `kv` phrase where explicitly documented.
+
+## GitHub Actions
+
+The repository includes `.github/workflows/ci.yml`. CI runs on pushes and pull requests to `main` and executes:
+
+```bash
+cd plugins/tpg-scheduler-codex-plugin
+npm ci
+npm run validate
+npm test
+```

@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  plugin-validation:
+    name: Plugin validation
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: plugins/tpg-scheduler-codex-plugin
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: plugins/tpg-scheduler-codex-plugin/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Validate plugin
+        run: npm run validate
+
+      - name: Test
+        run: npm test
