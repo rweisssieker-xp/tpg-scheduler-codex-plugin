@@ -1,0 +1,6 @@
+node_modules/
+plugins/*/.browser-profile/
+plugins/*/logs/
+.agents/
+.codex-orchestrator/
+.playwright-mcp/

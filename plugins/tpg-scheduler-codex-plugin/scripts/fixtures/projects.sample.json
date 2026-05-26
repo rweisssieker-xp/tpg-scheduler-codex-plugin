@@ -1,0 +1,28 @@
+[
+  {
+    "id": "11111111-1111-1111-1111-111111111111",
+    "projectId": "2024-9999",
+    "name": "ERP Cutover",
+    "projectStatusLabel": "In Progress",
+    "overallKpiLabel": "Red",
+    "progress": 95,
+    "finish": "2026-05-01",
+    "lastStatusUpdate": "Deployment blocked by vendor decision.",
+    "currentStatusText": "Vendor delay blocks cutover.",
+    "obstaclesAndMeasures": "Vendor interface not ready.",
+    "decisions": "Approve fallback interface.",
+    "sponsorActions": "CIO to escalate vendor."
+  },
+  {
+    "id": "22222222-2222-2222-2222-222222222222",
+    "projectId": "2024-1000",
+    "name": "CRM Rollout",
+    "projectStatusLabel": "In Progress",
+    "overallKpiLabel": "Green",
+    "progress": 40,
+    "finish": "2026-06-30",
+    "lastStatusUpdate": "Workshops completed.",
+    "currentStatusText": "Workshops completed.",
+    "plannedActivities": "Pilot next week."
+  }
+]

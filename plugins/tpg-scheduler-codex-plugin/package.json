@@ -1,0 +1,12 @@
+{
+  "name": "tpg-scheduler-codex-plugin",
+  "version": "0.1.0",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "statusbericht:help": "node ./scripts/statusbericht.js --help",
+    "statusbericht:dataverse": "node ./scripts/statusbericht.js --dataverse",
+    "statusbericht:intelligence": "node ./scripts/statusbericht.js --intelligence ./scripts/fixtures/projects.sample.json",
+    "test": "node --check ./scripts/statusbericht.js && node ./scripts/statusbericht.test.js && node ./scripts/project-intelligence.test.js && node ./scripts/statusbericht.cli.test.js"
+  }
+}

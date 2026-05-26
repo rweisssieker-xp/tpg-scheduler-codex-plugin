@@ -1,0 +1,43 @@
+{
+  "name": "tpg-scheduler-codex-plugin",
+  "version": "0.1.0",
+  "description": "Codex in-app browser assistant for confirmation-gated TPG Dynamics 365 project status reports.",
+  "author": {
+    "name": "RW",
+    "email": "noreply@example.com",
+    "url": "https://posp365.crm4.dynamics.com/"
+  },
+  "homepage": "https://posp365.crm4.dynamics.com/",
+  "repository": "local",
+  "license": "UNLICENSED",
+  "keywords": [
+    "dynamics-365",
+    "project-status",
+    "tpg",
+    "browser-automation"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "apps": "./.app.json",
+  "interface": {
+    "displayName": "TPG-Scheduler-Codex-Plugin",
+    "shortDescription": "Drafts Dynamics 365 status reports for projects you lead.",
+    "longDescription": "A confirmation-gated Codex in-app Browser assistant for Dynamics 365 TPG projects. It uses the Browser plugin, not a separate browser process, to open active candidate projects from the Dynamics view, keep only records where Project Manager is Reiner Weisssieker, ask for a per-project status input, map kv to the fixed unchanged-status sentence, stage a Quick Create Status Update, and wait for explicit confirmation before saving.",
+    "developerName": "RW",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Codex In-App Browser Automation",
+      "Confirmation-Gated Write"
+    ],
+    "websiteURL": "https://posp365.crm4.dynamics.com/",
+    "privacyPolicyURL": "https://posp365.crm4.dynamics.com/",
+    "termsOfServiceURL": "https://posp365.crm4.dynamics.com/",
+    "defaultPrompt": [
+      "Erstelle Statusberichte fuer meine TPG-Projekte.",
+      "Starte den TPG Statusbericht im Codex Browser.",
+      "Bereite CRM-Statusentwuerfe fuer meine Projekte vor."
+    ],
+    "brandColor": "#2563EB"
+  }
+}
