@@ -28,6 +28,8 @@ assert.match(output, /needs_attention/);
 assert.match(output, /## Steering Agenda/);
 assert.match(output, /## Evidence/);
 assert.match(output, /## Nudges/);
+assert.match(output, /## Maximum USPs/);
+assert.match(output, /PMO Safety Radar/);
 
 const jsonOutput = execFileSync(
   process.execPath,
@@ -41,6 +43,8 @@ assert.equal(parsed.steeringAgenda.length, 1);
 assert.equal(parsed.decisionClosureItems.length, 1);
 assert.equal(parsed.riskLedger.length, 3);
 assert.equal(parsed.nudges.length, 1);
+assert.equal(parsed.maximumUsps.summary.uspCount, 12);
+assert.equal(parsed.maximumUsps.usps.find((usp) => usp.id === "executive_no_surprise_brief").implementationStatus, "implemented");
 
 const exportsOutput = execFileSync(
   process.execPath,

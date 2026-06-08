@@ -2,6 +2,8 @@
 
 ## 0.1.0 - 2026-06-08
 
+- Added Maximum USP Layer with 12 implemented advisory differentiators exposed in project intelligence JSON.
+- Added schema, sample, CLI markdown, tests, docs, and skill guidance for `maximumUsps`.
 - Added Status API JSON schemas for envelope, writeback queue, create plan, audit event, and duplicate check contracts.
 - Added synthetic Status API Max Layer example payloads for queue, duplicate, create plan, and audit event consumers.
 - Expanded live Dynamics runbook with metadata discovery, permission probe, status history, duplicate check, create-plan confirmation, and audit validation.

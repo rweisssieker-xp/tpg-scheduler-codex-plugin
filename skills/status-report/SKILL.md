@@ -18,6 +18,7 @@ For PMO reporting, portfolio management packs, the 12-report PMO suite, or DOCX/
 - For monthly runs, prepare one Status Update per active verified project and report month with `--monthly-status-plan`.
 - Use the Status API Max Layer for status history, duplicate checks, idempotency, writeback queues, metadata discovery, permission probes, audit events, and confirmation-gated Dataverse create plans.
 - Show project safety level and PMO control findings before collecting or staging a status update.
+- When generating intelligence JSON, include and explain `maximumUsps` if the user asks for USPs, differentiation, PMO/CIO/CEO value, or product positioning.
 - Treat `kv` as the configured unchanged-status shortcut.
 - Never save, submit, send, delete, change ownership, or change CRM state without explicit user confirmation.
 - Treat Email Status Update as a separate high-risk setting that must be reviewed before any save.
@@ -42,5 +43,6 @@ Before staging any CRM draft, show:
 - project-manager verification result
 - safety level and writeback risk
 - PMO intervention recommendation
+- maximum USP signals when relevant
 - required evidence gaps
 - exact status text and email setting that would be staged

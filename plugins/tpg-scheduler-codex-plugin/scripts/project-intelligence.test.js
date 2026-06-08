@@ -23,6 +23,7 @@ const {
   buildHumanConfirmationAnalytics,
   buildLiveDynamicsRunPlan,
   buildManagementActionExportRows,
+  buildMaximumUspLayer,
   buildMeetingCaptureDrafts,
   buildMeetingToDynamicsPlan,
   buildNudgeDrafts,
@@ -61,6 +62,7 @@ const {
   detectStatusDelta,
   extractDecisionRadar,
   evaluateStatusQuality,
+  MAXIMUM_USP_IDS,
 } = require("./lib/project-intelligence");
 
 const projects = [
@@ -617,6 +619,24 @@ assert.equal(safetySuite.summary.criticalProjects >= 1, true);
 assert.equal(safetySuite.summary.ceoAttention >= 1, true);
 assert.equal(safetySuite.topFindings.length > 0, true);
 assert.equal(buildProjectIntelligence(projects, { today: "2026-05-13" }).projectSafetyGates.summary.projectsReviewed, 2);
+
+const maximumUsps = buildMaximumUspLayer(projects, { today: "2026-05-13" });
+assert.equal(MAXIMUM_USP_IDS.length, 12);
+assert.equal(maximumUsps.layerType, "maximum_usps");
+assert.equal(maximumUsps.summary.uspCount, 12);
+assert.equal(maximumUsps.summary.implemented, 12);
+assert.equal(maximumUsps.summary.bestMvpUsp, "pmo_safety_radar");
+assert.equal(maximumUsps.summary.boldFollowUpUsp, "executive_no_surprise_brief");
+assert.deepEqual(maximumUsps.usps.map((usp) => usp.id), MAXIMUM_USP_IDS);
+assert.equal(maximumUsps.usps.every((usp) => usp.implementationStatus === "implemented"), true);
+assert.equal(maximumUsps.usps.every((usp) => usp.advisoryOnly === true), true);
+assert.equal(maximumUsps.usps.every((usp) => usp.technicalMechanism && usp.requiredData.length && usp.proofMetric.name), true);
+assert.equal(maximumUsps.usps.find((usp) => usp.id === "status_truth_audit").runtimeSignals.lowTruthProjects >= 1, true);
+assert.equal(maximumUsps.usps.find((usp) => usp.id === "decision_debt_ledger").runtimeSignals.decisionDebtSummary.openDecisions, 1);
+assert.equal(maximumUsps.usps.find((usp) => usp.id === "evidence_backed_pmo_reports").runtimeSignals.reportCount, 12);
+assert.equal(maximumUsps.usps.find((usp) => usp.id === "crm_writeback_simulation").runtimeSignals.simulationsWithAuditPreview, 2);
+const intelligenceWithUsps = buildProjectIntelligence(projects, { today: "2026-05-13" });
+assert.equal(intelligenceWithUsps.maximumUsps.summary.uspCount, 12);
 
 const expectedPmoCheckIds = [
   "steering_readiness",

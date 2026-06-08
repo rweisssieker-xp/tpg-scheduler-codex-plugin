@@ -12,6 +12,7 @@ Initial public release for confirmation-gated Dynamics 365 TPG project status re
 - Status API Max Layer with JSON schemas, synthetic examples, audit events, writeback queues, and Dataverse error mapping.
 - Release-readiness checks and machine-readable release evidence manifest.
 - Anonymized live Dynamics evidence note for read-only Dataverse access and form detection.
+- Post-release `main` adds the Maximum USP Layer with 12 implemented advisory differentiators in `maximumUsps`.
 
 ## Safety
 

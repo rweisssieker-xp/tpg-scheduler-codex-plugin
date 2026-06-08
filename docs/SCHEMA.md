@@ -15,6 +15,7 @@ The plugin exposes stable JSON contracts for offline reports and downstream PMO 
 
 The top-level project intelligence schema also includes the filtered `pmoStatusReport` contract.
 The PMO report suite adds uniform report objects with `reportType`, `title`, `generatedAt`, `filters`, `summary`, `sections`, `rows`, `evidence`, and `dataGaps`.
+The Maximum USP layer adds `maximumUsps` with exactly 12 implemented advisory differentiators, each carrying implementation status, proof metric, required data, trust controls, and runtime signals.
 The preferred PMO input envelope is `tpg_pmo_project_export` with `source: "dataverse_web_api"` and a `projects` array; CLI commands also accept the bare project array for existing offline integrations.
 
 DOCX and XLSX exports serialize the same `pmoStatusReport` object; the schema therefore remains the source contract for file-generation consumers.

@@ -3,7 +3,7 @@
   "$id": "https://github.com/rweisssieker-xp/tpg-scheduler-codex-plugin/schemas/project-intelligence.schema.json",
   "title": "Project Intelligence Pack",
   "type": "object",
-  "required": ["preview", "portfolioRisks", "decisionRadar", "projectSafetyGates", "pmoControlTower"],
+  "required": ["preview", "portfolioRisks", "decisionRadar", "projectSafetyGates", "pmoControlTower", "maximumUsps"],
   "additionalProperties": true,
   "properties": {
     "preview": { "type": "array" },
@@ -68,6 +68,28 @@
           "items": {
             "type": "object",
             "required": ["reportType", "title", "generatedAt", "filters", "summary", "sections", "rows", "evidence", "dataGaps"],
+            "additionalProperties": true
+          }
+        }
+      }
+    },
+    "maximumUsps": {
+      "type": "object",
+      "required": ["layerType", "summary", "usps"],
+      "additionalProperties": true,
+      "properties": {
+        "layerType": { "const": "maximum_usps" },
+        "summary": {
+          "type": "object",
+          "required": ["uspCount", "implemented", "bestMvpUsp", "boldFollowUpUsp", "safetyPosture"],
+          "additionalProperties": true
+        },
+        "usps": {
+          "type": "array",
+          "minItems": 12,
+          "items": {
+            "type": "object",
+            "required": ["id", "title", "targetUser", "painSolved", "concreteBenefit", "technicalMechanism", "requiredData", "mvpImplementation", "risksAndTrustControls", "proofMetric", "feasibility", "uspScore", "implementationStatus", "advisoryOnly"],
             "additionalProperties": true
           }
         }

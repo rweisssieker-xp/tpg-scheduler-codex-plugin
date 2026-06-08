@@ -42,6 +42,20 @@ const PMO_REPORT_TITLES = Object.freeze({
   pmo_work_queue: "PMO Work Queue Report",
   audit_writeback_safety: "Audit & Writeback Safety Report",
 });
+const MAXIMUM_USP_IDS = Object.freeze([
+  "pmo_safety_radar",
+  "executive_no_surprise_brief",
+  "status_truth_audit",
+  "monthly_writeback_guard",
+  "decision_debt_ledger",
+  "evidence_backed_pmo_reports",
+  "dependency_blast_radius",
+  "project_manager_readiness_score",
+  "cio_cfo_risk_split",
+  "audit_safe_ai_recommendation",
+  "portfolio_work_queue",
+  "crm_writeback_simulation",
+]);
 
 function buildPmoConfig(overrides = {}) {
   return { ...DEFAULT_PMO_CONFIG, ...overrides };
@@ -1948,6 +1962,312 @@ function buildPmoReportSuite(projects, options = {}) {
   };
 }
 
+function proofMetric(name, currentValue, target, status) {
+  return { name, currentValue, target, status };
+}
+
+function uspReadiness(statuses) {
+  if (statuses.includes("blocked")) return "blocked";
+  if (statuses.includes("needs_data")) return "needs_data";
+  if (statuses.includes("watch")) return "watch";
+  return "ready";
+}
+
+function buildMaximumUspLayer(projects = [], options = {}) {
+  const activeProjects = (projects || []).filter(isActiveProjectCandidate);
+  const safetySuite = buildProjectSafetyGateSuite(activeProjects, options);
+  const noSurprise = buildNoSurpriseForecast(activeProjects, options);
+  const truthScores = activeProjects.map((project) => buildProjectTruthScore(project, options));
+  const decisionDebt = buildDecisionDebtAnalysis(activeProjects, options);
+  const pmoSuite = buildPmoReportSuite(activeProjects, options);
+  const dependencyIntel = buildCrossProjectDependencyIntelligence(activeProjects, options);
+  const pmCoach = buildProjectManagerQualityCoach(activeProjects, options);
+  const budgetReport = buildPmoReport("budget_financial_risk", activeProjects, options);
+  const workQueue = buildPmoReport("pmo_work_queue", activeProjects, options);
+  const writebackReport = buildPmoReport("audit_writeback_safety", activeProjects, options);
+  const escalationPacks = buildPortfolioRiskList(activeProjects, options).map((risk) => {
+    const project = activeProjects.find((candidate) => (candidate.projectId || candidate.id) === risk.projectId);
+    return buildAiEscalationPack(project, options);
+  });
+  const trustContracts = activeProjects.map((project) => buildTrustContract(project, options));
+  const writebackSimulations = activeProjects.map((project) => buildSafeWritebackSimulationPro(project, options.draft || {}));
+  const criticalOrUnsafe = safetySuite.summary.criticalProjects + safetySuite.summary.unsafeProjects;
+  const managementAttention = safetySuite.summary.pmoAttention + safetySuite.summary.cioAttention + safetySuite.summary.ceoAttention;
+  const totalDataGaps = pmoSuite.summary.totalDataGaps;
+  const blockedWritebacks = writebackReport.summary.blockedWritebacks || 0;
+  const sharedDependencyRisks = dependencyIntel.items.filter((item) => item.hasRisk).length;
+  const lowTruthProjects = truthScores.filter((item) => item.summary.level !== "trusted").length;
+
+  const definitions = [
+    {
+      id: "pmo_safety_radar",
+      title: "PMO Safety Radar",
+      targetUser: "PMO lead",
+      painSolved: "PMO teams see red projects too late and cannot tell whether weak data, real delivery risk, or missing decisions are driving the issue.",
+      concreteBenefit: "Ranks projects by safety level and management attention before status collection or staging.",
+      technicalMechanism: "Aggregates Project Safety Gates, PMO Control Tower signals, evidence codes, and management-attention routing.",
+      requiredData: ["projectStatusLabel", "overallKpiLabel", "progress", "finish", "lastStatusUpdate", "recordUrl"],
+      whyDifferentiated: "Combines data-quality gates and delivery/governance checks instead of showing a passive traffic-light dashboard.",
+      mvpImplementation: "Expose `maximumUsps.usps[pmo_safety_radar]` from `buildProjectIntelligence` with safety counts and top findings.",
+      risksAndTrustControls: ["advisory_only", "evidence_codes_visible", "no_automatic_crm_block"],
+      proofMetric: proofMetric("critical_or_unsafe_projects_identified", criticalOrUnsafe, "All unsafe/critical projects visible before PMO review", criticalOrUnsafe ? "watch" : "ready"),
+      runtimeSignals: {
+        safetySummary: safetySuite.summary,
+        topFindings: safetySuite.topFindings.slice(0, 5),
+      },
+      feasibility: "high",
+      uspScore: 94,
+    },
+    {
+      id: "executive_no_surprise_brief",
+      title: "Executive No-Surprise Brief",
+      targetUser: "CIO and CEO",
+      painSolved: "Executives get escalations after the steering window has already been lost.",
+      concreteBenefit: "Surfaces projects likely to escalate, silent risks, and overdue decisions for the next management cycle.",
+      technicalMechanism: "Combines No-Surprise Forecast, Decision SLA Cockpit, Safety Gates, and escalation readiness.",
+      requiredData: ["overallKpiLabel", "finish", "lastStatusUpdate", "decisions", "sponsorActions", "obstaclesAndMeasures"],
+      whyDifferentiated: "Turns status data into a forward-looking exception brief, not a historical report.",
+      mvpImplementation: "Use `noSurpriseForecast.summary` and `decisionDebtAnalysis.summary` as the executive exception source.",
+      risksAndTrustControls: ["forecast_drivers_listed", "human_review_required", "no_auto_escalation"],
+      proofMetric: proofMetric("likely_escalations_detected", noSurprise.summary.likelyToEscalate, "No likely escalation hidden from executive brief", noSurprise.summary.likelyToEscalate ? "watch" : "ready"),
+      runtimeSignals: {
+        noSurpriseSummary: noSurprise.summary,
+        decisionDebtSummary: decisionDebt.summary,
+      },
+      feasibility: "high",
+      uspScore: 93,
+    },
+    {
+      id: "status_truth_audit",
+      title: "Status Truth Audit",
+      targetUser: "PMO controller",
+      painSolved: "Greenwashing, vague status text, and contradictory KPI narratives are hard to detect manually.",
+      concreteBenefit: "Flags KPI/text/progress/finish contradictions and blocks risky `kv` from being treated as harmless.",
+      technicalMechanism: "Runs status delta detection, project truth scores, and status-truth safety gates.",
+      requiredData: ["overallKpiLabel", "lastStatusUpdate", "currentStatusText", "progress", "finish", "plannedActivities"],
+      whyDifferentiated: "Audits status credibility at field level with evidence codes rather than relying on the selected KPI.",
+      mvpImplementation: "Expose low-trust projects, `kv_blocked` count, and contradiction evidence in the intelligence JSON.",
+      risksAndTrustControls: ["source_fields_visible", "false_positive_review", "project_leader_can_explain"],
+      proofMetric: proofMetric("non_trusted_statuses", lowTruthProjects, "All non-trusted statuses visible to PMO", lowTruthProjects ? "watch" : "ready"),
+      runtimeSignals: {
+        lowTruthProjects,
+        truthScores: truthScores.slice(0, 10),
+      },
+      feasibility: "high",
+      uspScore: 92,
+    },
+    {
+      id: "monthly_writeback_guard",
+      title: "Monthly Writeback Guard",
+      targetUser: "Project leader",
+      painSolved: "Monthly status updates need to be efficient, but incorrect CRM saves are high-risk.",
+      concreteBenefit: "Creates monthly writeback plans while keeping every CRM save gated by exact confirmation.",
+      technicalMechanism: "Uses duplicate checks, idempotency keys, project-manager verification, safety gates, and confirmation text.",
+      requiredData: ["projectId", "name", "recordUrl", "reportMonth", "statusText", "submittedTo"],
+      whyDifferentiated: "Supports productive monthly status work without turning the CLI into an uncontrolled CRM writer.",
+      mvpImplementation: "Use `--monthly-status-plan` and include the writeback safety gates in project intelligence.",
+      risksAndTrustControls: ["exact_confirmation_text", "email_status_update_separate_risk", "canAutoSave_false"],
+      proofMetric: proofMetric("writebacks_blocked_until_confirmation", safetySuite.projects.filter((item) => item.writebackRisk === "blocked_until_confirmation").length, "100% of CRM writes require confirmation", "ready"),
+      runtimeSignals: {
+        writebackRiskCounts: safetySuite.projects.reduce((counts, item) => {
+          counts[item.writebackRisk] = (counts[item.writebackRisk] || 0) + 1;
+          return counts;
+        }, {}),
+      },
+      feasibility: "high",
+      uspScore: 91,
+    },
+    {
+      id: "decision_debt_ledger",
+      title: "Decision Debt Ledger",
+      targetUser: "PMO lead and CIO",
+      painSolved: "Open decisions age silently and become delivery blockers without clear ownership.",
+      concreteBenefit: "Shows open, due-today, overdue, and blocked-project decisions with debt score.",
+      technicalMechanism: "Uses Decision Closure Items, Decision SLA Cockpit, and decision-debt scoring.",
+      requiredData: ["decisions", "decisionOwner", "decisionDueDate", "sponsorActions"],
+      whyDifferentiated: "Makes decision latency a measurable portfolio risk instead of free-text noise.",
+      mvpImplementation: "Expose `decisionDebtAnalysis` and the `decision_action_aging` PMO report.",
+      risksAndTrustControls: ["owner_default_visible", "sla_status_visible", "manual_closure_required"],
+      proofMetric: proofMetric("decision_debt_score", decisionDebt.summary.decisionDebtScore, "Decision debt below 40", decisionDebt.summary.decisionDebtScore >= 40 ? "watch" : "ready"),
+      runtimeSignals: {
+        decisionDebtSummary: decisionDebt.summary,
+        topItems: decisionDebt.items.slice(0, 10),
+      },
+      feasibility: "high",
+      uspScore: 90,
+    },
+    {
+      id: "evidence_backed_pmo_reports",
+      title: "Evidence-Backed PMO Reports",
+      targetUser: "PMO analyst and steering committee",
+      painSolved: "Management reports often hide missing source data or fill gaps with manually invented assumptions.",
+      concreteBenefit: "Every report carries evidence and data gaps so steering packs remain auditable.",
+      technicalMechanism: "Uniform PMO report envelopes with `evidence[]`, `dataGaps[]`, filters, sections, rows, DOCX, and XLSX outputs.",
+      requiredData: ["real Dataverse export", "recordUrl", "status fields", "optional budget/resource/snapshot fields"],
+      whyDifferentiated: "The report contract exposes missing data explicitly instead of silently degrading report quality.",
+      mvpImplementation: "Use `buildPmoReportSuite` and surface total data gaps in `maximumUsps`.",
+      risksAndTrustControls: ["no_mock_productive_data", "data_gaps_not_fake_values", "real_export_required"],
+      proofMetric: proofMetric("report_data_gaps_visible", totalDataGaps, "All missing optional report fields listed as data gaps", "ready"),
+      runtimeSignals: {
+        reportCount: pmoSuite.summary.reportCount,
+        totalDataGaps,
+        reportTypes: pmoSuite.summary.reportTypes,
+      },
+      feasibility: "high",
+      uspScore: 89,
+    },
+    {
+      id: "dependency_blast_radius",
+      title: "Dependency Blast Radius",
+      targetUser: "PMO lead and program manager",
+      painSolved: "A blocked vendor, interface, or shared dependency can affect multiple projects before the portfolio view shows it.",
+      concreteBenefit: "Identifies shared dependencies with active risk and affected projects.",
+      technicalMechanism: "Groups cross-project dependencies and combines them with blocked/risk signals.",
+      requiredData: ["dependencyName", "dependencyStatusLabel", "obstaclesAndMeasures", "lastStatusUpdate"],
+      whyDifferentiated: "Moves from single-project risk lists to portfolio-level dependency impact.",
+      mvpImplementation: "Expose `crossProjectDependencyIntelligence.items` and affected project IDs.",
+      risksAndTrustControls: ["dependency_name_required", "manual_dependency_normalization", "evidence_drivers_visible"],
+      proofMetric: proofMetric("shared_dependency_risks", sharedDependencyRisks, "Every shared dependency risk has affected projects listed", sharedDependencyRisks ? "watch" : "ready"),
+      runtimeSignals: {
+        dependencySummary: dependencyIntel.summary,
+        items: dependencyIntel.items.slice(0, 10),
+      },
+      feasibility: "medium",
+      uspScore: 88,
+    },
+    {
+      id: "project_manager_readiness_score",
+      title: "Project Manager Readiness Score",
+      targetUser: "PMO coach",
+      painSolved: "PMO coaching is reactive because weak status quality is not aggregated by owner.",
+      concreteBenefit: "Shows which project managers need status-quality coaching before the next report cycle.",
+      technicalMechanism: "Aggregates status-quality severity, blocked `kv`, and recommended interventions by project owner.",
+      requiredData: ["ownerName", "projectManagerName", "lastStatusUpdate", "overallKpiLabel", "plannedActivities"],
+      whyDifferentiated: "Turns status quality into a coaching queue rather than only a compliance finding.",
+      mvpImplementation: "Use `projectManagerQualityCoach.summary` and per-owner interventions.",
+      risksAndTrustControls: ["coaching_not_blame", "owner_data_gap_visible", "manual_review_required"],
+      proofMetric: proofMetric("owners_needing_intervention", pmCoach.items.filter((item) => item.recommendedIntervention !== "No PMO intervention needed.").length, "All owners needing PMO coaching listed", "ready"),
+      runtimeSignals: {
+        coachSummary: pmCoach.summary,
+        items: pmCoach.items.slice(0, 10),
+      },
+      feasibility: "high",
+      uspScore: 87,
+    },
+    {
+      id: "cio_cfo_risk_split",
+      title: "CIO/CFO Risk Split",
+      targetUser: "CIO, CFO, and PMO lead",
+      painSolved: "Technology, budget, resource, and governance risks are mixed together and routed to the wrong owner.",
+      concreteBenefit: "Separates management attention by CIO/CEO/PMO and highlights financial/resource exposure.",
+      technicalMechanism: "Combines management-attention classification, budget/financial PMO report, and resource/dependency safety gates.",
+      requiredData: ["overallKpiLabel", "budgetStatusLabel", "budgetRisk", "resourceStatusLabel", "dependencyStatusLabel"],
+      whyDifferentiated: "Routes risk ownership instead of producing one undifferentiated red-list.",
+      mvpImplementation: "Expose attention counts and budget-risk rows in the maximum USP layer.",
+      risksAndTrustControls: ["missing_budget_marked_gap", "routing_is_advisory", "owner_review_required"],
+      proofMetric: proofMetric("management_attention_items", managementAttention, "All PMO/CIO/CEO attention items routed", managementAttention ? "watch" : "ready"),
+      runtimeSignals: {
+        attentionCounts: {
+          pmo: safetySuite.summary.pmoAttention,
+          cio: safetySuite.summary.cioAttention,
+          ceo: safetySuite.summary.ceoAttention,
+        },
+        budgetSummary: budgetReport.summary,
+      },
+      feasibility: "medium",
+      uspScore: 86,
+    },
+    {
+      id: "audit_safe_ai_recommendation",
+      title: "Audit-Safe AI Recommendation",
+      targetUser: "CIO, PMO, and audit reviewer",
+      painSolved: "AI recommendations are hard to trust when they do not show their evidence, assumptions, and missing data.",
+      concreteBenefit: "Each recommendation is backed by a trust contract, evidence count, missing fields, and human-review flag.",
+      technicalMechanism: "Uses Trust Contracts, AI Escalation Packs, evidence sources, and explicit review-only controls.",
+      requiredData: ["status quality evidence", "recordUrl", "missing fields", "management ask"],
+      whyDifferentiated: "Treats AI output as an auditable recommendation object, not generated prose.",
+      mvpImplementation: "Attach trust-contract summaries to risk and escalation recommendations.",
+      risksAndTrustControls: ["trust_contract_required", "human_review_required", "evidence_visible"],
+      proofMetric: proofMetric("trust_contracts_created", trustContracts.length, "One trust contract per reviewed project", trustContracts.length === activeProjects.length ? "ready" : "needs_data"),
+      runtimeSignals: {
+        trustContractCount: trustContracts.length,
+        escalationPackCount: escalationPacks.length,
+        missingFieldCount: trustContracts.reduce((sum, item) => sum + item.missingFields.length, 0),
+      },
+      feasibility: "high",
+      uspScore: 86,
+    },
+    {
+      id: "portfolio_work_queue",
+      title: "Portfolio Work Queue",
+      targetUser: "PMO operator",
+      painSolved: "PMO teams need daily action lists, not another static portfolio report.",
+      concreteBenefit: "Turns findings into a work queue for PMO review, coaching, escalation, and follow-up.",
+      technicalMechanism: "Combines PMO Control Tower interventions, project nudges, and the `pmo_work_queue` report.",
+      requiredData: ["safety gates", "PMO checks", "owner", "status text", "decision/action fields"],
+      whyDifferentiated: "Connects report findings to operational next actions.",
+      mvpImplementation: "Expose work queue count and next-action rows from the PMO report suite.",
+      risksAndTrustControls: ["manual_review_queue", "no_auto_email", "no_auto_crm_write"],
+      proofMetric: proofMetric("pmo_work_items", workQueue.summary.workItems || 0, "Every PMO intervention has a next action", (workQueue.summary.workItems || 0) ? "watch" : "ready"),
+      runtimeSignals: {
+        workQueueSummary: workQueue.summary,
+        rows: workQueue.rows.slice(0, 10),
+      },
+      feasibility: "high",
+      uspScore: 85,
+    },
+    {
+      id: "crm_writeback_simulation",
+      title: "CRM Writeback Simulation",
+      targetUser: "Project leader and CRM process owner",
+      painSolved: "Users cannot see whether a CRM save is safe until after fields are already staged.",
+      concreteBenefit: "Simulates target fields, blockers, confirmation requirements, and audit preview before any save.",
+      technicalMechanism: "Uses safe writeback simulations, create-plan blockers, audit preview, and `canAutoSave: false`.",
+      requiredData: ["draft.fields", "emailStatusUpdate", "submittedTo", "projectManagerVerified", "recordUrl"],
+      whyDifferentiated: "Makes CRM writeback a transparent dry-run flow with explicit human confirmation.",
+      mvpImplementation: "Expose simulation blockers and audit previews in status API JSON and PMO audit report.",
+      risksAndTrustControls: ["dry_run_first", "exact_confirmation", "audit_entry_required", "email_flag_review"],
+      proofMetric: proofMetric("blocked_writeback_simulations", blockedWritebacks, "Every unsafe writeback blocked before save", "ready"),
+      runtimeSignals: {
+        writebackReportSummary: writebackReport.summary,
+        simulationCount: writebackSimulations.length,
+        simulationsWithAuditPreview: writebackSimulations.filter((item) => item.auditPreview).length,
+      },
+      feasibility: "high",
+      uspScore: 85,
+    },
+  ];
+
+  const byId = new Map(definitions.map((item) => [item.id, item]));
+  const usps = MAXIMUM_USP_IDS.map((id) => {
+    const item = byId.get(id);
+    const readiness = uspReadiness([item.proofMetric.status]);
+    return {
+      ...item,
+      readiness,
+      implementationStatus: "implemented",
+      advisoryOnly: true,
+    };
+  });
+  return {
+    layerType: "maximum_usps",
+    generatedAt: options.generatedAt || new Date().toISOString(),
+    summary: {
+      uspCount: usps.length,
+      implemented: usps.filter((item) => item.implementationStatus === "implemented").length,
+      ready: usps.filter((item) => item.readiness === "ready").length,
+      watch: usps.filter((item) => item.readiness === "watch").length,
+      needsData: usps.filter((item) => item.readiness === "needs_data").length,
+      blocked: usps.filter((item) => item.readiness === "blocked").length,
+      averageUspScore: Math.round(usps.reduce((sum, item) => sum + item.uspScore, 0) / usps.length),
+      bestMvpUsp: "pmo_safety_radar",
+      boldFollowUpUsp: "executive_no_surprise_brief",
+      safetyPosture: "advisory_only_confirmation_gated",
+    },
+    usps,
+  };
+}
+
 function buildProjectIntelligence(projects, options = {}) {
   const result = {
     preview: buildBatchProjectPreview(projects, options),
@@ -1988,6 +2308,7 @@ function buildProjectIntelligence(projects, options = {}) {
     pmoControlTower: buildPmoControlTower(projects, options),
     pmoStatusReport: buildPmoStatusReport(projects, options),
     pmoReportSuite: buildPmoReportSuite(projects, options),
+    maximumUsps: buildMaximumUspLayer(projects, options),
     executiveOnePager: buildExecutiveOnePager(projects, options),
     unchangedStatusText: UNCHANGED_STATUS_TEXT,
   };
@@ -2000,6 +2321,7 @@ function buildProjectIntelligence(projects, options = {}) {
 module.exports = {
   ACTIVE_PROJECT_STATUS_LABELS,
   DEFAULT_PMO_CONFIG,
+  MAXIMUM_USP_IDS,
   PMO_REPORT_TYPES,
   UNCHANGED_STATUS_TEXT,
   buildAiEscalationPack,
@@ -2026,6 +2348,7 @@ module.exports = {
   buildHumanConfirmationAnalytics,
   buildLiveDynamicsRunPlan,
   buildManagementActionExportRows,
+  buildMaximumUspLayer,
   buildMeetingCaptureDrafts,
   buildMeetingToDynamicsPlan,
   buildNudgeDrafts,

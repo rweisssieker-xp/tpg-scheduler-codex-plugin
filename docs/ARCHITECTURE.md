@@ -9,6 +9,7 @@ The plugin separates browser workflow guidance from deterministic project intell
 - `scripts/lib/project-intelligence.js` contains pure functions for risk, decision, governance, and AI/KI intelligence features.
 - The project safety gate layer evaluates each project across eight advisory safety domains before status collection or CRM staging.
 - The PMO control tower layer evaluates each project across 25 governance and portfolio-control routines for PMO review.
+- The Maximum USP layer turns the strongest 12 differentiators into a machine-readable advisory contract backed by runtime signals and proof metrics.
 - `schemas/` defines stable JSON contracts for downstream PMO and executive tooling.
 - `examples/` contains synthetic output for documentation and consumer tests only; productive CLI paths reject sample files.
 - Tests validate normalization, CLI behavior, and project intelligence outputs without requiring Dynamics access.
@@ -66,6 +67,7 @@ Visual UI scraping is only a fallback for navigation, field verification, and ex
 - human confirmation analytics
 - maximum project safety gates
 - PMO control tower routines
+- maximum USP layer with 12 buildable differentiators
 
 ## Safety Boundaries
 
@@ -109,11 +111,18 @@ The CLI can serialize the filtered PMO status report to DOCX and XLSX. DOCX gene
 
 `buildPmoReport(reportType, projects, options)` builds one of the 12 PMO management reports. `buildPmoReportSuite(projects, options)` returns the complete 12-report suite. The `pmo-report-suite` skill is the user-facing entrypoint for these reports, while `status-report` remains focused on Dynamics status-entry workflows.
 
+## Maximum USP Layer
+
+`buildMaximumUspLayer(projects, options)` returns `layerType: "maximum_usps"`, summary counts, and exactly 12 implemented USP objects. Each USP includes target user, pain solved, concrete benefit, technical mechanism, required data, MVP implementation, trust controls, proof metric, feasibility, runtime signals, and USP score.
+
+`buildProjectIntelligence(projects, options)` includes the same output as `maximumUsps`. The layer is advisory-only and reuses existing evidence-backed features: Project Safety Gates, No-Surprise Forecast, Status Truth Score, Monthly Writeback Guard, Decision Debt Analysis, PMO Report Suite, Cross-Project Dependency Intelligence, Project Manager Quality Coach, budget/resource reports, Trust Contracts, PMO Work Queue, and CRM Writeback Simulation.
+
 ## Schema Layer
 
 The schema layer documents output contracts without adding runtime dependencies. Validation checks parse each schema and assert critical contract anchors:
 
 - Project intelligence includes `projectSafetyGates` and `pmoControlTower`.
+- Project intelligence includes `maximumUsps` with exactly 12 implemented USP entries.
 - Safety gate projects expose safety score, level, management attention, writeback risk, gates, evidence, and actions.
 - PMO control tower summaries declare exactly 25 checks per project.
 

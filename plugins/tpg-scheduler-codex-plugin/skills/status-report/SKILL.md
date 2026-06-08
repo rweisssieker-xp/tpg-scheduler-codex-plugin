@@ -217,6 +217,7 @@ If Dynamics asks for login, pause and let the user complete Microsoft login manu
      - `dataCompleteness`: reportability score per project
      - `projectSafetyGates`: advisory safety gates that must be shown before status collection or CRM staging
      - `pmoControlTower`: PMO governance and portfolio-control routines per project
+     - `maximumUsps`: 12 implemented advisory differentiators with proof metrics, runtime signals, trust controls, and USP scores
      - `executiveOnePager`: Markdown one-pager for leadership review
 
 ## Advanced USP Helpers
@@ -261,6 +262,7 @@ If Dynamics asks for login, pause and let the user complete Microsoft login manu
 - `buildProjectSafetyGateSuite` aggregates project safety gates for a portfolio and is included in `buildProjectIntelligence`.
 - `buildPmoProjectControls` evaluates one project across 25 PMO routines such as steering readiness, policy compliance, aging, owner accountability, audit completeness, traceability, and intervention recommendation.
 - `buildPmoControlTower` aggregates PMO project controls and is included in `buildProjectIntelligence`.
+- `buildMaximumUspLayer` exposes the 12 Maximum USPs as implemented, advisory-only JSON objects backed by runtime signals and proof metrics.
 4. For every matching project:
    - open the project record by double-clicking the project name gridcell from the current visible DOM snapshot
    - or open the record URL built from `buildDynamicsProjectRecordUrl(projectId)` when the candidate came from Dataverse

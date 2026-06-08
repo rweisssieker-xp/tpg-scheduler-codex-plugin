@@ -7,6 +7,8 @@ description: Use when creating PMO management reports, PMO report suites, filter
 
 Use this skill when the user asks for PMO reports, portfolio steering packs, management reports, Word reports, Excel reports, or any of the 12 PMO report types.
 
+If the user asks for USPs, differentiation, CIO/CEO value, or maximum product value, use `buildProjectIntelligence(...).maximumUsps` or `buildMaximumUspLayer(projects, options)` alongside the PMO reports.
+
 ## Ground Rules
 
 - Use real Dynamics 365 TPG project data or an explicit real project JSON export.
@@ -32,6 +34,23 @@ Use this skill when the user asks for PMO reports, portfolio steering packs, man
 - `executive_exception`: only projects requiring CIO/CEO attention or unsafe/critical handling.
 - `pmo_work_queue`: daily PMO review, coaching, escalation, and follow-up queue.
 - `audit_writeback_safety`: CRM writeback simulations, confirmation analytics, and audit readiness.
+
+## Maximum USPs
+
+The PMO report suite can be paired with the 12 Maximum USPs:
+
+- PMO Safety Radar
+- Executive No-Surprise Brief
+- Status Truth Audit
+- Monthly Writeback Guard
+- Decision Debt Ledger
+- Evidence-Backed PMO Reports
+- Dependency Blast Radius
+- Project Manager Readiness Score
+- CIO/CFO Risk Split
+- Audit-Safe AI Recommendation
+- Portfolio Work Queue
+- CRM Writeback Simulation
 
 ## Commands
 

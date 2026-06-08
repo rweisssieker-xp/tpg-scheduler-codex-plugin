@@ -39,6 +39,8 @@ Emit machine-readable JSON:
 node ./scripts/statusbericht.js --intelligence <real-project-export.json> --json
 ```
 
+The JSON includes `maximumUsps`, a 12-item Maximum USP Layer with implementation status, proof metrics, runtime signals, required data, trust controls, and USP scores.
+
 Emit CSV-ready export payloads:
 
 ```powershell
@@ -197,6 +199,7 @@ Offline intelligence accepts either a Dataverse PMO project export envelope or a
 - Monthly status writeback plans with per-project draft fields, confirmation text, and Quick Create writeback blockers.
 - PMO Control Tower output with 25 governance and portfolio-control checks per project.
 - PMO Status Report output with filters for project status and last status report date/text.
+- Maximum USP Layer with 12 implemented differentiators and runtime proof metrics.
 - DOCX and XLSX PMO report files.
 - Risk ledger rows.
 - PMO nudges and manual review drafts.
@@ -206,6 +209,8 @@ Offline intelligence accepts either a Dataverse PMO project export envelope or a
 Use `projectSafetyGates.summary` in JSON output to see portfolio-level safety counts and `projectSafetyGates.projects[*].gates` to inspect the advisory checks for a specific project.
 
 Use `pmoControlTower.summary` to see PMO workload and `pmoControlTower.projects[*].checks` to inspect the 25 PMO routines for one project.
+
+Use `maximumUsps.summary` to see how many differentiators are implemented and ready, and `maximumUsps.usps[*]` to inspect the technical mechanism, required data, trust controls, proof metric, and runtime signals behind each USP.
 
 ## Stable Contracts
 

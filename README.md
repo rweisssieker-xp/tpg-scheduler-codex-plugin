@@ -9,6 +9,7 @@ TPG-Scheduler-Codex-Plugin is a Codex plugin for confirmation-gated Dynamics 365
 - Verifies that the opened project record belongs to the configured project manager before status work continues.
 - Normalizes short `kv` input to the configured unchanged-status phrase used in the target Dynamics environment.
 - Builds project intelligence packs with evidence-backed risk, decision, PMO, and executive views.
+- Exposes a Maximum USP Layer with 12 implemented, evidence-backed differentiators for PMO, CIO, CEO, project-leader, and audit workflows.
 - Stages status update drafts only after review and never saves, submits, sends, deletes, or changes CRM state without explicit confirmation.
 
 ## Core USPs
@@ -18,6 +19,7 @@ TPG-Scheduler-Codex-Plugin is a Codex plugin for confirmation-gated Dynamics 365
 - PMO-ready DOCX/XLSX/JSON reporting with filters, management styling, and 12 dedicated report types.
 - Maximum Project Safety Gates across data integrity, status truth, delivery, governance, finance/resources, escalation, report quality, and writeback safety.
 - Status API Max Layer for metadata discovery, permission probes, status history, delta reads, writeback queues, schemas, and Dataverse error mapping.
+- Maximum USP Layer with 12 concrete, technically implemented differentiators exposed as `maximumUsps` in the project intelligence JSON.
 - Public-repo safety posture: no mock data in productive commands, no automatic CRM writes, no secrets, and synthetic examples only.
 
 ## AI/KI Differentiators
@@ -48,6 +50,23 @@ TPG-Scheduler-Codex-Plugin is a Codex plugin for confirmation-gated Dynamics 365
 - Cross-Project Dependency Intelligence: detects shared dependencies with active risk.
 - Report Quality Benchmark: compares project status quality across the portfolio.
 - Human Confirmation Analytics: measures accepted, edited, and rejected AI suggestions.
+
+## Maximum USP Layer
+
+`buildMaximumUspLayer(projects, options)` and `buildProjectIntelligence(projects, options).maximumUsps` expose 12 implemented USPs with target user, pain solved, concrete benefit, technical mechanism, required data, MVP implementation, trust controls, proof metric, feasibility, runtime signals, and USP score:
+
+- PMO Safety Radar
+- Executive No-Surprise Brief
+- Status Truth Audit
+- Monthly Writeback Guard
+- Decision Debt Ledger
+- Evidence-Backed PMO Reports
+- Dependency Blast Radius
+- Project Manager Readiness Score
+- CIO/CFO Risk Split
+- Audit-Safe AI Recommendation
+- Portfolio Work Queue
+- CRM Writeback Simulation
 
 ## Repository Layout
 
