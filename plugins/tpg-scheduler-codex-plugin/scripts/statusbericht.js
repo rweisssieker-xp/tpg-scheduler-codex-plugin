@@ -939,12 +939,15 @@ function ensureParentDirectory(outputPath) {
 
 const DOCX_COLORS = Object.freeze({
   navy: "1F4E79",
+  darkBlue: "17365D",
+  accent: "5B9BD5",
   blue: "D9EAF7",
   lightBlue: "EEF5FB",
   green: "E2F0D9",
   yellow: "FFF2CC",
   red: "F4CCCC",
   gray: "F2F2F2",
+  darkGray: "595959",
   white: "FFFFFF",
 });
 
@@ -1017,15 +1020,88 @@ function buildDocxTable(headers, rows, options = {}) {
 }
 
 function buildDocxKpiCards(report) {
-  const rows = [
-    {
-      "Projects total": report.summary.projectsTotal,
-      "Projects matched": report.summary.projectsMatched,
-      "Need PMO": report.pmoControlTower.summary.projectsNeedingPmo,
-      Critical: report.pmoControlTower.summary.criticalProjects,
-    },
+  const cards = [
+    { label: "Projects total", value: report.summary.projectsTotal, fill: DOCX_COLORS.navy },
+    { label: "Matched", value: report.summary.projectsMatched, fill: DOCX_COLORS.accent },
+    { label: "Need PMO", value: report.pmoControlTower.summary.projectsNeedingPmo, fill: "FFC000" },
+    { label: "Critical", value: report.pmoControlTower.summary.criticalProjects, fill: "C00000" },
   ];
-  return buildDocxTable(["Projects total", "Projects matched", "Need PMO", "Critical"], rows, { headerFill: "305496" });
+  return new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    rows: [
+      new TableRow({
+        children: cards.map((card) => new TableCell({
+          shading: { fill: card.fill },
+          borders: docxBorders(DOCX_COLORS.white),
+          margins: { top: 220, bottom: 220, left: 160, right: 160 },
+          children: [
+            new Paragraph({
+              alignment: AlignmentType.CENTER,
+              children: [new TextRun({ text: String(card.value), bold: true, color: DOCX_COLORS.white, size: 36 })],
+            }),
+            new Paragraph({
+              alignment: AlignmentType.CENTER,
+              children: [new TextRun({ text: card.label, bold: true, color: DOCX_COLORS.white, size: 18 })],
+            }),
+          ],
+        })),
+      }),
+    ],
+  });
+}
+
+function buildDocxCallout(title, body, fill = DOCX_COLORS.blue) {
+  return new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    rows: [
+      new TableRow({
+        children: [
+          new TableCell({
+            shading: { fill },
+            borders: docxBorders("A9C4E4"),
+            margins: { top: 180, bottom: 180, left: 220, right: 220 },
+            children: [
+              new Paragraph({ children: [new TextRun({ text: title, bold: true, color: DOCX_COLORS.darkBlue, size: 24 })] }),
+              new Paragraph({ children: [new TextRun({ text: body, color: "1F1F1F", size: 20 })] }),
+            ],
+          }),
+        ],
+      }),
+    ],
+  });
+}
+
+function filterSummaryText(report) {
+  const filters = [];
+  if (report.filters.projectStatusLabels.length) {
+    filters.push(`Status ${report.filters.projectStatusLabels.join(", ")}`);
+  }
+  if (report.filters.lastStatusBefore) filters.push(`last status before ${report.filters.lastStatusBefore}`);
+  if (report.filters.lastStatusAfter) filters.push(`last status after ${report.filters.lastStatusAfter}`);
+  if (report.filters.lastStatusOn) filters.push(`last status on ${report.filters.lastStatusOn}`);
+  if (report.filters.lastStatusContains) filters.push(`last status contains "${report.filters.lastStatusContains}"`);
+  if (report.filters.lastStatusMissing) filters.push("missing last status report");
+  return filters.length ? filters.join("; ") : "No filters applied";
+}
+
+function buildDocxStatusLegend() {
+  return buildDocxTable(["Signal", "Meaning"], [
+    { Signal: "Critical", Meaning: "Immediate executive or PMO action required" },
+    { Signal: "Watch", Meaning: "Visible management attention recommended" },
+    { Signal: "Controlled", Meaning: "No material PMO intervention signal" },
+  ], { headerFill: DOCX_COLORS.darkGray });
+}
+
+function buildDocxProjectSpotlight(report) {
+  const rows = report.projects.slice(0, 5).map((project) => ({
+    Project: `${project.name || "Unnamed project"} (${project.projectId || "no id"})`,
+    Signal: `${project.pmoLevel || "n/a"} / ${project.safetyLevel || "n/a"}`,
+    Action: project.intervention || "none",
+  }));
+  if (!rows.length) {
+    rows.push({ Project: "No matching projects", Signal: "n/a", Action: "n/a" });
+  }
+  return buildDocxTable(["Project", "Signal", "Action"], rows, { headerFill: "7030A0" });
 }
 
 async function buildPmoStatusReportDocxBuffer(report) {
@@ -1059,14 +1135,30 @@ async function buildPmoStatusReportDocxBuffer(report) {
         new Paragraph({
           alignment: AlignmentType.CENTER,
           shading: { fill: DOCX_COLORS.navy },
-          spacing: { after: 240 },
+          spacing: { after: 120 },
           children: [new TextRun({ text: "PMO Executive Status Report", bold: true, color: DOCX_COLORS.white, size: 38 })],
         }),
-        new Paragraph({ text: `Generated: ${report.generatedAt}`, alignment: AlignmentType.RIGHT }),
+        new Paragraph({
+          alignment: AlignmentType.CENTER,
+          shading: { fill: DOCX_COLORS.darkBlue },
+          spacing: { after: 240 },
+          children: [new TextRun({ text: "Portfolio governance view with filtered project status evidence", color: DOCX_COLORS.white, size: 20 })],
+        }),
+        new Paragraph({ text: `Generated: ${report.generatedAt}`, alignment: AlignmentType.RIGHT, spacing: { after: 180 } }),
+        buildDocxCallout(
+          "Executive attention",
+          `${report.pmoControlTower.summary.projectsNeedingPmo} project(s) need PMO attention; ${report.pmoControlTower.summary.criticalProjects} critical project(s) detected.`,
+          report.pmoControlTower.summary.criticalProjects ? DOCX_COLORS.red : DOCX_COLORS.blue
+        ),
         new Paragraph({ text: "Portfolio Snapshot", heading: HeadingLevel.HEADING_1 }),
         buildDocxKpiCards(report),
-        new Paragraph({ text: "Filters", heading: HeadingLevel.HEADING_1 }),
+        new Paragraph({ text: "Filter Scope", heading: HeadingLevel.HEADING_1 }),
+        buildDocxCallout("Applied filter set", filterSummaryText(report), DOCX_COLORS.lightBlue),
         buildDocxTable(["Filter", "Value"], filterRows),
+        new Paragraph({ text: "Status Legend", heading: HeadingLevel.HEADING_1 }),
+        buildDocxStatusLegend(),
+        new Paragraph({ text: "Project Spotlight", heading: HeadingLevel.HEADING_1 }),
+        buildDocxProjectSpotlight(report),
         new Paragraph({ text: "Summary", heading: HeadingLevel.HEADING_1 }),
         buildDocxTable(["Metric", "Value"], summaryRows),
         new Paragraph({ text: "Projects", heading: HeadingLevel.HEADING_1 }),

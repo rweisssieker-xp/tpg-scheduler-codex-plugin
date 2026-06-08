@@ -118,6 +118,11 @@ Promise.all([
   const sheetXml = await xlsxZip.file("xl/worksheets/sheet3.xml").async("string");
   const stylesXml = await xlsxZip.file("xl/styles.xml").async("string");
   assert.match(docXml, /PMO Executive Status Report/);
+  assert.match(docXml, /Executive attention/);
+  assert.match(docXml, /Filter Scope/);
+  assert.match(docXml, /Status Legend/);
+  assert.match(docXml, /Project Spotlight/);
+  assert.equal((docXml.match(/w:shd/g) || []).length >= 12, true);
   assert.match(docXml, /w:shd/);
   assert.match(sheetXml, /<pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"\/>/);
   assert.match(sheetXml, /autoFilter ref="A1:J3"/);

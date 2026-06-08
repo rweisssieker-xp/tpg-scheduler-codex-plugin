@@ -75,7 +75,7 @@ The eight safety domains are data integrity, status truth, delivery risk, decisi
 
 `buildPmoStatusReport(projects, options)` applies PMO report filters before control-tower calculation. Supported filters include project status labels, last status report date ranges, exact last status report date, missing last status report, and text matching against the last status report narrative.
 
-The CLI can serialize the filtered PMO status report to DOCX and XLSX. DOCX generation uses the `docx` package with styled title, KPI, filter, summary, and project sections. XLSX generation writes a styled Office Open XML workbook through `jszip`, including frozen headers, column widths, autofilters, and PMO/safety highlighting while avoiding heavier spreadsheet dependency trees.
+The CLI can serialize the filtered PMO status report to DOCX and XLSX. DOCX generation uses the `docx` package with a styled title band, subtitle band, executive callout, KPI cards, filter scope, status legend, project spotlight, summary, and project sections. XLSX generation writes a styled Office Open XML workbook through `jszip`, including frozen headers, column widths, autofilters, and PMO/safety highlighting while avoiding heavier spreadsheet dependency trees.
 
 ## Schema Layer
 
