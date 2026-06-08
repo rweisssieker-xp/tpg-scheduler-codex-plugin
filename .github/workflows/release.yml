@@ -37,14 +37,3 @@ jobs:
 
       - name: Test
         run: npm test
-
-      - name: Upload review package
-        uses: actions/upload-artifact@v5
-        with:
-          name: tpg-scheduler-codex-plugin-${{ github.ref_name }}
-          path: |
-            .codex-plugin/
-            docs/
-            examples/
-            schemas/
-            plugins/tpg-scheduler-codex-plugin/

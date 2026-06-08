@@ -46,7 +46,7 @@ assert.match(ciWorkflow, /actions\/checkout@v5/, "CI must use checkout action v5
 assert.match(ciWorkflow, /actions\/setup-node@v5/, "CI must use setup-node action v5");
 assert.match(releaseWorkflow, /actions\/checkout@v5/, "release workflow must use checkout action v5");
 assert.match(releaseWorkflow, /actions\/setup-node@v5/, "release workflow must use setup-node action v5");
-assert.match(releaseWorkflow, /actions\/upload-artifact@v5/, "release workflow must use upload-artifact action v5");
+assert.equal(/actions\/upload-artifact@/.test(releaseWorkflow), false, "release workflow must avoid upload-artifact until a Node 24 action runtime is available");
 assert.equal(fs.existsSync(path.join(root, plugin.skills)), true, "skills path must exist");
 assert.equal(fs.existsSync(path.join(root, plugin.mcpServers)), true, "mcpServers path must exist");
 assert.equal(fs.existsSync(path.join(root, plugin.apps)), true, "apps path must exist");

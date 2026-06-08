@@ -38,7 +38,7 @@ assert.match(ciWorkflow, /actions\/checkout@v5/);
 assert.match(ciWorkflow, /actions\/setup-node@v5/);
 assert.match(releaseWorkflow, /actions\/checkout@v5/);
 assert.match(releaseWorkflow, /actions\/setup-node@v5/);
-assert.match(releaseWorkflow, /actions\/upload-artifact@v5/);
+assert.equal(/actions\/upload-artifact@/.test(releaseWorkflow), false, "release workflow must avoid upload-artifact until a Node 24 action runtime is available");
 
 for (const trackedFile of trackedFiles) {
   const normalized = trackedFile.replace(/\\/g, "/");

@@ -92,7 +92,8 @@ function buildReleaseManifest(options = {}) {
     skills: skillFiles,
     documentation: docs.map((file) => ({ file, present: fileExists(file) })),
     releaseArtifacts: {
-      reviewPackageWorkflow: ".github/workflows/release.yml",
+      validationWorkflow: ".github/workflows/release.yml",
+      githubSourceArchive: true,
       automaticCrmInstaller: false,
       includesStatusApiSchemas: schemaFiles.some((file) => file.includes("status-")),
       includesSyntheticExamplesOnly: true,

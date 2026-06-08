@@ -25,7 +25,7 @@ npm run release:manifest
 
 ## GitHub Release
 
-The release workflow runs on tags matching `v*`. It validates the plugin and uploads a repository snapshot artifact. The artifact is a review package, not an automatic CRM installer.
+The release workflow runs on tags matching `v*` and validates the plugin. The GitHub Release provides the source archive and release notes. No automatic CRM installer is produced.
 
 ## Versioning
 
