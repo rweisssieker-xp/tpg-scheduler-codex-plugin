@@ -13,6 +13,7 @@ This runs:
 - Status workflow tests.
 - Project intelligence tests.
 - Maximum project safety gate tests.
+- PMO control tower tests.
 - CLI behavior tests.
 - Plugin metadata and documentation validation.
 - The same validation flow used by GitHub Actions CI.

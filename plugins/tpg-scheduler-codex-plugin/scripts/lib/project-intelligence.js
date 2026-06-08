@@ -1465,6 +1465,135 @@ function buildProjectSafetyGateSuite(projects, options = {}) {
   };
 }
 
+function makePmoCheck(checkId, title, status, severity, message, extras = {}) {
+  return {
+    checkId,
+    title,
+    status,
+    severity,
+    message,
+    evidenceCodes: extras.evidenceCodes || [],
+    recommendation: extras.recommendation || null,
+    owner: extras.owner || "PMO",
+  };
+}
+
+function pmoPenalty(check) {
+  if (check.severity === "critical") return 20;
+  if (check.status === "fail") return 12;
+  if (check.status === "warning") return 6;
+  return 0;
+}
+
+function classifyPmoLevel(score, checks) {
+  if (checks.some((check) => check.severity === "critical") || score < 45) return "critical";
+  if (checks.some((check) => check.status === "fail") || score < 70) return "attention";
+  if (checks.some((check) => check.status === "warning") || score < 90) return "watch";
+  return "controlled";
+}
+
+function findProjectSnapshots(project, options = {}) {
+  const projectId = project?.projectId || project?.id || null;
+  return (options.previousSnapshots || []).filter((snapshot) => snapshot.projectId === projectId || snapshot.id === projectId);
+}
+
+function buildPmoProjectControls(project = {}, projects = [], options = {}) {
+  const safety = buildProjectSafetyGate(project, options);
+  const quality = evaluateStatusQuality(project, options);
+  const evidenceCodes = quality.evidence.map((item) => item.code);
+  const decisionItems = buildDecisionClosureItems([project], options);
+  const snapshots = findProjectSnapshots(project, options);
+  const statusText = normalizeText(project.currentStatusText || project.lastStatusUpdate);
+  const sharedVendorCount = project.vendorName ? (projects || []).filter((item) => item.vendorName === project.vendorName).length : 0;
+  const sharedOwnerCount = project.ownerName ? (projects || []).filter((item) => item.ownerName === project.ownerName).length : 0;
+  const sharedDependencyCount = (project.dependencyName || project.dependencyStatusLabel)
+    ? (projects || []).filter((item) => (item.dependencyName || item.dependencyStatusLabel) === (project.dependencyName || project.dependencyStatusLabel)).length
+    : 0;
+  const highRisk = safety.safetyLevel === "critical" || safety.safetyLevel === "unsafe" || quality.severity === "critical";
+  const needsDecision = Boolean(project.decisions || decisionItems.length);
+  const hasOwnerGap = safety.gates.some((gate) => /owner/i.test(gate.message) && gate.status !== "pass");
+  const hasDueDateGap = safety.gates.some((gate) => /due date|SLA/i.test(gate.message) && gate.status !== "pass");
+  const baselineDrift = new Set(snapshots.map((snapshot) => snapshot.finish).filter(Boolean)).size > 1;
+  const recurringRisk = snapshots.filter((snapshot) => (snapshot.riskCodes || []).some((code) => evidenceCodes.includes(code))).length >= 2;
+  const repeatedAction = project.sponsorActions && snapshots.filter((snapshot) => snapshot.sponsorActions === project.sponsorActions).length >= 2;
+  const repeatedDecision = project.decisions && snapshots.filter((snapshot) => snapshot.decisions === project.decisions).length >= 2;
+  const criticalAttentionCount = (projects || []).filter((item) => evaluateStatusQuality(item, options).severity === "critical" || item.overallKpiLabel === "Red").length;
+  const portfolioRiskIds = new Set(buildPortfolioRiskList(projects, options).map((item) => item.projectId));
+  const agendaIds = new Set(buildSteeringAgenda(projects, options).map((item) => item.projectId));
+  const safetyIds = new Set(buildProjectSafetyGateSuite(projects, options).projects.filter((item) => item.safetyLevel === "critical" || item.safetyLevel === "unsafe").map((item) => item.projectId));
+  const checks = [];
+  const add = (...args) => checks.push(makePmoCheck(...args));
+
+  add("steering_readiness", "Steering readiness", highRisk && !project.decisions ? "fail" : highRisk ? "warning" : "pass", highRisk && !project.decisions ? "fail" : highRisk ? "warning" : "info", "High-risk projects need decision-ready steering content.", { recommendation: highRisk ? "prepare_steering" : null, evidenceCodes });
+  add("pmo_policy_compliance", "PMO policy compliance", buildPmoPolicySimulator([project], { ...options, policies: options.policies || [{ id: "red_requires_sponsor_action", severity: "critical" }] }).summary.violations ? "fail" : "pass", "fail", "Project must comply with active PMO policies.");
+  add("portfolio_priority_drift", "Portfolio priority drift", highRisk && /low/i.test(project.priorityLabel || "") ? "warning" : "pass", highRisk && /low/i.test(project.priorityLabel || "") ? "warning" : "info", "High-risk projects should not have low priority.", { recommendation: highRisk && /low/i.test(project.priorityLabel || "") ? "reprioritize" : null });
+  add("milestone_integrity", "Milestone integrity", evidenceCodes.includes("overdue_finish") || evidenceCodes.includes("high_progress_not_closed") ? "fail" : "pass", evidenceCodes.includes("overdue_finish") ? "critical" : evidenceCodes.includes("high_progress_not_closed") ? "fail" : "info", "Milestones must align with schedule and progress.", { evidenceCodes: evidenceCodes.filter((code) => ["overdue_finish", "high_progress_not_closed"].includes(code)) });
+  add("baseline_drift", "Baseline drift", baselineDrift ? "warning" : "pass", baselineDrift ? "warning" : "info", "Repeated finish-date movement requires PMO review.");
+  add("risk_aging", "Risk aging", recurringRisk ? "warning" : "pass", recurringRisk ? "warning" : "info", "Recurring risks should not age without closure.");
+  add("action_aging", "Action aging", repeatedAction ? "warning" : "pass", repeatedAction ? "warning" : "info", "Sponsor actions should not remain unchanged across cycles.");
+  add("decision_aging", "Decision aging", repeatedDecision ? "warning" : "pass", repeatedDecision ? "warning" : "info", "Decisions should not repeat across cycles without closure.");
+  add("owner_accountability", "Owner accountability", hasOwnerGap ? "fail" : "pass", hasOwnerGap ? "fail" : "info", "Risks, decisions, and mitigations need accountable owners.");
+  add("due_date_accountability", "Due date accountability", hasDueDateGap ? "fail" : "pass", hasDueDateGap ? "fail" : "info", "Risks, decisions, and mitigations need due dates.");
+  add("single_point_of_failure", "Single point of failure", sharedOwnerCount > 1 || sharedDependencyCount > 1 ? "warning" : "pass", sharedOwnerCount > 1 || sharedDependencyCount > 1 ? "warning" : "info", "Multiple projects depend on the same owner or dependency.");
+  add("vendor_concentration_risk", "Vendor concentration risk", sharedVendorCount > 1 ? "warning" : "pass", sharedVendorCount > 1 ? "warning" : "info", "Vendor concentration can create portfolio risk.");
+  add("resource_contention", "Resource contention", sharedOwnerCount > 1 && (project.resourceStatusLabel === "Understaffed" || highRisk) ? "warning" : "pass", sharedOwnerCount > 1 ? "warning" : "info", "Shared owners on risky projects indicate resource contention.");
+  add("status_quality_trend", "Status quality trend", snapshots.length && buildProjectTruthScore(project, options).summary.level === "low_trust" ? "warning" : "pass", "warning", "Status quality trend needs PMO coaching when current truth score is low.");
+  add("false_green", "False green", project.overallKpiLabel === "Green" && safety.safetyLevel !== "safe" ? "warning" : "pass", project.overallKpiLabel === "Green" && safety.safetyLevel !== "safe" ? "warning" : "info", "Green projects with safety warnings need PMO review.");
+  add("false_red", "False red", project.overallKpiLabel === "Red" && !project.obstaclesAndMeasures && !project.decisions ? "warning" : "pass", project.overallKpiLabel === "Red" ? "warning" : "info", "Red projects without concrete risk evidence may indicate poor data quality.");
+  add("pm_coaching_trigger", "PM coaching trigger", buildProjectTruthScore(project, options).summary.score < 60 || buildDataCompletenessScore(project).score < 80 ? "warning" : "pass", "warning", "Low quality or incomplete reporting should trigger PM coaching.", { recommendation: "coach_pm" });
+  add("escalation_fatigue", "Escalation fatigue", highRisk && recurringRisk && (repeatedAction || repeatedDecision) ? "fail" : "pass", highRisk && recurringRisk ? "fail" : "info", "Repeated escalation without movement requires PMO intervention.", { recommendation: "escalate_cio" });
+  add("management_attention_overload", "Management attention overload", criticalAttentionCount > 3 ? "warning" : "pass", criticalAttentionCount > 3 ? "warning" : "info", "Too many projects require executive attention; PMO should prioritize top-N.");
+  add("governance_exception_aging", "Governance exception aging", buildGovernanceExceptions([project], options).length && snapshots.length >= 2 ? "warning" : "pass", "warning", "Governance exceptions should not remain open across cycles.");
+  add("audit_completeness", "Audit completeness", options.auditEntry ? "pass" : "warning", options.auditEntry ? "info" : "warning", "PMO handoffs should include audit entries.");
+  add("evidence_traceability", "Evidence traceability", safety.gates.some((gate) => gate.status !== "pass" && !gate.evidenceCodes.length && !gate.source) ? "warning" : "pass", "warning", "Every material finding should trace to evidence, field, or source.");
+  add("report_comparability", "Report comparability", buildDataCompletenessScore(project).score < 80 ? "warning" : "pass", buildDataCompletenessScore(project).score < 80 ? "warning" : "info", "Projects need comparable core reporting fields.");
+  add("portfolio_heatmap_consistency", "Portfolio heatmap consistency", (portfolioRiskIds.has(project.projectId) || safetyIds.has(project.projectId)) && !agendaIds.has(project.projectId) ? "warning" : "pass", "warning", "Risk list, safety gates, and steering agenda should align.");
+
+  const recommendation = highRisk && project.decisions ? "prepare_steering"
+    : highRisk ? "escalate_cio"
+      : checks.some((check) => check.checkId === "pm_coaching_trigger" && check.status !== "pass") ? "coach_pm"
+        : checks.some((check) => check.status !== "pass") ? "request_update"
+          : "none";
+  add("pmo_intervention_recommendation", "PMO intervention recommendation", recommendation === "none" ? "pass" : "warning", recommendation === "none" ? "info" : "warning", "Recommended PMO intervention based on project control findings.", { recommendation });
+
+  const pmoScore = Math.max(0, 100 - checks.reduce((sum, check) => sum + pmoPenalty(check), 0));
+  return {
+    projectId: project.projectId || project.id || null,
+    name: project.name || null,
+    pmoScore,
+    pmoLevel: classifyPmoLevel(pmoScore, checks),
+    intervention: recommendation,
+    checks,
+  };
+}
+
+function buildPmoControlTower(projects, options = {}) {
+  const projectControls = (projects || []).map((project) => buildPmoProjectControls(project, projects, options));
+  const portfolioFindings = projectControls
+    .flatMap((project) => project.checks
+      .filter((check) => check.status === "fail" || check.severity === "critical")
+      .map((check) => ({
+        projectId: project.projectId,
+        name: project.name,
+        checkId: check.checkId,
+        severity: check.severity,
+        recommendation: check.recommendation,
+      })))
+    .slice(0, 25);
+  return {
+    summary: {
+      projectsReviewed: projectControls.length,
+      checksPerProject: 25,
+      projectsControlled: projectControls.filter((project) => project.pmoLevel === "controlled").length,
+      projectsWatching: projectControls.filter((project) => project.pmoLevel === "watch").length,
+      projectsNeedingPmo: projectControls.filter((project) => project.pmoLevel === "attention" || project.pmoLevel === "critical").length,
+      criticalProjects: projectControls.filter((project) => project.pmoLevel === "critical").length,
+    },
+    projects: projectControls,
+    portfolioFindings,
+  };
+}
+
 function buildProjectIntelligence(projects, options = {}) {
   const result = {
     preview: buildBatchProjectPreview(projects, options),
@@ -1502,6 +1631,7 @@ function buildProjectIntelligence(projects, options = {}) {
     crossProjectDependencyIntelligence: buildCrossProjectDependencyIntelligence(projects, options),
     reportQualityBenchmark: buildReportQualityBenchmark(projects, options),
     projectSafetyGates: buildProjectSafetyGateSuite(projects, options),
+    pmoControlTower: buildPmoControlTower(projects, options),
     executiveOnePager: buildExecutiveOnePager(projects, options),
     unchangedStatusText: UNCHANGED_STATUS_TEXT,
   };
@@ -1553,7 +1683,9 @@ module.exports = {
   buildProjectSafetyGate,
   buildProjectSafetyGateSuite,
   buildProjectTruthScore,
+  buildPmoControlTower,
   buildPmoPolicySimulator,
+  buildPmoProjectControls,
   buildPortfolioConstraintRadar,
   buildNoSurpriseForecast,
   buildReportQualityBenchmark,

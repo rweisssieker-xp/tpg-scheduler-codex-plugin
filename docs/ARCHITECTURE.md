@@ -8,6 +8,7 @@ The plugin separates browser workflow guidance from deterministic project intell
 - `scripts/statusbericht.js` exposes CLI commands, Dataverse helper snippets, URL builders, and public exports.
 - `scripts/lib/project-intelligence.js` contains pure functions for risk, decision, governance, and AI/KI intelligence features.
 - The project safety gate layer evaluates each project across eight advisory safety domains before status collection or CRM staging.
+- The PMO control tower layer evaluates each project across 25 governance and portfolio-control routines for PMO review.
 - Tests validate normalization, CLI behavior, and project intelligence outputs without requiring Dynamics access.
 - `scripts/validate-plugin.js` validates plugin metadata, documentation presence, skill naming, and write-safety wording.
 - `assets/icon.svg` provides a lightweight public plugin asset for repository and marketplace use.
@@ -50,6 +51,7 @@ The plugin separates browser workflow guidance from deterministic project intell
 - report quality benchmarking
 - human confirmation analytics
 - maximum project safety gates
+- PMO control tower routines
 
 ## Safety Boundaries
 
@@ -62,6 +64,12 @@ The plugin does not directly automate CRM writes from Node.js. Browser-based CRM
 `buildProjectSafetyGateSuite(projects, options)` aggregates the per-project gates and is included in `buildProjectIntelligence(projects, options)` as `projectSafetyGates`.
 
 The eight safety domains are data integrity, status truth, delivery risk, decision governance, financial/resource risk, escalation readiness, report quality, and writeback safety. The gates never save or block CRM automatically; they make risk visible before a human confirms any action.
+
+## PMO Control Tower
+
+`buildPmoProjectControls(project, projects, options)` returns 25 PMO checks for one project, including steering readiness, policy compliance, priority drift, baseline/risk/action/decision aging, owner and due-date accountability, concentration risks, audit completeness, evidence traceability, report comparability, heatmap consistency, and recommended PMO intervention.
+
+`buildPmoControlTower(projects, options)` aggregates the project controls and is included in `buildProjectIntelligence(projects, options)` as `pmoControlTower`.
 
 ## Testing Strategy
 
@@ -80,4 +88,5 @@ The tests cover:
 - project intelligence evidence rules
 - AI/KI helper outputs
 - maximum project safety gate outputs
+- PMO control tower outputs
 - CLI JSON/export behavior

@@ -38,6 +38,8 @@ const {
   buildPortfolioRiskList,
   buildProjectTruthScore,
   buildPmoPolicySimulator,
+  buildPmoControlTower,
+  buildPmoProjectControls,
   buildPortfolioConstraintRadar,
   buildNoSurpriseForecast,
   buildReportQualityBenchmark,
@@ -611,5 +613,63 @@ assert.equal(safetySuite.summary.criticalProjects >= 1, true);
 assert.equal(safetySuite.summary.ceoAttention >= 1, true);
 assert.equal(safetySuite.topFindings.length > 0, true);
 assert.equal(buildProjectIntelligence(projects, { today: "2026-05-13" }).projectSafetyGates.summary.projectsReviewed, 2);
+
+const expectedPmoCheckIds = [
+  "steering_readiness",
+  "pmo_policy_compliance",
+  "portfolio_priority_drift",
+  "milestone_integrity",
+  "baseline_drift",
+  "risk_aging",
+  "action_aging",
+  "decision_aging",
+  "owner_accountability",
+  "due_date_accountability",
+  "single_point_of_failure",
+  "vendor_concentration_risk",
+  "resource_contention",
+  "status_quality_trend",
+  "false_green",
+  "false_red",
+  "pm_coaching_trigger",
+  "escalation_fatigue",
+  "management_attention_overload",
+  "governance_exception_aging",
+  "audit_completeness",
+  "evidence_traceability",
+  "report_comparability",
+  "portfolio_heatmap_consistency",
+  "pmo_intervention_recommendation",
+];
+const pmoProjectControls = buildPmoProjectControls(
+  { ...projects[0], vendorName: "Contoso", ownerName: "Alex", dependencyName: "Vendor API", priorityLabel: "Low" },
+  [
+    { ...projects[0], vendorName: "Contoso", ownerName: "Alex", dependencyName: "Vendor API", priorityLabel: "Low" },
+    { ...projects[1], vendorName: "Contoso", ownerName: "Alex", dependencyName: "Vendor API", priorityLabel: "High" },
+  ],
+  {
+    today: "2026-05-20",
+    auditEntry: null,
+    previousSnapshots: [
+      { projectId: "2024-9999", finish: "2026-04-15", riskCodes: ["red_kpi"], sponsorActions: "CIO to escalate vendor.", decisions: "Approve fallback interface." },
+      { projectId: "2024-9999", finish: "2026-04-25", riskCodes: ["red_kpi"], sponsorActions: "CIO to escalate vendor.", decisions: "Approve fallback interface." },
+    ],
+  }
+);
+assert.deepEqual(pmoProjectControls.checks.map((item) => item.checkId), expectedPmoCheckIds);
+assert.equal(["critical", "attention"].includes(pmoProjectControls.pmoLevel), true);
+assert.equal(pmoProjectControls.checks.find((item) => item.checkId === "single_point_of_failure").status, "warning");
+assert.equal(pmoProjectControls.checks.find((item) => item.checkId === "portfolio_priority_drift").status, "warning");
+assert.equal(pmoProjectControls.checks.find((item) => item.checkId === "pmo_intervention_recommendation").recommendation, "prepare_steering");
+
+const pmoControlTower = buildPmoControlTower([
+  { ...projects[0], vendorName: "Contoso", ownerName: "Alex", dependencyName: "Vendor API", priorityLabel: "Low" },
+  { ...projects[1], vendorName: "Contoso", ownerName: "Alex", dependencyName: "Vendor API", priorityLabel: "High" },
+], { today: "2026-05-20", auditEntry: null });
+assert.equal(pmoControlTower.summary.projectsReviewed, 2);
+assert.equal(pmoControlTower.summary.checksPerProject, 25);
+assert.equal(pmoControlTower.summary.projectsNeedingPmo >= 1, true);
+assert.equal(pmoControlTower.portfolioFindings.length > 0, true);
+assert.equal(buildProjectIntelligence(projects, { today: "2026-05-13" }).pmoControlTower.summary.checksPerProject, 25);
 
 console.log("project intelligence tests passed");

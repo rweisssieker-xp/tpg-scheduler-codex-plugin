@@ -13,6 +13,7 @@ TPG-Scheduler-Codex-Plugin is a Codex plugin for confirmation-gated Dynamics 365
 ## AI/KI Differentiators
 
 - Maximum Project Safety Gates: evaluates every project across data integrity, status truth, delivery risk, governance, financial/resource risk, escalation readiness, report quality, and CRM writeback safety.
+- PMO Control Tower: runs 25 PMO governance, accountability, aging, portfolio concentration, audit, traceability, comparability, and intervention checks per project.
 - Decision Debt Analysis: measures open decisions, due dates, blocked projects, and decision-debt score.
 - Project Truth Score: detects status contradictions such as red KPI with weak narrative, overdue finish, or missing mitigation.
 - Sponsor Action Intelligence: turns steering agenda items into owner-specific sponsor actions.

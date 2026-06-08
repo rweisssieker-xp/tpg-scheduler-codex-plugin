@@ -79,6 +79,8 @@ If Dynamics asks for login, pause and let the user complete Microsoft login manu
   - `buildProjectIntelligence(projects, options)`
   - `buildProjectSafetyGate(project, options)`
   - `buildProjectSafetyGateSuite(projects, options)`
+  - `buildPmoProjectControls(project, projects, options)`
+  - `buildPmoControlTower(projects, options)`
   - `buildStatusUpdateDraft(statusText, options)`
   - `getDataverseBrowserSnippet()`
 - To install browser-context helpers into an authenticated Dynamics page, print the snippet with:
@@ -183,6 +185,7 @@ If Dynamics asks for login, pause and let the user complete Microsoft login manu
      - `projectManagerCoach`: project-leader quality coaching signals
      - `dataCompleteness`: reportability score per project
      - `projectSafetyGates`: advisory safety gates that must be shown before status collection or CRM staging
+     - `pmoControlTower`: PMO governance and portfolio-control routines per project
      - `executiveOnePager`: Markdown one-pager for leadership review
 
 ## Advanced USP Helpers
@@ -225,6 +228,8 @@ If Dynamics asks for login, pause and let the user complete Microsoft login manu
 - `buildHumanConfirmationAnalytics` summarizes accepted, edited, and rejected AI suggestions.
 - `buildProjectSafetyGate` evaluates one project across eight advisory safety domains and returns safety score, level, management attention, writeback risk, evidence, and actions.
 - `buildProjectSafetyGateSuite` aggregates project safety gates for a portfolio and is included in `buildProjectIntelligence`.
+- `buildPmoProjectControls` evaluates one project across 25 PMO routines such as steering readiness, policy compliance, aging, owner accountability, audit completeness, traceability, and intervention recommendation.
+- `buildPmoControlTower` aggregates PMO project controls and is included in `buildProjectIntelligence`.
 4. For every matching project:
    - open the project record by double-clicking the project name gridcell from the current visible DOM snapshot
    - or open the record URL built from `buildDynamicsProjectRecordUrl(projectId)` when the candidate came from Dataverse
@@ -282,6 +287,7 @@ If Dynamics asks for login, pause and let the user complete Microsoft login manu
 
 - Default to dry-run when uncertain.
 - Show the project safety level and material failed/critical gates before asking for status input or staging a CRM draft.
+- Show material PMO control findings when a project needs PMO, CIO, or CEO attention.
 - Treat generated risk lists, nudges, decision radar, and executive reports as advisory until the user confirms the source data and wording.
 - Treat `kv_blocked` as a warning, not a hard stop: the project leader may still choose `kv`, but the report must show the evidence codes that made it risky.
 - Evidence codes such as `red_kpi`, `overdue_finish`, `high_progress_not_closed`, `missing_mitigation`, `missing_next_step`, and `stale_status` must remain visible in management summaries where possible.
