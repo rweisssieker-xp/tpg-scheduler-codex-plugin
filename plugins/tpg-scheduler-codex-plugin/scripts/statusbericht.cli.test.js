@@ -118,6 +118,28 @@ const dataverseSuiteOutput = execFileSync(
 const dataverseSuiteJson = JSON.parse(dataverseSuiteOutput);
 assert.equal(dataverseSuiteJson.summary.reportCount, 12);
 assert.equal(dataverseSuiteJson.summary.projectsReviewed, 2);
+const monthlyStatusOutput = execFileSync(
+  process.execPath,
+  [
+    scriptPath,
+    "--monthly-status-plan",
+    dataverseExportPath,
+    "--month",
+    "2026-06",
+    "--status-text",
+    "kv",
+    "--project-manager-verified",
+    "--reviewed",
+    "--json",
+  ],
+  { encoding: "utf8" }
+);
+const monthlyStatusJson = JSON.parse(monthlyStatusOutput);
+assert.equal(monthlyStatusJson.reportType, "monthly_status_writeback");
+assert.equal(monthlyStatusJson.reportMonth, "2026-06");
+assert.equal(monthlyStatusJson.summary.draftsReady, 2);
+assert.equal(monthlyStatusJson.summary.canAutoSave, false);
+assert.match(monthlyStatusJson.reports[0].writeback.confirmationText, /CONFIRM MONTHLY STATUS WRITEBACK/);
 const docxPath = path.join(outputDir, "pmo-status.docx");
 const xlsxPath = path.join(outputDir, "pmo-status.xlsx");
 const suiteDocxPath = path.join(outputDir, "pmo-suite.docx");

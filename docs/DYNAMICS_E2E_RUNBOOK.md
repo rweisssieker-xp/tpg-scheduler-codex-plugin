@@ -46,9 +46,16 @@ node ./scripts/statusbericht.js --pmo-suite <real-dataverse-export.json> --docx 
 - `pmoControlTower.projects[*].checks`
 
 9. Test `kv` normalization in a draft.
-10. Confirm that no save occurs unless the user explicitly confirms project, status text, and email setting.
-11. Turn on Email Status Update only in a safe test context and verify the workflow reports high writeback risk before any save.
-12. Record pass/fail notes without real project data.
+10. Generate a monthly status writeback plan from the same export:
+
+```powershell
+node ./scripts/statusbericht.js --monthly-status-plan <real-dataverse-export.json> --month YYYY-MM --json
+```
+
+11. Verify that the plan contains one draft per active project, the month-end report date, writeback blockers, and the exact confirmation text.
+12. Confirm that no save occurs unless the user explicitly confirms project, month, status text, and email setting.
+13. Turn on Email Status Update only in a safe test context and verify the workflow reports high writeback risk before any save.
+14. Record pass/fail notes without real project data.
 
 ## Pass Criteria
 
@@ -57,6 +64,7 @@ node ./scripts/statusbericht.js --pmo-suite <real-dataverse-export.json> --docx 
 - Non-matching project manager records are not processed for status staging.
 - Safety gates and PMO controls appear before staging.
 - `kv` expands to the configured unchanged-status phrase.
+- Monthly status writeback plans are generated per active verified project and require Quick Create confirmation before saving.
 - Email Status Update is surfaced as high risk.
 - No CRM write happens without explicit confirmation.
 

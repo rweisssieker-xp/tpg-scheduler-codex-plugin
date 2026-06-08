@@ -40,6 +40,7 @@ Visual UI scraping is only a fallback for navigation, field verification, and ex
 - Dataverse browser-context snippet generation and PMO export helpers
 - Dynamics URL builders
 - status update draft helpers
+- monthly project-leader status writeback plans
 - public exports for project intelligence functions
 - plugin validation checks
 
@@ -69,6 +70,14 @@ Visual UI scraping is only a fallback for navigation, field verification, and ex
 ## Safety Boundaries
 
 The plugin does not directly automate CRM writes from Node.js. Browser-based CRM actions must remain confirmation-gated. Generated content is advisory until reviewed by the user.
+
+## Monthly Status Writeback
+
+`buildMonthlyStatusReportDraft(project, statusText, options)` prepares one monthly Status Update draft for a project. It normalizes `kv`, sets the report date to the month end by default, builds the Dynamics target fields, runs project safety gates, simulates writeback blockers, and returns a confirmation string.
+
+`buildMonthlyStatusReportRun(projects, options)` prepares a portfolio run for one report month. It filters to active projects, tracks missing project-leader input, counts writeback risks, and declares `quick_create_confirmation_gated` as the only writeback mode.
+
+The CLI command `--monthly-status-plan <real-project-export.json> --month YYYY-MM` serializes this plan for project leaders. Browser save behavior remains manual and confirmation-gated through `Quick Create: Status Update`.
 
 ## Project Safety Gates
 

@@ -86,6 +86,8 @@ If Dynamics asks for login, pause and let the user complete Microsoft login manu
   - `buildPmoProjectControls(project, projects, options)`
   - `buildPmoControlTower(projects, options)`
   - `buildStatusUpdateDraft(statusText, options)`
+  - `buildMonthlyStatusReportDraft(project, statusText, options)`
+  - `buildMonthlyStatusReportRun(projects, options)`
   - `getDataverseBrowserSnippet()`
 - When PMO report data is needed, load the Dataverse snippet and use:
   - `await TPGProjectAssist.downloadPmoProjectExport()`
@@ -100,6 +102,8 @@ If Dynamics asks for login, pause and let the user complete Microsoft login manu
   `node ./scripts/statusbericht.js --pmo-report <projects.json> --project-status "In Progress" --last-status-before YYYY-MM-DD`
 - To write PMO Word and Excel files, add:
   `--docx reports/pmo-status.docx --xlsx reports/pmo-status.xlsx`
+- To prepare monthly project-leader status writeback plans, run:
+  `node ./scripts/statusbericht.js --monthly-status-plan <projects.json> --month YYYY-MM --json`
   The DOCX and XLSX outputs must be treated as management-ready review artifacts generated from the same filtered real project data.
 - Use `--json` with `--intelligence` when another automation should consume the complete intelligence pack.
 - Use `--exports` with `--intelligence` to emit CSV strings for Power BI/import workflows and JSON for automation.
@@ -249,6 +253,7 @@ If Dynamics asks for login, pause and let the user complete Microsoft login manu
    - ask for status input
    - normalize `kv` to the fixed unchanged-status sentence
    - build the prepared status with `buildStatusUpdateDraft(statusText, options)`
+   - for monthly reporting, build the prepared monthly draft with `buildMonthlyStatusReportDraft(project, statusText, { reportMonth: "YYYY-MM" })`
    - in dry-run mode, report the prepared status without writing
    - in staging mode, open `Status Update`, click `New Status Update`, and stage the status in the Quick Create dialog
    - ask for explicit save confirmation before clicking any save button
@@ -285,6 +290,8 @@ If Dynamics asks for login, pause and let the user complete Microsoft login manu
 ## Status Entry Mapping
 
 - Put the user's normalized status text into `Status Summary`.
+- For monthly reporting, prepare one Status Update per active verified project and report month.
+- Default the monthly `Report Date` to the last day of the report month unless the user provides another date.
 - Also put the same text into `Accomplished Activities / Current Status` unless the user provides a more structured status split.
 - For `kv`, use exactly this fixed German CRM status phrase:
   `Status unverändert seit letztem Bericht (keine inhaltlichen Änderungen)`

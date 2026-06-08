@@ -330,6 +330,126 @@ function buildStatusUpdateDraft(statusText, options = {}) {
   };
 }
 
+function normalizeReportMonth(value, options = {}) {
+  const source = value || options.today || new Date().toISOString().slice(0, 10);
+  const match = String(source).match(/^(\d{4})-(\d{2})/);
+  if (!match) {
+    throw new Error("report month must use YYYY-MM or a date starting with YYYY-MM.");
+  }
+  return `${match[1]}-${match[2]}`;
+}
+
+function getMonthBounds(reportMonth) {
+  const normalized = normalizeReportMonth(reportMonth);
+  const [year, month] = normalized.split("-").map(Number);
+  const start = new Date(Date.UTC(year, month - 1, 1));
+  const end = new Date(Date.UTC(year, month, 0));
+  return {
+    reportMonth: normalized,
+    periodStart: start.toISOString().slice(0, 10),
+    periodEnd: end.toISOString().slice(0, 10),
+  };
+}
+
+function buildMonthlyStatusReportDraft(project = {}, statusText = "", options = {}) {
+  const month = getMonthBounds(options.reportMonth || options.month || options.reportDate || options.today);
+  const normalizedStatusText = normalizeStatusInput(statusText || options.statusText || "");
+  const draft = buildStatusUpdateDraft(normalizedStatusText, {
+    ...options,
+    reportDate: options.reportDate || month.periodEnd,
+  });
+  const safetyGate = projectIntelligence.buildProjectSafetyGate(project, {
+    ...options,
+    draft,
+    generatedContent: Boolean(options.generatedContent),
+    reviewed: Boolean(options.reviewed),
+    requiresSubmittedTo: true,
+    submittedTo: draft.submittedTo,
+  });
+  const simulation = projectIntelligence.buildSafeWritebackSimulation(project, draft);
+  const projectLabel = project.name || project.projectId || project.id || "unknown project";
+  const confirmationText = [
+    `CONFIRM MONTHLY STATUS WRITEBACK`,
+    `Project: ${projectLabel}`,
+    `Month: ${month.reportMonth}`,
+    `Report Date: ${draft.fields[STATUS_UPDATE_FIELDS.reportDate]}`,
+    `Email Status Update: ${draft.emailStatusUpdate ? "Yes" : "No"}`,
+  ].join(" | ");
+  return {
+    projectId: project.projectId || project.id || null,
+    name: project.name || null,
+    recordUrl: project.recordUrl || (project.id ? buildDynamicsProjectRecordUrl(project.id) : null),
+    reportMonth: month.reportMonth,
+    periodStart: month.periodStart,
+    periodEnd: month.periodEnd,
+    statusRequired: !normalizedStatusText,
+    statusText: normalizedStatusText,
+    draft,
+    safetyLevel: safetyGate.safetyLevel,
+    writebackRisk: safetyGate.writebackRisk,
+    safetyGate,
+    simulation,
+    writeback: {
+      mode: "quick_create_confirmation_gated",
+      canStageInQuickCreate: Boolean(normalizedStatusText) && simulation.changes.length > 0,
+      canAutoSave: false,
+      requiresProjectManagerVerification: true,
+      requiresExplicitSaveConfirmation: true,
+      confirmationText,
+      blockers: [
+        ...simulation.blockers,
+        ...(!normalizedStatusText ? ["Monthly status text is missing."] : []),
+        ...(safetyGate.writebackRisk === "blocked_until_confirmation" ? ["Safety gate requires explicit writeback confirmation."] : []),
+      ],
+      steps: [
+        "Open the verified project record.",
+        "Open Status Update tab and choose New Status Update.",
+        "Stage the prepared fields in Quick Create: Status Update.",
+        "Verify Submitted To and Email Status Update.",
+        "Save only after the exact confirmation text matches the project, month, status text, and email setting.",
+      ],
+    },
+  };
+}
+
+function buildMonthlyStatusReportRun(projects = [], options = {}) {
+  const month = getMonthBounds(options.reportMonth || options.month || options.reportDate || options.today);
+  const statusByProjectId = options.statusByProjectId || {};
+  const activeProjects = (projects || []).filter(isActiveProjectCandidate);
+  const reports = activeProjects.map((project) => {
+    const keyCandidates = [project.projectId, project.id, project.projectNumber, project.name].filter(Boolean);
+    const statusText = keyCandidates.map((key) => statusByProjectId[key]).find((value) => value != null)
+      ?? options.defaultStatusText
+      ?? "";
+    return buildMonthlyStatusReportDraft(project, statusText, { ...options, reportMonth: month.reportMonth });
+  });
+  const byWritebackRisk = reports.reduce((summary, report) => {
+    summary[report.writebackRisk] = (summary[report.writebackRisk] || 0) + 1;
+    return summary;
+  }, {});
+  return {
+    reportType: "monthly_status_writeback",
+    title: "Monthly Project Status Writeback Plan",
+    generatedAt: options.generatedAt || new Date().toISOString(),
+    reportMonth: month.reportMonth,
+    periodStart: month.periodStart,
+    periodEnd: month.periodEnd,
+    summary: {
+      projectsReviewed: activeProjects.length,
+      draftsReady: reports.filter((report) => !report.statusRequired).length,
+      statusInputsMissing: reports.filter((report) => report.statusRequired).length,
+      blockedUntilConfirmation: reports.filter((report) => report.writebackRisk === "blocked_until_confirmation").length,
+      byWritebackRisk,
+      writebackMode: "quick_create_confirmation_gated",
+      canAutoSave: false,
+    },
+    reports,
+    nextSteps: reports.some((report) => report.statusRequired)
+      ? ["Collect missing monthly status text from project leaders before staging."]
+      : ["Open each verified project and stage the prepared Quick Create status update after review."],
+  };
+}
+
 function getDataverseBrowserSnippet() {
   return String.raw`(() => {
   const constants = ${JSON.stringify({
@@ -350,6 +470,7 @@ function getDataverseBrowserSnippet() {
     STATUS_UPDATE_TAB_NAME,
     STATUS_UPDATE_SUBGRID_NAME,
     STATUS_UPDATE_FIELDS,
+    UNCHANGED_STATUS_TEXT,
   })};
 
   function normalizeGuid(value) {
@@ -430,6 +551,30 @@ function getDataverseBrowserSnippet() {
 
   function normalizeText(value) {
     return String(value || "").trim().replace(/\\s+/g, " ");
+  }
+
+  function normalizeStatusInput(value) {
+    const trimmed = String(value || "").trim();
+    return trimmed.toLowerCase() === "kv" ? constants.UNCHANGED_STATUS_TEXT : trimmed;
+  }
+
+  function normalizeReportMonth(value) {
+    const source = value || new Date().toISOString().slice(0, 10);
+    const match = String(source).match(/^(\\d{4})-(\\d{2})/);
+    if (!match) throw new Error("report month must use YYYY-MM or a date starting with YYYY-MM.");
+    return match[1] + "-" + match[2];
+  }
+
+  function getMonthBounds(reportMonth) {
+    const normalized = normalizeReportMonth(reportMonth);
+    const parts = normalized.split("-").map(Number);
+    const start = new Date(Date.UTC(parts[0], parts[1] - 1, 1));
+    const end = new Date(Date.UTC(parts[0], parts[1], 0));
+    return {
+      reportMonth: normalized,
+      periodStart: start.toISOString().slice(0, 10),
+      periodEnd: end.toISOString().slice(0, 10),
+    };
   }
 
   function evidence(code, field, value, message) {
@@ -719,6 +864,94 @@ function getDataverseBrowserSnippet() {
     };
   }
 
+  function buildStatusUpdateDraft(statusText, options = {}) {
+    const normalizedStatusText = normalizeStatusInput(statusText);
+    const reportDate = options.reportDate || new Date().toISOString().slice(0, 10);
+    const accomplishedActivities = options.accomplishedActivities ?? normalizedStatusText;
+    return {
+      entityLabel: "Status Update",
+      fields: {
+        [constants.STATUS_UPDATE_FIELDS.reportDate]: reportDate,
+        [constants.STATUS_UPDATE_FIELDS.statusSummary]: normalizedStatusText,
+        [constants.STATUS_UPDATE_FIELDS.accomplishedActivities]: accomplishedActivities,
+        [constants.STATUS_UPDATE_FIELDS.missedActivities]: options.missedActivities || "",
+        [constants.STATUS_UPDATE_FIELDS.plannedActivities]: options.plannedActivities || "",
+        [constants.STATUS_UPDATE_FIELDS.sponsorActions]: options.sponsorActions || "",
+        [constants.STATUS_UPDATE_FIELDS.obstaclesAndMeasures]: options.obstaclesAndMeasures || "",
+        [constants.STATUS_UPDATE_FIELDS.decisions]: options.decisions || "",
+      },
+      submittedTo: options.submittedTo || null,
+      emailStatusUpdate: options.emailStatusUpdate ?? false,
+      requiresExplicitSaveConfirmation: true,
+      requiresSubmittedToWhenEmpty: true,
+    };
+  }
+
+  function buildMonthlyStatusReportDraft(project = {}, statusText = "", options = {}) {
+    const month = getMonthBounds(options.reportMonth || options.month || options.reportDate || options.today);
+    const normalizedStatusText = normalizeStatusInput(statusText || options.statusText || "");
+    const draft = buildStatusUpdateDraft(normalizedStatusText, { ...options, reportDate: options.reportDate || month.periodEnd });
+    const simulation = {
+      projectId: project.projectId || null,
+      name: project.name || null,
+      changes: Object.entries(draft.fields || {}).map(([field, nextValue]) => ({ field, nextValue })),
+      blockers: [
+        ...(draft.emailStatusUpdate ? ["Email Status Update is enabled."] : []),
+        ...(!normalizedStatusText ? ["Monthly status text is missing."] : []),
+      ],
+      confirmations: ["Confirm project, status text, target fields, and email setting before save."],
+      canAutoSave: false,
+    };
+    const projectLabel = project.name || project.projectId || project.id || "unknown project";
+    return {
+      projectId: project.projectId || project.id || null,
+      name: project.name || null,
+      recordUrl: project.recordUrl || (project.id ? buildDynamicsProjectRecordUrl(project.id) : null),
+      reportMonth: month.reportMonth,
+      periodStart: month.periodStart,
+      periodEnd: month.periodEnd,
+      statusRequired: !normalizedStatusText,
+      statusText: normalizedStatusText,
+      draft,
+      simulation,
+      writeback: {
+        mode: "quick_create_confirmation_gated",
+        canStageInQuickCreate: Boolean(normalizedStatusText),
+        canAutoSave: false,
+        requiresProjectManagerVerification: true,
+        requiresExplicitSaveConfirmation: true,
+        confirmationText: "CONFIRM MONTHLY STATUS WRITEBACK | Project: " + projectLabel + " | Month: " + month.reportMonth + " | Report Date: " + draft.fields[constants.STATUS_UPDATE_FIELDS.reportDate] + " | Email Status Update: " + (draft.emailStatusUpdate ? "Yes" : "No"),
+        blockers: simulation.blockers,
+      },
+    };
+  }
+
+  function buildMonthlyStatusReportRun(projects = [], options = {}) {
+    const month = getMonthBounds(options.reportMonth || options.month || options.reportDate || options.today);
+    const statusByProjectId = options.statusByProjectId || {};
+    const reports = (projects || []).filter(isActiveProjectCandidate).map((project) => {
+      const keys = [project.projectId, project.id, project.projectNumber, project.name].filter(Boolean);
+      const statusText = keys.map((key) => statusByProjectId[key]).find((value) => value != null) ?? options.defaultStatusText ?? "";
+      return buildMonthlyStatusReportDraft(project, statusText, { ...options, reportMonth: month.reportMonth });
+    });
+    return {
+      reportType: "monthly_status_writeback",
+      title: "Monthly Project Status Writeback Plan",
+      generatedAt: options.generatedAt || new Date().toISOString(),
+      reportMonth: month.reportMonth,
+      periodStart: month.periodStart,
+      periodEnd: month.periodEnd,
+      summary: {
+        projectsReviewed: reports.length,
+        draftsReady: reports.filter((report) => !report.statusRequired).length,
+        statusInputsMissing: reports.filter((report) => report.statusRequired).length,
+        writebackMode: "quick_create_confirmation_gated",
+        canAutoSave: false,
+      },
+      reports,
+    };
+  }
+
   async function retrieveActiveProjects(options = {}) {
     const xrm = getXrm();
     const query = buildQuery(
@@ -864,6 +1097,9 @@ function getDataverseBrowserSnippet() {
   window.TPGProjectAssist = {
     constants,
     buildPmoProjectExport,
+    buildMonthlyStatusReportDraft,
+    buildMonthlyStatusReportRun,
+    buildStatusUpdateDraft,
     copyPmoProjectExportToClipboard,
     downloadPmoProjectExport,
     exportActiveProjectsForPmoReports,
@@ -940,6 +1176,10 @@ PMO report with filters:
   node ./scripts/statusbericht.js --pmo-report <real-project-export.json> --pmo-report-type executive_exception --json
   node ./scripts/statusbericht.js --pmo-suite <real-project-export.json> --docx reports/pmo-suite.docx --xlsx reports/pmo-suite.xlsx
   node ./scripts/statusbericht.js --pmo-report <real-project-export.json> --project-status "In Progress" --docx reports/pmo-status.docx --xlsx reports/pmo-status.xlsx
+
+Monthly project-leader status writeback plan:
+  node ./scripts/statusbericht.js --monthly-status-plan <real-project-export.json> --month YYYY-MM --json
+  node ./scripts/statusbericht.js --monthly-status-plan <real-project-export.json> --month YYYY-MM --status-text "kv" --json
 
 Sample and fixture inputs are rejected by default. They are reserved for automated tests and documentation fixtures.
 `);
@@ -1722,6 +1962,56 @@ async function printPmoReportSuite() {
   ].filter(Boolean).join("\n"));
 }
 
+function formatMonthlyStatusReportRunMarkdown(run) {
+  return [
+    "# Monthly Project Status Writeback Plan",
+    "",
+    `Month: ${run.reportMonth}`,
+    `Period: ${run.periodStart} to ${run.periodEnd}`,
+    `Projects reviewed: ${run.summary.projectsReviewed}`,
+    `Drafts ready: ${run.summary.draftsReady}`,
+    `Missing status inputs: ${run.summary.statusInputsMissing}`,
+    `Blocked until confirmation: ${run.summary.blockedUntilConfirmation}`,
+    "",
+    "## Project Drafts",
+    "",
+    ...run.reports.map((report) => [
+      `- ${report.name || report.projectId || "Unnamed project"} (${report.projectId || "n/a"})`,
+      `  Month: ${report.reportMonth}`,
+      `  Status required: ${report.statusRequired ? "yes" : "no"}`,
+      `  Safety: ${report.safetyLevel}`,
+      `  Writeback risk: ${report.writebackRisk}`,
+      `  Mode: ${report.writeback.mode}`,
+      `  Confirmation: ${report.writeback.confirmationText}`,
+    ].join("\n")),
+    "",
+    "No automatic CRM save is included. Stage in Quick Create and save only after explicit confirmation.",
+  ].join("\n");
+}
+
+function printMonthlyStatusReportRun() {
+  const inputPath = getArgValue("--monthly-status-plan");
+  if (!inputPath) {
+    throw new Error("--monthly-status-plan requires a JSON file path or '-' for stdin.");
+  }
+  const projects = readProjectsInput(inputPath);
+  const run = buildMonthlyStatusReportRun(projects, {
+    today: getArgValue("--today") || undefined,
+    reportMonth: getArgValue("--month") || getArgValue("--report-month") || undefined,
+    defaultStatusText: getArgValue("--status-text") || undefined,
+    submittedTo: getArgValue("--submitted-to") || undefined,
+    projectManagerVerified: process.argv.includes("--project-manager-verified"),
+    reviewed: process.argv.includes("--reviewed"),
+    generatedContent: process.argv.includes("--generated-content"),
+    emailStatusUpdate: process.argv.includes("--email-status-update"),
+  });
+  if (process.argv.includes("--json")) {
+    console.log(JSON.stringify(run, null, 2));
+    return;
+  }
+  console.log(formatMonthlyStatusReportRunMarkdown(run));
+}
+
 async function main() {
   try {
     if (process.argv.includes("--help") || process.argv.includes("-h")) {
@@ -1730,6 +2020,8 @@ async function main() {
       printDataverseSnippet();
     } else if (process.argv.includes("--pmo-suite")) {
       await printPmoReportSuite();
+    } else if (process.argv.includes("--monthly-status-plan")) {
+      printMonthlyStatusReportRun();
     } else if (process.argv.includes("--pmo-report")) {
       await printPmoStatusReport();
     } else if (process.argv.includes("--intelligence")) {
@@ -1773,12 +2065,15 @@ module.exports = {
   buildDataverseQuery,
   buildDataverseUrl,
   buildDynamicsProjectRecordUrl,
+  buildMonthlyStatusReportDraft,
+  buildMonthlyStatusReportRun,
   buildPmoProjectExport,
   buildProjectRecordApiUrl,
   buildStatusUpdateDraft,
   buildPmoStatusReportDocxBuffer,
   buildPmoStatusReportXlsxBuffer,
   formatProjectIntelligenceMarkdown,
+  formatMonthlyStatusReportRunMarkdown,
   formatPmoStatusReportMarkdown,
   writePmoStatusReportFiles,
   writePmoReportFiles,

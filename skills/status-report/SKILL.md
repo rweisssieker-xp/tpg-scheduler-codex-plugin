@@ -15,6 +15,7 @@ For PMO reporting, portfolio management packs, the 12-report PMO suite, or DOCX/
 - Read Dataverse data through the authenticated Dynamics browser context as the primary path unless the user explicitly provides offline JSON.
 - For PMO inputs, create a read-only `tpg_pmo_project_export` via `TPGProjectAssist.downloadPmoProjectExport()` or `copyPmoProjectExportToClipboard()`.
 - Verify the configured project manager before collecting or staging a status update.
+- For monthly runs, prepare one Status Update per active verified project and report month with `--monthly-status-plan`.
 - Show project safety level and PMO control findings before collecting or staging a status update.
 - Treat `kv` as the configured unchanged-status shortcut.
 - Never save, submit, send, delete, change ownership, or change CRM state without explicit user confirmation.
@@ -26,6 +27,7 @@ For PMO reporting, portfolio management packs, the 12-report PMO suite, or DOCX/
 cd plugins/tpg-scheduler-codex-plugin
 npm run status-report:help
 node ./scripts/statusbericht.js --intelligence <real-project-export.json>
+node ./scripts/statusbericht.js --monthly-status-plan <real-project-export.json> --month YYYY-MM --json
 node ./scripts/statusbericht.js --pmo-report <real-project-export.json> --project-status "In Progress"
 node ./scripts/statusbericht.js --pmo-report <real-project-export.json> --docx reports/pmo-status.docx --xlsx reports/pmo-status.xlsx
 npm test

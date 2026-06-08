@@ -118,12 +118,35 @@ Supported `--pmo-report-type` values are `portfolio_steering`, `decision_action_
 7. Stage a Quick Create status update only after review.
 8. Save only after explicit confirmation of project, status text, and email setting.
 
+## Monthly Project-Leader Status Writeback
+
+Project leaders can prepare one status report per active project and month from a real Dataverse export:
+
+```powershell
+node ./scripts/statusbericht.js --monthly-status-plan <real-project-export.json> --month 2026-06 --json
+```
+
+To prefill every active project with the unchanged-status shortcut for review:
+
+```powershell
+node ./scripts/statusbericht.js --monthly-status-plan <real-project-export.json> --month 2026-06 --status-text "kv" --project-manager-verified --reviewed --json
+```
+
+The output contains one monthly draft per project, the report period, prepared Status Update fields, project safety level, writeback risk, blockers, and the exact confirmation text required before saving. It does not auto-save. The safe write path remains:
+
+1. Open the verified project record.
+2. Open `Status Update` and choose `New Status Update`.
+3. Stage the prepared fields in `Quick Create: Status Update`.
+4. Verify `Submitted To` and `Email Status Update`.
+5. Save only after explicit confirmation for the exact project, month, status text, and email setting.
+
 ## Important Commands
 
 ```powershell
 npm run status-report:help
 npm run status-report:dataverse
 node ./scripts/statusbericht.js --intelligence <real-project-export.json>
+node ./scripts/statusbericht.js --monthly-status-plan <real-project-export.json> --month YYYY-MM --json
 node ./scripts/statusbericht.js --pmo-report <real-project-export.json>
 npm test
 ```
@@ -151,6 +174,7 @@ Offline intelligence accepts either a Dataverse PMO project export envelope or a
 - Portfolio risk list.
 - Decision radar and decision SLA cockpit.
 - Project Safety Gates with safety level, management attention, writeback risk, required evidence, and recommended actions.
+- Monthly status writeback plans with per-project draft fields, confirmation text, and Quick Create writeback blockers.
 - PMO Control Tower output with 25 governance and portfolio-control checks per project.
 - PMO Status Report output with filters for project status and last status report date/text.
 - DOCX and XLSX PMO report files.

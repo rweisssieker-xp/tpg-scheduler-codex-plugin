@@ -46,6 +46,8 @@ assert.match(skill, /Never save, submit, send, delete, change ownership, or chan
 assert.match(skill, /pmo-report-suite/);
 assert.match(skill, /TPGProjectAssist\.downloadPmoProjectExport/);
 assert.match(skill, /tpg_pmo_project_export/);
+assert.match(skill, /buildMonthlyStatusReportDraft/);
+assert.match(skill, /--monthly-status-plan/);
 const pmoSkill = assertFile("plugins/tpg-scheduler-codex-plugin/skills/pmo-report-suite/SKILL.md");
 const rootPmoSkill = assertFile("skills/pmo-report-suite/SKILL.md");
 assert.match(pmoSkill, /^---\nname: pmo-report-suite\n/m);

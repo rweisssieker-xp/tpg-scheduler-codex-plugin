@@ -20,6 +20,8 @@ const {
   buildDataverseQuery,
   buildDecisionClosureItems,
   buildDynamicsProjectRecordUrl,
+  buildMonthlyStatusReportDraft,
+  buildMonthlyStatusReportRun,
   buildExecutiveOnePager,
   buildExportBundle,
   buildGovernanceExceptions,
@@ -100,6 +102,43 @@ assert.deepEqual(buildStatusUpdateDraft("kv").fields.tpg_title, UNCHANGED_STATUS
 assert.deepEqual(buildStatusUpdateDraft("Projekt ist im Plan.").fields.tpg_accomplishedactivities, "Projekt ist im Plan.");
 assert.equal(buildStatusUpdateDraft("Projekt ist im Plan.").emailStatusUpdate, false);
 assert.equal(buildStatusUpdateDraft("Projekt ist im Plan.").requiresExplicitSaveConfirmation, true);
+const monthlyDraft = buildMonthlyStatusReportDraft(
+  {
+    id: "84966c5d-996d-4d19-88de-97a4300a6a62",
+    projectId: "2024-1058",
+    name: "Monthly Project",
+    projectStatusLabel: "In Progress",
+    overallKpiLabel: "Green",
+    recordUrl: "https://posp365.crm4.dynamics.com/main.aspx?id=84966c5d-996d-4d19-88de-97a4300a6a62",
+  },
+  "kv",
+  { reportMonth: "2026-06", projectManagerVerified: true, reviewed: true, submittedTo: "PMO" }
+);
+assert.equal(monthlyDraft.reportMonth, "2026-06");
+assert.equal(monthlyDraft.periodEnd, "2026-06-30");
+assert.equal(monthlyDraft.draft.fields.tpg_reportdate, "2026-06-30");
+assert.equal(monthlyDraft.draft.fields.tpg_title, UNCHANGED_STATUS_TEXT);
+assert.equal(monthlyDraft.writeback.mode, "quick_create_confirmation_gated");
+assert.equal(monthlyDraft.writeback.canAutoSave, false);
+assert.match(monthlyDraft.writeback.confirmationText, /CONFIRM MONTHLY STATUS WRITEBACK/);
+const monthlyRun = buildMonthlyStatusReportRun([
+  {
+    projectId: "2024-1058",
+    name: "Monthly Project",
+    projectStatusLabel: "In Progress",
+    overallKpiLabel: "Green",
+    recordUrl: "https://posp365.crm4.dynamics.com/main.aspx?id=84966c5d-996d-4d19-88de-97a4300a6a62",
+  },
+  {
+    projectId: "2024-9999",
+    name: "Closed Project",
+    projectStatusLabel: "Closed",
+  },
+], { reportMonth: "2026-06" });
+assert.equal(monthlyRun.reportType, "monthly_status_writeback");
+assert.equal(monthlyRun.summary.projectsReviewed, 1);
+assert.equal(monthlyRun.summary.statusInputsMissing, 1);
+assert.equal(monthlyRun.summary.canAutoSave, false);
 assert.equal(isActiveProjectCandidate({ projectStatusLabel: "In Progress" }), true);
 assert.equal(isActiveProjectCandidate({ projectStatusLabel: "Closed" }), false);
 assert.equal(isActiveProjectCandidate({ projectStatusLabel: null }), true);
@@ -209,6 +248,8 @@ assert.match(getDataverseBrowserSnippet(), /exportActiveProjectsForPmoReports/);
 assert.match(getDataverseBrowserSnippet(), /downloadPmoProjectExport/);
 assert.match(getDataverseBrowserSnippet(), /copyPmoProjectExportToClipboard/);
 assert.match(getDataverseBrowserSnippet(), /source: "dataverse_web_api"/);
+assert.match(getDataverseBrowserSnippet(), /buildMonthlyStatusReportDraft/);
+assert.match(getDataverseBrowserSnippet(), /buildMonthlyStatusReportRun/);
 assert.equal(isSampleInputPath("./scripts/fixtures/projects.sample.json"), true);
 assert.equal(isSampleInputPath("./real-project-export.json"), false);
 const dataverseExport = buildPmoProjectExport([
