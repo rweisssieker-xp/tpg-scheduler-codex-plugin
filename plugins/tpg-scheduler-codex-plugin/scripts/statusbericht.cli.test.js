@@ -6,7 +6,10 @@ const scriptPath = path.join(__dirname, "statusbericht.js");
 const fixturePath = path.join(__dirname, "fixtures", "projects.sample.json");
 
 assert.throws(
-  () => execFileSync(process.execPath, [scriptPath, "--intelligence", fixturePath, "--today", "2026-05-13"], { encoding: "utf8" }),
+  () => execFileSync(process.execPath, [scriptPath, "--intelligence", fixturePath, "--today", "2026-05-13"], {
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+  }),
   /Sample or synthetic project data is not accepted for production runs/
 );
 
@@ -44,5 +47,36 @@ const exportsOutput = execFileSync(
 const exportsParsed = JSON.parse(exportsOutput);
 assert.match(exportsParsed.csv.managementActions, /decision_closure/);
 assert.match(exportsParsed.csv.riskLedger, /red_kpi/);
+
+const pmoReportOutput = execFileSync(
+  process.execPath,
+  [
+    scriptPath,
+    "--pmo-report",
+    fixturePath,
+    "--today",
+    "2026-05-13",
+    "--project-status",
+    "In Progress",
+    "--last-status-contains",
+    "Vendor",
+    "--allow-sample",
+  ],
+  { encoding: "utf8" }
+);
+assert.match(pmoReportOutput, /# PMO Status Report/);
+assert.match(pmoReportOutput, /Project status: In Progress/);
+assert.match(pmoReportOutput, /Last status contains: Vendor/);
+assert.match(pmoReportOutput, /ERP Cutover/);
+assert.doesNotMatch(pmoReportOutput, /CRM Rollout/);
+
+const pmoJsonOutput = execFileSync(
+  process.execPath,
+  [scriptPath, "--pmo-report", fixturePath, "--project-status", "In Progress", "--json", "--allow-sample"],
+  { encoding: "utf8" }
+);
+const pmoJson = JSON.parse(pmoJsonOutput);
+assert.equal(pmoJson.filters.projectStatusLabels[0], "In Progress");
+assert.equal(pmoJson.pmoControlTower.summary.projectsReviewed, 2);
 
 console.log("statusbericht cli tests passed");

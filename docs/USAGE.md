@@ -30,6 +30,42 @@ node ./scripts/statusbericht.js --intelligence <real-project-export.json> --expo
 
 Sample and synthetic files are blocked by default and are reserved for automated tests and documentation fixtures.
 
+## PMO Report Filters
+
+Create a PMO report from real project export data:
+
+```powershell
+node ./scripts/statusbericht.js --pmo-report <real-project-export.json>
+```
+
+Filter by project status:
+
+```powershell
+node ./scripts/statusbericht.js --pmo-report <real-project-export.json> --project-status "In Progress"
+```
+
+Filter by multiple project statuses:
+
+```powershell
+node ./scripts/statusbericht.js --pmo-report <real-project-export.json> --project-status "In Progress,Planning"
+```
+
+Filter by the last status report:
+
+```powershell
+node ./scripts/statusbericht.js --pmo-report <real-project-export.json> --last-status-before 2026-06-01
+node ./scripts/statusbericht.js --pmo-report <real-project-export.json> --last-status-after 2026-05-01
+node ./scripts/statusbericht.js --pmo-report <real-project-export.json> --last-status-on 2026-05-15
+node ./scripts/statusbericht.js --pmo-report <real-project-export.json> --last-status-contains "vendor"
+node ./scripts/statusbericht.js --pmo-report <real-project-export.json> --last-status-missing
+```
+
+Emit the filtered PMO report as JSON:
+
+```powershell
+node ./scripts/statusbericht.js --pmo-report <real-project-export.json> --project-status "In Progress" --json
+```
+
 ## Dynamics Browser Workflow
 
 1. Start the `status-report` skill in Codex.
@@ -47,6 +83,7 @@ Sample and synthetic files are blocked by default and are reserved for automated
 npm run status-report:help
 npm run status-report:dataverse
 node ./scripts/statusbericht.js --intelligence <real-project-export.json>
+node ./scripts/statusbericht.js --pmo-report <real-project-export.json>
 npm test
 ```
 
@@ -74,6 +111,7 @@ Offline intelligence expects a JSON array of mapped project objects. Common fiel
 - Decision radar and decision SLA cockpit.
 - Project Safety Gates with safety level, management attention, writeback risk, required evidence, and recommended actions.
 - PMO Control Tower output with 25 governance and portfolio-control checks per project.
+- PMO Status Report output with filters for project status and last status report date/text.
 - Risk ledger rows.
 - PMO nudges and manual review drafts.
 - JSON intelligence pack.

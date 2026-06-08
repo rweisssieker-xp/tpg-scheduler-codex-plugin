@@ -88,6 +88,8 @@ If Dynamics asks for login, pause and let the user complete Microsoft login manu
   Then run that JavaScript in the in-app Browser page context. It exposes `window.TPGProjectAssist`.
 - To generate an offline project intelligence report from exported project JSON, run:
   `node ./scripts/statusbericht.js --intelligence <projects.json> --today YYYY-MM-DD`
+- To generate a PMO report with filters, run:
+  `node ./scripts/statusbericht.js --pmo-report <projects.json> --project-status "In Progress" --last-status-before YYYY-MM-DD`
 - Use `--json` with `--intelligence` when another automation should consume the complete intelligence pack.
 - Use `--exports` with `--intelligence` to emit CSV strings for Power BI/import workflows and JSON for automation.
 - Available browser helper methods after injection:

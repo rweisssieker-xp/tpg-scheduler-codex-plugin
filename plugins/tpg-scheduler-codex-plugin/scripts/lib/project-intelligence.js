@@ -1594,6 +1594,127 @@ function buildPmoControlTower(projects, options = {}) {
   };
 }
 
+function normalizeListFilter(value) {
+  if (Array.isArray(value)) {
+    return value.map(normalizeText).filter(Boolean);
+  }
+  return String(value || "")
+    .split(",")
+    .map(normalizeText)
+    .filter(Boolean);
+}
+
+function getLastStatusReportDate(project) {
+  const candidates = [
+    project?.lastStatusReportDate,
+    project?.lastStatusUpdateDate,
+    project?.lastStatusDate,
+    project?.gbl_laststatusupdate,
+    project?.lastStatusUpdate,
+  ];
+  for (const candidate of candidates) {
+    const parsed = parseDateOnly(candidate);
+    if (parsed) {
+      return parsed.toISOString().slice(0, 10);
+    }
+  }
+  return null;
+}
+
+function matchesPmoStatusReportFilters(project, filters = {}) {
+  const statusLabels = normalizeListFilter(filters.projectStatusLabels || filters.projectStatusLabel);
+  if (statusLabels.length) {
+    const actualStatus = normalizeText(project?.projectStatusLabel).toLowerCase();
+    if (!statusLabels.map((status) => status.toLowerCase()).includes(actualStatus)) {
+      return false;
+    }
+  }
+
+  const lastStatusText = normalizeText(project?.lastStatusUpdate || project?.currentStatusText);
+  const lastStatusReportDate = getLastStatusReportDate(project);
+  if (filters.lastStatusMissing && (lastStatusText || lastStatusReportDate)) {
+    return false;
+  }
+  if (filters.lastStatusContains && !lastStatusText.toLowerCase().includes(normalizeText(filters.lastStatusContains).toLowerCase())) {
+    return false;
+  }
+
+  const reportDate = parseDateOnly(lastStatusReportDate);
+  const on = parseDateOnly(filters.lastStatusOn);
+  const before = parseDateOnly(filters.lastStatusBefore);
+  const after = parseDateOnly(filters.lastStatusAfter);
+  if (on && (!reportDate || reportDate.getTime() !== on.getTime())) {
+    return false;
+  }
+  if (before && (!reportDate || reportDate >= before)) {
+    return false;
+  }
+  if (after && (!reportDate || reportDate <= after)) {
+    return false;
+  }
+  return true;
+}
+
+function buildPmoStatusReport(projects, options = {}) {
+  const sourceProjects = projects || [];
+  const filters = {
+    projectStatusLabels: normalizeListFilter(options.projectStatusLabels || options.projectStatusLabel),
+    lastStatusBefore: options.lastStatusBefore || null,
+    lastStatusAfter: options.lastStatusAfter || null,
+    lastStatusOn: options.lastStatusOn || null,
+    lastStatusContains: options.lastStatusContains || null,
+    lastStatusMissing: Boolean(options.lastStatusMissing),
+  };
+  const filteredProjects = sourceProjects.filter((project) => matchesPmoStatusReportFilters(project, filters));
+  const pmoControlTower = buildPmoControlTower(filteredProjects, options);
+  const projectSafetyGates = buildProjectSafetyGateSuite(filteredProjects, options);
+  const statusCounts = {};
+  for (const project of filteredProjects) {
+    const status = project.projectStatusLabel || "unknown";
+    statusCounts[status] = (statusCounts[status] || 0) + 1;
+  }
+  const reportDates = filteredProjects.map(getLastStatusReportDate).filter(Boolean).sort();
+  const missingLastStatusReports = filteredProjects.filter((project) => !normalizeText(project.lastStatusUpdate || project.currentStatusText) && !getLastStatusReportDate(project)).length;
+  const unparsableLastStatusReports = filteredProjects.filter((project) => normalizeText(project.lastStatusUpdate) && !getLastStatusReportDate(project)).length;
+  const controlsByProjectId = new Map(pmoControlTower.projects.map((project) => [project.projectId, project]));
+  const safetyByProjectId = new Map(projectSafetyGates.projects.map((project) => [project.projectId, project]));
+
+  return {
+    generatedAt: options.generatedAt || new Date().toISOString(),
+    filters,
+    summary: {
+      projectsTotal: sourceProjects.length,
+      projectsMatched: filteredProjects.length,
+      projectsFilteredOut: sourceProjects.length - filteredProjects.length,
+      statusCounts,
+      missingLastStatusReports,
+      unparsableLastStatusReports,
+      oldestLastStatusReport: reportDates[0] || null,
+      newestLastStatusReport: reportDates[reportDates.length - 1] || null,
+    },
+    projects: filteredProjects.map((project) => {
+      const projectId = project.projectId || project.id || null;
+      const controls = controlsByProjectId.get(projectId) || {};
+      const safety = safetyByProjectId.get(projectId) || {};
+      return {
+        projectId,
+        name: project.name || null,
+        projectStatusLabel: project.projectStatusLabel || null,
+        lastStatusUpdate: project.lastStatusUpdate || null,
+        lastStatusReportDate: getLastStatusReportDate(project),
+        pmoLevel: controls.pmoLevel || null,
+        pmoScore: controls.pmoScore ?? null,
+        intervention: controls.intervention || null,
+        safetyLevel: safety.safetyLevel || null,
+        managementAttention: safety.managementAttention || null,
+        recordUrl: project.recordUrl || null,
+      };
+    }),
+    pmoControlTower,
+    projectSafetyGates,
+  };
+}
+
 function buildProjectIntelligence(projects, options = {}) {
   const result = {
     preview: buildBatchProjectPreview(projects, options),
@@ -1632,6 +1753,7 @@ function buildProjectIntelligence(projects, options = {}) {
     reportQualityBenchmark: buildReportQualityBenchmark(projects, options),
     projectSafetyGates: buildProjectSafetyGateSuite(projects, options),
     pmoControlTower: buildPmoControlTower(projects, options),
+    pmoStatusReport: buildPmoStatusReport(projects, options),
     executiveOnePager: buildExecutiveOnePager(projects, options),
     unchangedStatusText: UNCHANGED_STATUS_TEXT,
   };
@@ -1686,6 +1808,7 @@ module.exports = {
   buildPmoControlTower,
   buildPmoPolicySimulator,
   buildPmoProjectControls,
+  buildPmoStatusReport,
   buildPortfolioConstraintRadar,
   buildNoSurpriseForecast,
   buildReportQualityBenchmark,

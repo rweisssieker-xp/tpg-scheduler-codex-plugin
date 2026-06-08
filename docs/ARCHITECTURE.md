@@ -73,6 +73,8 @@ The eight safety domains are data integrity, status truth, delivery risk, decisi
 
 `buildPmoControlTower(projects, options)` aggregates the project controls and is included in `buildProjectIntelligence(projects, options)` as `pmoControlTower`.
 
+`buildPmoStatusReport(projects, options)` applies PMO report filters before control-tower calculation. Supported filters include project status labels, last status report date ranges, exact last status report date, missing last status report, and text matching against the last status report narrative.
+
 ## Schema Layer
 
 The schema layer documents output contracts without adding runtime dependencies. Validation checks parse each schema and assert critical contract anchors:

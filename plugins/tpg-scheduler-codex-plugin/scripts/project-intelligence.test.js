@@ -40,6 +40,7 @@ const {
   buildPmoPolicySimulator,
   buildPmoControlTower,
   buildPmoProjectControls,
+  buildPmoStatusReport,
   buildPortfolioConstraintRadar,
   buildNoSurpriseForecast,
   buildReportQualityBenchmark,
@@ -671,5 +672,27 @@ assert.equal(pmoControlTower.summary.checksPerProject, 25);
 assert.equal(pmoControlTower.summary.projectsNeedingPmo >= 1, true);
 assert.equal(pmoControlTower.portfolioFindings.length > 0, true);
 assert.equal(buildProjectIntelligence(projects, { today: "2026-05-13" }).pmoControlTower.summary.checksPerProject, 25);
+
+const pmoStatusReport = buildPmoStatusReport([
+  { ...projects[0], projectStatusLabel: "In Progress", lastStatusReportDate: "2026-05-01" },
+  { ...projects[1], projectStatusLabel: "Closed", lastStatusReportDate: "2026-05-10" },
+  { projectId: "2024-2000", name: "No Report", projectStatusLabel: "In Progress", lastStatusUpdate: "" },
+], {
+  today: "2026-05-20",
+  projectStatusLabels: ["In Progress"],
+  lastStatusBefore: "2026-05-05",
+});
+assert.equal(pmoStatusReport.summary.projectsTotal, 3);
+assert.equal(pmoStatusReport.summary.projectsMatched, 1);
+assert.equal(pmoStatusReport.filters.projectStatusLabels[0], "In Progress");
+assert.equal(pmoStatusReport.projects[0].projectId, "2024-9999");
+assert.equal(pmoStatusReport.projects[0].lastStatusReportDate, "2026-05-01");
+assert.equal(pmoStatusReport.pmoControlTower.summary.projectsReviewed, 1);
+
+const missingStatusReport = buildPmoStatusReport([
+  { projectId: "2024-2000", name: "No Report", projectStatusLabel: "In Progress", lastStatusUpdate: "" },
+  { projectId: "2024-2001", name: "Has Report", projectStatusLabel: "In Progress", lastStatusReportDate: "2026-05-15" },
+], { lastStatusMissing: true });
+assert.deepEqual(missingStatusReport.projects.map((project) => project.projectId), ["2024-2000"]);
 
 console.log("project intelligence tests passed");

@@ -752,6 +752,10 @@ Offline intelligence:
   node ./scripts/statusbericht.js --intelligence <real-project-export.json> --json
   node ./scripts/statusbericht.js --intelligence <real-project-export.json> --exports
 
+PMO report with filters:
+  node ./scripts/statusbericht.js --pmo-report <real-project-export.json> --project-status "In Progress" --last-status-before YYYY-MM-DD
+  node ./scripts/statusbericht.js --pmo-report <real-project-export.json> --project-status "In Progress,Planning" --last-status-contains "vendor" --json
+
 Sample and fixture inputs are rejected by default. They are reserved for automated tests and documentation fixtures.
 `);
 }
@@ -845,6 +849,73 @@ function formatProjectIntelligenceMarkdown(intelligence) {
   return `${lines.join("\n")}\n`;
 }
 
+function buildPmoReportOptions() {
+  return {
+    today: getArgValue("--today") || undefined,
+    projectStatusLabels: getArgValue("--project-status") || undefined,
+    lastStatusBefore: getArgValue("--last-status-before") || undefined,
+    lastStatusAfter: getArgValue("--last-status-after") || undefined,
+    lastStatusOn: getArgValue("--last-status-on") || undefined,
+    lastStatusContains: getArgValue("--last-status-contains") || undefined,
+    lastStatusMissing: process.argv.includes("--last-status-missing"),
+  };
+}
+
+function formatPmoStatusReportMarkdown(report) {
+  const filterLines = [];
+  if (report.filters.projectStatusLabels.length) {
+    filterLines.push(`- Project status: ${report.filters.projectStatusLabels.join(", ")}`);
+  }
+  if (report.filters.lastStatusBefore) {
+    filterLines.push(`- Last status before: ${report.filters.lastStatusBefore}`);
+  }
+  if (report.filters.lastStatusAfter) {
+    filterLines.push(`- Last status after: ${report.filters.lastStatusAfter}`);
+  }
+  if (report.filters.lastStatusOn) {
+    filterLines.push(`- Last status on: ${report.filters.lastStatusOn}`);
+  }
+  if (report.filters.lastStatusContains) {
+    filterLines.push(`- Last status contains: ${report.filters.lastStatusContains}`);
+  }
+  if (report.filters.lastStatusMissing) {
+    filterLines.push("- Last status missing: yes");
+  }
+  const lines = [
+    "# PMO Status Report",
+    "",
+    "## Filters",
+    "",
+    ...(filterLines.length ? filterLines : ["- No filters applied."]),
+    "",
+    "## Summary",
+    "",
+    `- Projects total: ${report.summary.projectsTotal}`,
+    `- Projects matched: ${report.summary.projectsMatched}`,
+    `- Projects filtered out: ${report.summary.projectsFilteredOut}`,
+    `- Missing last status reports: ${report.summary.missingLastStatusReports}`,
+    `- Unparsable last status reports: ${report.summary.unparsableLastStatusReports}`,
+    `- Oldest last status report: ${report.summary.oldestLastStatusReport || "n/a"}`,
+    `- Newest last status report: ${report.summary.newestLastStatusReport || "n/a"}`,
+    "",
+    "## Projects",
+    "",
+  ];
+
+  if (!report.projects.length) {
+    lines.push("- No projects match the selected filters.");
+  } else {
+    for (const project of report.projects) {
+      lines.push(`- ${project.name || "Unnamed project"} (${project.projectId || "no project id"}): status=${project.projectStatusLabel || "n/a"}, lastStatusReport=${project.lastStatusReportDate || "n/a"}, pmo=${project.pmoLevel || "n/a"}, safety=${project.safetyLevel || "n/a"}`);
+    }
+  }
+
+  lines.push("", "## PMO Attention", "");
+  lines.push(`- Projects needing PMO: ${report.pmoControlTower.summary.projectsNeedingPmo}`);
+  lines.push(`- Critical projects: ${report.pmoControlTower.summary.criticalProjects}`);
+  return `${lines.join("\n")}\n`;
+}
+
 function printProjectIntelligence() {
   const inputPath = getArgValue("--intelligence");
   if (!inputPath) {
@@ -867,12 +938,28 @@ function printProjectIntelligence() {
   console.log(formatProjectIntelligenceMarkdown(intelligence));
 }
 
+function printPmoStatusReport() {
+  const inputPath = getArgValue("--pmo-report");
+  if (!inputPath) {
+    throw new Error("--pmo-report requires a JSON file path or '-' for stdin.");
+  }
+  const projects = readProjectsInput(inputPath);
+  const report = projectIntelligence.buildPmoStatusReport(projects, buildPmoReportOptions());
+  if (process.argv.includes("--json")) {
+    console.log(JSON.stringify(report, null, 2));
+    return;
+  }
+  console.log(formatPmoStatusReportMarkdown(report));
+}
+
 if (require.main === module) {
   try {
     if (process.argv.includes("--help") || process.argv.includes("-h")) {
       printHelp();
     } else if (process.argv.includes("--dataverse")) {
       printDataverseSnippet();
+    } else if (process.argv.includes("--pmo-report")) {
+      printPmoStatusReport();
     } else if (process.argv.includes("--intelligence")) {
       printProjectIntelligence();
     } else {
@@ -909,6 +996,7 @@ module.exports = {
   buildProjectRecordApiUrl,
   buildStatusUpdateDraft,
   formatProjectIntelligenceMarkdown,
+  formatPmoStatusReportMarkdown,
   buildAuditEntry: projectIntelligence.buildAuditEntry,
   buildAiEscalationPack: projectIntelligence.buildAiEscalationPack,
   buildAudienceReport: projectIntelligence.buildAudienceReport,
@@ -949,6 +1037,7 @@ module.exports = {
   buildPmoControlTower: projectIntelligence.buildPmoControlTower,
   buildPmoPolicySimulator: projectIntelligence.buildPmoPolicySimulator,
   buildPmoProjectControls: projectIntelligence.buildPmoProjectControls,
+  buildPmoStatusReport: projectIntelligence.buildPmoStatusReport,
   buildPortfolioConstraintRadar: projectIntelligence.buildPortfolioConstraintRadar,
   buildNoSurpriseForecast: projectIntelligence.buildNoSurpriseForecast,
   buildReportQualityBenchmark: projectIntelligence.buildReportQualityBenchmark,

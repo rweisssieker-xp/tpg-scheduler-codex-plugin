@@ -59,6 +59,27 @@ The export payload includes CSV strings for:
 
 It also includes the full JSON intelligence payload for downstream automation.
 
+## PMO Filtered Report
+
+```powershell
+node ./scripts/statusbericht.js --pmo-report <real-project-export.json> --project-status "In Progress" --last-status-before 2026-06-01
+```
+
+The PMO report includes:
+
+- selected filters
+- total and matched project counts
+- project status counts
+- missing and unparsable last status report counts
+- filtered project rows with PMO level, PMO score, intervention, and safety level
+- PMO Control Tower summary for the filtered project set
+
+Use JSON for dashboard or PMO queue consumers:
+
+```powershell
+node ./scripts/statusbericht.js --pmo-report <real-project-export.json> --project-status "In Progress,Planning" --last-status-missing --json
+```
+
 ## Schema-Aware Consumers
 
 Consumer tools should start with:

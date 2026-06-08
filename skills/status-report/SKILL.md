@@ -23,6 +23,7 @@ Use this root skill entry when the plugin is installed from the repository root.
 cd plugins/tpg-scheduler-codex-plugin
 npm run status-report:help
 node ./scripts/statusbericht.js --intelligence <real-project-export.json>
+node ./scripts/statusbericht.js --pmo-report <real-project-export.json> --project-status "In Progress"
 npm test
 ```
 

@@ -39,6 +39,7 @@ Preferred script names:
 npm run status-report:help
 npm run status-report:dataverse
 node ./scripts/statusbericht.js --intelligence <real-project-export.json>
+node ./scripts/statusbericht.js --pmo-report <real-project-export.json>
 ```
 
 Compatibility aliases:
@@ -47,6 +48,7 @@ Compatibility aliases:
 npm run statusbericht:help
 npm run statusbericht:dataverse
 node ./scripts/statusbericht.js --intelligence <real-project-export.json>
+node ./scripts/statusbericht.js --pmo-report <real-project-export.json>
 ```
 
 No npm command runs sample or fixture data as an active workflow. Test fixtures are reserved for automated tests and documentation.

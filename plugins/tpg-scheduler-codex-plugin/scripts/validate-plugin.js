@@ -108,6 +108,7 @@ for (const schemaPath of [
 const intelligenceSchema = JSON.parse(assertFile("schemas/project-intelligence.schema.json"));
 assert.equal(Boolean(intelligenceSchema.properties.projectSafetyGates), true, "project intelligence schema must include projectSafetyGates");
 assert.equal(Boolean(intelligenceSchema.properties.pmoControlTower), true, "project intelligence schema must include pmoControlTower");
+assert.equal(Boolean(intelligenceSchema.properties.pmoStatusReport), true, "project intelligence schema must include pmoStatusReport");
 
 const safetySchema = JSON.parse(assertFile("schemas/project-safety-gates.schema.json"));
 assert.deepEqual(safetySchema.properties.projects.items.required, [

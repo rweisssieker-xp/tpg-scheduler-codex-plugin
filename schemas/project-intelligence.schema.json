@@ -26,6 +26,31 @@
       "type": "object",
       "required": ["summary", "projects", "portfolioFindings"],
       "additionalProperties": true
+    },
+    "pmoStatusReport": {
+      "type": "object",
+      "required": ["filters", "summary", "projects", "pmoControlTower", "projectSafetyGates"],
+      "additionalProperties": true,
+      "properties": {
+        "filters": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "projectStatusLabels": { "type": "array", "items": { "type": "string" } },
+            "lastStatusBefore": { "type": ["string", "null"] },
+            "lastStatusAfter": { "type": ["string", "null"] },
+            "lastStatusOn": { "type": ["string", "null"] },
+            "lastStatusContains": { "type": ["string", "null"] },
+            "lastStatusMissing": { "type": "boolean" }
+          }
+        },
+        "summary": {
+          "type": "object",
+          "required": ["projectsTotal", "projectsMatched", "projectsFilteredOut"],
+          "additionalProperties": true
+        },
+        "projects": { "type": "array" }
+      }
     }
   }
 }

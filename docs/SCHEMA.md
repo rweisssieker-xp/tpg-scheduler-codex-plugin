@@ -8,6 +8,8 @@ The plugin exposes stable JSON contracts for offline reports and downstream PMO 
 - `schemas/project-safety-gates.schema.json`: advisory safety gate suite output.
 - `schemas/pmo-control-tower.schema.json`: PMO control tower output with 25 checks per project.
 
+The top-level project intelligence schema also includes the filtered `pmoStatusReport` contract.
+
 ## Contract Principles
 
 - Outputs are advisory and evidence-backed.
