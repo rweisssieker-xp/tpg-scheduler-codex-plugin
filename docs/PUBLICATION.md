@@ -28,7 +28,7 @@ node ./scripts/statusbericht.js --monthly-status-plan <real-dataverse-export.jso
 - Keep examples synthetic and documentation-only.
 - Keep productive CLI commands free of sample or fixture paths.
 - Keep Status API writeback confirmation-gated.
-- Run `npm test`, `npm run validate`, and `npm audit --audit-level=moderate`.
+- Run `npm test`, `npm run validate`, `npm run release:check`, and `npm audit --audit-level=moderate`.
 
 ## Architecture Signal
 

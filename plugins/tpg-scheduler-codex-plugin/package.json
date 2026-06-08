@@ -10,6 +10,7 @@
   "type": "commonjs",
   "scripts": {
     "validate": "node ./scripts/validate-plugin.js",
+    "release:check": "node ./scripts/release-readiness.js",
     "status-report:help": "node ./scripts/statusbericht.js --help",
     "status-report:dataverse": "node ./scripts/statusbericht.js --dataverse",
     "status-report:intelligence": "node ./scripts/statusbericht.js --intelligence",
@@ -20,7 +21,7 @@
     "statusbericht:intelligence": "node ./scripts/statusbericht.js --intelligence",
     "statusbericht:pmo": "node ./scripts/statusbericht.js --pmo-report",
     "statusbericht:pmo-suite": "node ./scripts/statusbericht.js --pmo-suite",
-    "test": "node --check ./scripts/statusbericht.js && node --check ./scripts/validate-plugin.js && node ./scripts/statusbericht.test.js && node ./scripts/project-intelligence.test.js && node ./scripts/statusbericht.cli.test.js && node ./scripts/validate-plugin.js"
+    "test": "node --check ./scripts/statusbericht.js && node --check ./scripts/validate-plugin.js && node --check ./scripts/release-readiness.js && node ./scripts/statusbericht.test.js && node ./scripts/project-intelligence.test.js && node ./scripts/statusbericht.cli.test.js && node ./scripts/validate-plugin.js && node ./scripts/release-readiness.js"
   },
   "dependencies": {
     "docx": "^9.7.1",

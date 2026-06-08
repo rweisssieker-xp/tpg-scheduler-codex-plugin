@@ -30,6 +30,12 @@ Run only plugin validation:
 npm run validate
 ```
 
+Run release-readiness checks:
+
+```powershell
+npm run release:check
+```
+
 The validation script checks:
 
 - The repository root contains `.codex-plugin/plugin.json` for plugin scanners that evaluate the repo root.
@@ -49,6 +55,7 @@ The validation script checks:
 - DOCX and XLSX export dependencies are validated, and the vulnerable `exceljs` dependency tree is disallowed.
 - Dataverse export helpers remain read-only and expose the PMO export contract expected by report commands.
 - GitHub Actions opt into the Node 24 JavaScript action runtime to avoid Node 20 runner deprecation warnings.
+- Release readiness checks verify license/package consistency, ignored report output, tracked-file safety, workflow action versions, and possible secret patterns.
 
 ## GitHub Actions
 

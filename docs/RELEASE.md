@@ -11,6 +11,7 @@ cd plugins/tpg-scheduler-codex-plugin
 npm ci
 npm test
 npm run validate
+npm run release:check
 ```
 
 2. Run the Dynamics end-to-end smoke test from `docs/DYNAMICS_E2E_RUNBOOK.md`.

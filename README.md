@@ -73,6 +73,7 @@ plugins/tpg-scheduler-codex-plugin/
 ```powershell
 cd plugins/tpg-scheduler-codex-plugin
 npm test
+npm run release:check
 npm run status-report:help
 npm run status-report:dataverse
 node ./scripts/statusbericht.js --intelligence <real-project-export.json>
