@@ -1227,6 +1227,244 @@ function buildHumanConfirmationAnalytics(events = []) {
   };
 }
 
+function makeSafetyGate(domain, checkId, title, status, severity, message, extras = {}) {
+  return {
+    domain,
+    checkId: `${domain}.${checkId}`,
+    title,
+    status,
+    severity,
+    message,
+    evidenceCodes: extras.evidenceCodes || [],
+    missingFields: extras.missingFields || [],
+    recommendedAction: extras.recommendedAction || null,
+    source: extras.source || null,
+  };
+}
+
+function gateStatus(condition, failStatus = "fail", passStatus = "pass") {
+  return condition ? failStatus : passStatus;
+}
+
+function safetyPenalty(gate) {
+  if (gate.severity === "critical") return 25;
+  if (gate.status === "fail") return 15;
+  if (gate.status === "warning") return 7;
+  return 0;
+}
+
+function containsAny(value, words) {
+  const text = normalizeText(value).toLowerCase();
+  return words.some((word) => text.includes(word));
+}
+
+function daysUntil(dateText, todayText) {
+  const target = parseDateOnly(dateText);
+  const today = parseDateOnly(todayText);
+  if (!target || !today) return null;
+  return Math.round((target.getTime() - today.getTime()) / 86400000);
+}
+
+function classifySafetyLevel(score, gates) {
+  if (score < 40 || gates.some((gate) => gate.severity === "critical")) return "critical";
+  if (gates.some((gate) => gate.status === "fail")) return "unsafe";
+  if (score < 90 || gates.some((gate) => gate.status === "warning")) return "watch";
+  return "safe";
+}
+
+function classifyManagementAttention(project, gates) {
+  const hasCriticalDelivery = gates.some((gate) => gate.domain === "delivery_risk" && gate.severity === "critical");
+  const hasOverdueDecision = gates.some((gate) => gate.checkId === "decision_governance.decision_sla" && gate.severity === "critical");
+  const hasEscalationGap = gates.some((gate) => gate.domain === "escalation_readiness" && gate.status === "fail");
+  if (hasCriticalDelivery && (hasOverdueDecision || hasEscalationGap)) return "ceo";
+  if (
+    project?.overallKpiLabel === "Red" ||
+    project?.dependencyStatusLabel === "Blocked" ||
+    project?.budgetStatusLabel === "Over Budget" ||
+    project?.resourceStatusLabel === "Understaffed" ||
+    gates.some((gate) => gate.checkId === "decision_governance.sponsor_action_required" && gate.status !== "pass")
+  ) return "cio";
+  if (gates.some((gate) => ["data_integrity", "report_quality", "status_truth"].includes(gate.domain) && gate.status !== "pass")) return "pmo";
+  return "none";
+}
+
+function classifyWritebackRisk(gates) {
+  if (gates.some((gate) => gate.domain === "writeback" && gate.status === "fail")) return "blocked_until_confirmation";
+  if (gates.some((gate) => gate.domain === "writeback" && gate.status === "warning")) return "high";
+  return "low";
+}
+
+function buildProjectSafetyGate(project = {}, options = {}) {
+  const today = options.today || new Date().toISOString().slice(0, 10);
+  const quality = evaluateStatusQuality(project, options);
+  const delta = detectStatusDelta(project, options);
+  const completeness = buildDataCompletenessScore(project);
+  const truth = buildProjectTruthScore(project, options);
+  const escalation = buildEscalationReadinessScore(project, options);
+  const safeWriteback = buildSafeWritebackSimulation(project, options.draft || {});
+  const decisions = buildDecisionClosureItems([project], options);
+  const evidenceCodes = quality.evidence.map((item) => item.code);
+  const statusText = normalizeText(project.currentStatusText || project.lastStatusUpdate);
+  const finishDays = daysUntil(project.finish, today);
+  const progress = Number(project.progress);
+  const needsEscalationReview = quality.severity !== "ok" || project.overallKpiLabel === "Red" || evidenceCodes.includes("dependency_blocked") || evidenceCodes.includes("overdue_finish");
+  const blockerKeywords = ["blocked", "blocker", "delay", "risk", "issue", "vendor", "escalation", "not ready"];
+  const decisionKeywords = ["approve", "decision", "decide", "blocked", "escalation", "funding", "vendor"];
+  const gates = [];
+
+  const add = (...args) => gates.push(makeSafetyGate(...args));
+
+  add("data_integrity", "project_id", "Project ID present", project.projectId || project.id ? "pass" : "fail", project.projectId || project.id ? "info" : "fail", "Project ID is required.", { missingFields: project.projectId || project.id ? [] : ["projectId"] });
+  add("data_integrity", "project_name", "Project name present", project.name ? "pass" : "fail", project.name ? "info" : "fail", "Project name is required.", { missingFields: project.name ? [] : ["name"] });
+  add("data_integrity", "record_url", "Record URL present", project.recordUrl ? "pass" : "warning", project.recordUrl ? "info" : "warning", "Record URL should be present for evidence traceability.", { missingFields: project.recordUrl ? [] : ["recordUrl"] });
+  add("data_integrity", "project_state", "Project state present", project.projectStatusLabel ? "pass" : "warning", project.projectStatusLabel ? "info" : "warning", "Project state should be present.", { missingFields: project.projectStatusLabel ? [] : ["projectStatusLabel"] });
+  add("data_integrity", "kpi_present", "KPI present", project.overallKpiLabel ? "pass" : "fail", project.overallKpiLabel ? "info" : "fail", "Overall KPI is required.", { missingFields: project.overallKpiLabel ? [] : ["overallKpiLabel"] });
+  add("data_integrity", "progress_valid", "Progress valid", Number.isFinite(progress) && progress >= 0 && progress <= 100 ? "pass" : "fail", Number.isFinite(progress) && progress >= 0 && progress <= 100 ? "info" : "fail", "Progress must be between 0 and 100.", { missingFields: Number.isFinite(progress) ? [] : ["progress"] });
+  add("data_integrity", "finish_date_valid", "Finish date valid", parseDateOnly(project.finish) ? "pass" : "fail", parseDateOnly(project.finish) ? "info" : "fail", "Finish date must be present and parseable.", { missingFields: parseDateOnly(project.finish) ? [] : ["finish"] });
+  add("data_integrity", "last_status_present", "Last status present", project.lastStatusUpdate || project.currentStatusText ? "pass" : "fail", project.lastStatusUpdate || project.currentStatusText ? "info" : "fail", "Status text is required.", { evidenceCodes: evidenceCodes.filter((code) => code === "stale_status") });
+  add("data_integrity", "active_state_consistency", "Active state consistency", isActiveProjectCandidate(project) ? "pass" : "not_applicable", "info", "Closed or inactive projects are not safety-gate candidates.");
+  add("data_integrity", "project_manager_evidence", "Project manager evidence present", options.projectManagerVerified === true || project.projectManagerName || project.ownerName ? "pass" : "warning", options.projectManagerVerified === true || project.projectManagerName || project.ownerName ? "info" : "warning", "Project manager verification evidence should be present.");
+  add("data_integrity", "duplicate_project_id", "Duplicate project ID", (options.duplicateProjectIds || new Set()).has(project.projectId) ? "fail" : "pass", (options.duplicateProjectIds || new Set()).has(project.projectId) ? "fail" : "info", "Project ID should be unique in the suite.");
+  add("data_integrity", "source_url_for_management", "Source URL for management output", project.recordUrl ? "pass" : "warning", project.recordUrl ? "info" : "warning", "Management-facing output should include a source URL.", { missingFields: project.recordUrl ? [] : ["recordUrl"] });
+
+  add("status_truth", "stale_status", "Status freshness", evidenceCodes.includes("stale_status") ? "fail" : "pass", evidenceCodes.includes("stale_status") ? "fail" : "info", "Status must be current and present.", { evidenceCodes: evidenceCodes.filter((code) => code === "stale_status") });
+  add("status_truth", "empty_status", "Empty status", statusText ? "pass" : "fail", statusText ? "info" : "fail", "Status text must not be empty.");
+  add("status_truth", "repeated_unchanged_status", "Repeated unchanged status", delta.changeType === "unchanged" ? "warning" : "pass", delta.changeType === "unchanged" ? "warning" : "info", "Repeated unchanged status should be reviewed.", { evidenceCodes: delta.evidence.map((item) => item.code) });
+  add("status_truth", "kv_validity", "KV validity", delta.recommendedInput === "kv_blocked" ? "warning" : "pass", delta.recommendedInput === "kv_blocked" ? "warning" : "info", "kv is advisory-blocked by project evidence.", { evidenceCodes: delta.recommendedInput === "kv_blocked" ? ["kv_blocked", ...delta.evidence.map((item) => item.code)] : [] });
+  add("status_truth", "kpi_narrative_consistency", "KPI narrative consistency", truth.summary.level === "low_trust" ? "fail" : truth.summary.level === "needs_review" ? "warning" : "pass", truth.summary.level === "low_trust" ? "fail" : truth.summary.level === "needs_review" ? "warning" : "info", "KPI and narrative should not contradict each other.", { evidenceCodes });
+  add("status_truth", "green_with_blockers", "Green KPI with blocker keywords", project.overallKpiLabel === "Green" && containsAny(statusText, blockerKeywords) ? "warning" : "pass", project.overallKpiLabel === "Green" && containsAny(statusText, blockerKeywords) ? "warning" : "info", "Green KPI should not contain unresolved blocker language.");
+  add("status_truth", "red_with_optimistic_text", "Red KPI with optimistic text", project.overallKpiLabel === "Red" && containsAny(statusText, ["on track", "in plan", "no issues", "all good"]) ? "fail" : "pass", project.overallKpiLabel === "Red" && containsAny(statusText, ["on track", "in plan", "no issues", "all good"]) ? "fail" : "info", "Red KPI needs a risk-aligned narrative.");
+  add("status_truth", "high_progress_closure_narrative", "High progress closure narrative", Number.isFinite(progress) && progress >= buildPmoConfig(options.config || {}).progressAlmostDoneThreshold && !project.plannedActivities ? "fail" : "pass", Number.isFinite(progress) && progress >= buildPmoConfig(options.config || {}).progressAlmostDoneThreshold && !project.plannedActivities ? "fail" : "info", "High-progress active projects need a closure narrative.", { evidenceCodes: evidenceCodes.filter((code) => code === "high_progress_not_closed") });
+  add("status_truth", "vague_status_text", "Status specificity", statusText && statusText.length < 20 ? "warning" : "pass", statusText && statusText.length < 20 ? "warning" : "info", "Status text should be specific enough for management review.");
+  add("status_truth", "missing_next_step", "Next step present", evidenceCodes.includes("missing_next_step") || (!project.plannedActivities && !project.sponsorActions && project.obstaclesAndMeasures) ? "fail" : "pass", evidenceCodes.includes("missing_next_step") ? "fail" : "info", "Risks require a next step or sponsor action.", { evidenceCodes: evidenceCodes.filter((code) => code === "missing_next_step"), missingFields: !project.plannedActivities ? ["plannedActivities"] : [] });
+  add("status_truth", "mitigation_owner", "Mitigation owner present", project.obstaclesAndMeasures && !/\b(owner|cio|ceo|pmo|sponsor|lead|manager)\b/i.test(project.obstaclesAndMeasures) ? "warning" : "pass", project.obstaclesAndMeasures && !/\b(owner|cio|ceo|pmo|sponsor|lead|manager)\b/i.test(project.obstaclesAndMeasures) ? "warning" : "info", "Mitigation should name an owner.");
+  add("status_truth", "mitigation_due_date", "Mitigation due date present", project.obstaclesAndMeasures && !/\b\d{4}-\d{2}-\d{2}\b|\bby\b|\buntil\b|\bdue\b/i.test(project.obstaclesAndMeasures) ? "warning" : "pass", project.obstaclesAndMeasures && !/\b\d{4}-\d{2}-\d{2}\b|\bby\b|\buntil\b|\bdue\b/i.test(project.obstaclesAndMeasures) ? "warning" : "info", "Mitigation should include a due date.");
+
+  add("delivery_risk", "finish_overdue", "Finish overdue", evidenceCodes.includes("overdue_finish") ? "fail" : "pass", evidenceCodes.includes("overdue_finish") ? "critical" : "info", "Overdue finish date requires recovery action.", { evidenceCodes: evidenceCodes.filter((code) => code === "overdue_finish") });
+  add("delivery_risk", "finish_near_due_non_green", "Near due with non-green KPI", finishDays !== null && finishDays >= 0 && finishDays <= 14 && project.overallKpiLabel !== "Green" ? "warning" : "pass", finishDays !== null && finishDays >= 0 && finishDays <= 14 && project.overallKpiLabel !== "Green" ? "warning" : "info", "Near-due non-green projects need attention.");
+  add("delivery_risk", "progress_low_near_finish", "Low progress near finish", finishDays !== null && finishDays <= 14 && Number.isFinite(progress) && progress < 70 ? "warning" : "pass", finishDays !== null && finishDays <= 14 && Number.isFinite(progress) && progress < 70 ? "warning" : "info", "Progress appears low for the remaining schedule.");
+  add("delivery_risk", "progress_high_active", "High progress but active", evidenceCodes.includes("high_progress_not_closed") ? "warning" : "pass", evidenceCodes.includes("high_progress_not_closed") ? "warning" : "info", "High-progress active projects need closure control.", { evidenceCodes: evidenceCodes.filter((code) => code === "high_progress_not_closed") });
+  add("delivery_risk", "no_planned_activities", "Planned activities present", project.plannedActivities ? "pass" : "warning", project.plannedActivities ? "info" : "warning", "Planned activities should be present.");
+  add("delivery_risk", "blocked_dependency", "Blocked dependency", evidenceCodes.includes("dependency_blocked") ? "fail" : "pass", evidenceCodes.includes("dependency_blocked") ? "critical" : "info", "Blocked dependencies require escalation.", { evidenceCodes: evidenceCodes.filter((code) => code === "dependency_blocked") });
+  add("delivery_risk", "shared_dependency", "Shared dependency risk", (options.sharedDependencyRisks || new Set()).has(project.dependencyName || project.dependencyStatusLabel) ? "warning" : "pass", (options.sharedDependencyRisks || new Set()).has(project.dependencyName || project.dependencyStatusLabel) ? "warning" : "info", "Shared dependency has cross-project risk.");
+  add("delivery_risk", "vendor_interface_blocker", "Vendor or interface blocker", containsAny(`${statusText} ${project.obstaclesAndMeasures || ""}`, ["vendor", "interface", "api"]) ? "warning" : "pass", containsAny(`${statusText} ${project.obstaclesAndMeasures || ""}`, ["vendor", "interface", "api"]) ? "warning" : "info", "Vendor/interface blockers should be managed explicitly.");
+  add("delivery_risk", "repeated_unresolved_risk", "Repeated unresolved risk", (options.recurringRiskKeys || new Set()).size && [...(options.recurringRiskKeys || new Set())].some((key) => key.startsWith(`${project.projectId}::`)) ? "warning" : "pass", "warning", "Repeated risks should not remain unresolved.");
+  add("delivery_risk", "risk_narrative_drift", "Risk narrative drift", (options.riskNarrativeDriftProjectIds || new Set()).has(project.projectId) ? "warning" : "pass", (options.riskNarrativeDriftProjectIds || new Set()).has(project.projectId) ? "warning" : "info", "Recurring risks should not be hidden by rewording.");
+
+  const decisionItem = decisions[0];
+  add("decision_governance", "decision_missing_with_blocker_keywords", "Decision present when required", containsAny(`${statusText} ${project.obstaclesAndMeasures || ""}`, decisionKeywords) && !project.decisions ? "fail" : "pass", containsAny(`${statusText} ${project.obstaclesAndMeasures || ""}`, decisionKeywords) && !project.decisions ? "fail" : "info", "Blocker language requires a decision field.");
+  add("decision_governance", "decision_owner", "Decision owner present", project.decisions && !decisionItem?.owner ? "fail" : "pass", project.decisions && !decisionItem?.owner ? "fail" : "info", "Open decisions need an owner.");
+  add("decision_governance", "decision_due_date", "Decision due date present", project.decisions && !decisionItem?.dueDate ? "fail" : "pass", project.decisions && !decisionItem?.dueDate ? "fail" : "info", "Open decisions need a due date.");
+  add("decision_governance", "decision_sla", "Decision SLA", decisionItem?.sla?.status === "overdue" ? "fail" : decisionItem?.sla?.status === "due_today" ? "fail" : decisionItem ? "pass" : "not_applicable", decisionItem?.sla?.status === "overdue" ? "critical" : decisionItem?.sla?.status === "due_today" ? "fail" : "info", "Decision SLA must be actively managed.", { evidenceCodes: decisionItem?.evidenceCodes || [] });
+  add("decision_governance", "decision_debt_high", "Decision debt high", buildDecisionDebtAnalysis([project], options).summary.decisionDebtScore >= 60 ? "warning" : "pass", buildDecisionDebtAnalysis([project], options).summary.decisionDebtScore >= 60 ? "warning" : "info", "Decision debt should remain low.");
+  add("decision_governance", "sponsor_action_required", "Sponsor action required", (project.overallKpiLabel === "Red" || evidenceCodes.includes("dependency_blocked") || evidenceCodes.includes("overdue_finish")) && !project.sponsorActions ? "fail" : "pass", (project.overallKpiLabel === "Red" || evidenceCodes.includes("dependency_blocked") || evidenceCodes.includes("overdue_finish")) && !project.sponsorActions ? "fail" : "info", "Sponsor action is required for high-risk projects.");
+  add("decision_governance", "sponsor_action_follow_up", "Sponsor action follow-up", project.sponsorActions && !statusText.toLowerCase().includes(project.sponsorActions.toLowerCase().slice(0, 10)) ? "warning" : "pass", project.sponsorActions && !statusText.toLowerCase().includes(project.sponsorActions.toLowerCase().slice(0, 10)) ? "warning" : "info", "Sponsor actions should be followed up in status text.");
+  add("decision_governance", "red_kpi_sponsor_action", "Red KPI sponsor action", project.overallKpiLabel === "Red" && !project.sponsorActions ? "fail" : "pass", project.overallKpiLabel === "Red" && !project.sponsorActions ? "fail" : "info", "Red KPI requires sponsor action.");
+  add("decision_governance", "budget_funding_decision", "Budget funding decision", project.budgetStatusLabel === "Over Budget" && !containsAny(`${project.decisions || ""} ${project.sponsorActions || ""}`, ["budget", "funding", "scope"]) ? "warning" : "pass", project.budgetStatusLabel === "Over Budget" ? "warning" : "info", "Budget overruns need funding or scope decision.");
+  add("decision_governance", "pmo_policy_violation", "PMO policy violation", buildPmoPolicySimulator([project], { ...options, policies: options.policies || [{ id: "red_requires_sponsor_action", severity: "critical" }] }).summary.violations ? "fail" : "pass", "fail", "PMO policy violations require review.");
+  add("decision_governance", "governance_exception", "Governance exception", buildGovernanceExceptions([project], options).length ? "warning" : "pass", buildGovernanceExceptions([project], options).length ? "warning" : "info", "Governance exceptions require PMO review.");
+
+  add("financial_resource", "budget_overrun", "Budget overrun", evidenceCodes.includes("budget_overrun") ? "warning" : "pass", evidenceCodes.includes("budget_overrun") ? "warning" : "info", "Budget overrun requires review.", { evidenceCodes: evidenceCodes.filter((code) => code === "budget_overrun") });
+  add("financial_resource", "budget_mitigation", "Budget mitigation", project.budgetStatusLabel === "Over Budget" && !project.obstaclesAndMeasures ? "fail" : "pass", project.budgetStatusLabel === "Over Budget" && !project.obstaclesAndMeasures ? "fail" : "info", "Budget risk needs mitigation.");
+  add("financial_resource", "budget_sponsor_action", "Budget sponsor action", project.budgetStatusLabel === "Over Budget" && !project.sponsorActions ? "warning" : "pass", project.budgetStatusLabel === "Over Budget" && !project.sponsorActions ? "warning" : "info", "Budget risk should have sponsor action.");
+  add("financial_resource", "resource_understaffed", "Resource understaffed", evidenceCodes.includes("resource_risk") ? "warning" : "pass", evidenceCodes.includes("resource_risk") ? "warning" : "info", "Understaffed projects require capacity review.", { evidenceCodes: evidenceCodes.filter((code) => code === "resource_risk") });
+  add("financial_resource", "resource_owner", "Resource owner", project.resourceStatusLabel === "Understaffed" && !project.ownerName && !project.projectManagerName ? "warning" : "pass", project.resourceStatusLabel === "Understaffed" ? "warning" : "info", "Resource risks need an owner.");
+  add("financial_resource", "resource_decision_scope", "Resource decision or scope tradeoff", project.resourceStatusLabel === "Understaffed" && !containsAny(`${project.decisions || ""} ${project.sponsorActions || ""}`, ["scope", "resource", "capacity"]) ? "warning" : "pass", project.resourceStatusLabel === "Understaffed" ? "warning" : "info", "Resource risk needs capacity or scope decision.");
+  add("financial_resource", "dependency_resource_combined", "Dependency plus resource risk", evidenceCodes.includes("dependency_blocked") && evidenceCodes.includes("resource_risk") ? "fail" : "pass", evidenceCodes.includes("dependency_blocked") && evidenceCodes.includes("resource_risk") ? "fail" : "info", "Combined dependency/resource risk requires escalation.");
+  add("financial_resource", "budget_schedule_combined", "Budget plus schedule risk", evidenceCodes.includes("budget_overrun") && evidenceCodes.includes("overdue_finish") ? "fail" : "pass", evidenceCodes.includes("budget_overrun") && evidenceCodes.includes("overdue_finish") ? "fail" : "info", "Combined budget/schedule risk requires management review.");
+  add("financial_resource", "multiple_risk_dimensions", "Multiple risk dimensions", ["budget_overrun", "resource_risk", "dependency_blocked", "overdue_finish"].filter((code) => evidenceCodes.includes(code)).length >= 3 ? "fail" : "pass", ["budget_overrun", "resource_risk", "dependency_blocked", "overdue_finish"].filter((code) => evidenceCodes.includes(code)).length >= 3 ? "fail" : "info", "Multiple active risk dimensions require portfolio attention.");
+
+  add("escalation_readiness", "problem_clear", "Problem clearly stated", !needsEscalationReview ? "not_applicable" : project.obstaclesAndMeasures || containsAny(statusText, blockerKeywords) ? "pass" : "fail", needsEscalationReview && !(project.obstaclesAndMeasures || containsAny(statusText, blockerKeywords)) ? "fail" : "info", "Escalation needs a clear problem.");
+  add("escalation_readiness", "business_impact", "Business impact present", !needsEscalationReview ? "not_applicable" : containsAny(`${statusText} ${project.obstaclesAndMeasures || ""}`, ["impact", "delay", "blocked", "overdue", "budget"]) ? "pass" : "warning", needsEscalationReview ? "warning" : "info", "Escalation should include business impact.");
+  add("escalation_readiness", "decision_required", "Decision required present", !needsEscalationReview ? "not_applicable" : project.decisions ? "pass" : "fail", needsEscalationReview && !project.decisions ? "fail" : "info", "Escalation needs a required decision.");
+  add("escalation_readiness", "options_present", "Options present", !needsEscalationReview ? "not_applicable" : project.decisionOptions || (options.options || []).length ? "pass" : "fail", needsEscalationReview && !(project.decisionOptions || (options.options || []).length) ? "fail" : "info", "Escalation should include options.");
+  add("escalation_readiness", "owner_present", "Escalation owner present", !needsEscalationReview ? "not_applicable" : project.sponsorActions || project.ownerName || project.projectManagerName ? "pass" : "fail", needsEscalationReview && !(project.sponsorActions || project.ownerName || project.projectManagerName) ? "fail" : "info", "Escalation needs a responsible owner.");
+  add("escalation_readiness", "readiness_score", "Escalation readiness score", !needsEscalationReview ? "not_applicable" : escalation.summary.score < 80 ? "fail" : "pass", needsEscalationReview && escalation.summary.score < 80 ? "fail" : "info", "Escalation readiness should be at least 80.", { missingFields: needsEscalationReview ? escalation.summary.missing : [] });
+  add("escalation_readiness", "management_attention_pack", "Management attention escalation pack", !needsEscalationReview ? "not_applicable" : (project.overallKpiLabel === "Red" || evidenceCodes.includes("dependency_blocked")) && !buildAiEscalationPack(project, options).summary.decisionRequired ? "fail" : "pass", needsEscalationReview ? "fail" : "info", "Management attention needs an escalation pack.");
+  add("escalation_readiness", "critical_agenda_item", "Critical agenda item", quality.severity === "critical" && !buildSteeringAgenda([project], options).length ? "fail" : "pass", "fail", "Critical projects need a management agenda item.");
+  add("escalation_readiness", "executive_questions", "Executive questions present", quality.severity === "critical" && !buildExecutiveQuestionGenerator([project], options).items.length ? "fail" : "pass", "fail", "Critical projects need executive questions.");
+  add("escalation_readiness", "recovery_option", "Recovery option present", quality.severity === "critical" && !buildWhatIfRecoveryPlan(project, options).actions.length ? "fail" : "pass", "fail", "Critical projects need recovery options.");
+
+  add("report_quality", "evidence_completeness", "Evidence completeness score", completeness.score < 60 ? "warning" : "pass", completeness.score < 60 ? "warning" : "info", "Evidence completeness should stay above threshold.", { missingFields: completeness.missingFields });
+  add("report_quality", "truth_score", "Project truth score", truth.summary.score < 50 ? "fail" : truth.summary.score < 75 ? "warning" : "pass", truth.summary.score < 50 ? "fail" : truth.summary.score < 75 ? "warning" : "info", "Project truth score should remain credible.");
+  add("report_quality", "benchmark_bottom_quartile", "Report benchmark bottom quartile", options.bottomQuartileProjectIds?.has(project.projectId) ? "warning" : "pass", options.bottomQuartileProjectIds?.has(project.projectId) ? "warning" : "info", "Bottom-quartile report quality needs PMO coaching.");
+  add("report_quality", "evidence_codes", "Evidence codes present", quality.severity !== "ok" && !evidenceCodes.length ? "fail" : "pass", "fail", "Risk findings need evidence codes.");
+  add("report_quality", "source_fields", "Source fields present", quality.evidence.every((item) => item.source?.field) ? "pass" : "warning", "warning", "Evidence should include source fields.");
+  add("report_quality", "audit_preview", "Audit preview present", options.auditEntry ? "pass" : "warning", options.auditEntry ? "info" : "warning", "Proposed/staged actions should include audit preview.");
+  add("report_quality", "trust_contract", "Trust contract present", buildTrustContract(project, options).summary.evidenceItems || quality.severity === "ok" ? "pass" : "warning", "warning", "AI recommendation needs trust contract.");
+  add("report_quality", "recommended_action", "Recommended action present", quality.recommendedAction ? "pass" : "fail", quality.recommendedAction ? "info" : "fail", "Management reports need recommended action.");
+  add("report_quality", "risk_decision_action_loop", "Risk decision/action loop", quality.severity !== "ok" && !project.decisions && !project.sponsorActions && !project.plannedActivities ? "fail" : "pass", "fail", "Risks need decision or action loop.");
+
+  add("writeback", "save_confirmation", "CRM save confirmation required", "warning", "warning", "Any CRM save requires explicit confirmation.", { recommendedAction: "Require explicit save confirmation." });
+  add("writeback", "email_status_update", "Email Status Update disabled", options.draft?.emailStatusUpdate ? "fail" : "pass", options.draft?.emailStatusUpdate ? "fail" : "info", "Email Status Update must be reviewed separately.");
+  add("writeback", "target_fields", "Target fields populated", options.draft && !Object.keys(options.draft.fields || {}).length ? "fail" : "pass", options.draft && !Object.keys(options.draft.fields || {}).length ? "fail" : "info", "Draft target fields must be populated.");
+  add("writeback", "submitted_to", "Submitted To present", options.requiresSubmittedTo && !options.submittedTo ? "fail" : "not_applicable", options.requiresSubmittedTo && !options.submittedTo ? "fail" : "info", "Submitted To is required when Dynamics requires it.");
+  add("writeback", "project_manager_verified", "Project manager verified", options.projectManagerVerified === true ? "pass" : "fail", options.projectManagerVerified === true ? "info" : "fail", "Project Manager must be verified before staging or saving.");
+  add("writeback", "current_record_url", "Current record URL present", project.recordUrl ? "pass" : "warning", project.recordUrl ? "info" : "warning", "Current record URL should be available before writeback.", { missingFields: project.recordUrl ? [] : ["recordUrl"] });
+  add("writeback", "generated_content_review", "Generated content reviewed", options.generatedContent && !options.reviewed ? "fail" : "pass", options.generatedContent && !options.reviewed ? "fail" : "info", "Generated CRM content requires review.");
+  add("writeback", "safe_writeback_blockers", "Safe writeback simulation blockers", options.draft && safeWriteback.blockers.length ? "fail" : options.draft ? "pass" : "not_applicable", options.draft && safeWriteback.blockers.length ? "fail" : "info", "Safe writeback simulation must have no blockers.");
+  add("writeback", "audit_entry", "Audit entry present", options.auditEntry ? "pass" : "warning", options.auditEntry ? "info" : "warning", "Audit entry should exist for proposed, staged, skipped, or saved actions.");
+  add("writeback", "confirmation_matches", "Confirmation matches project/status/email", options.confirmationMatches === false ? "fail" : "not_applicable", options.confirmationMatches === false ? "fail" : "info", "User confirmation must match project, status text, and email setting.");
+
+  const safetyScore = Math.max(0, 100 - gates.reduce((sum, gate) => sum + safetyPenalty(gate), 0));
+  const safetyLevel = classifySafetyLevel(safetyScore, gates);
+  const managementAttention = classifyManagementAttention(project, gates);
+  const writebackRisk = classifyWritebackRisk(gates);
+  const requiredEvidence = [...new Set(gates.flatMap((gate) => gate.missingFields))];
+  const recommendedActions = [...new Set([
+    ...gates.map((gate) => gate.recommendedAction).filter(Boolean),
+    ...safeWriteback.confirmations,
+  ])];
+
+  return {
+    projectId: project.projectId || project.id || null,
+    name: project.name || null,
+    safetyScore,
+    safetyLevel,
+    managementAttention,
+    writebackRisk,
+    gates,
+    requiredEvidence,
+    recommendedActions,
+  };
+}
+
+function buildProjectSafetyGateSuite(projects, options = {}) {
+  const projectIds = (projects || []).map((project) => project.projectId || project.id).filter(Boolean);
+  const duplicateProjectIds = new Set(projectIds.filter((id, index) => projectIds.indexOf(id) !== index));
+  const dependencySummary = buildCrossProjectDependencyIntelligence(projects, options);
+  const sharedDependencyRisks = new Set(dependencySummary.items.filter((item) => item.hasRisk).map((item) => item.dependency));
+  const projectsWithOptions = { ...options, duplicateProjectIds, sharedDependencyRisks };
+  const projectGates = (projects || []).map((project) => buildProjectSafetyGate(project, projectsWithOptions));
+  const countLevel = (level) => projectGates.filter((item) => item.safetyLevel === level).length;
+  const countAttention = (attention) => projectGates.filter((item) => item.managementAttention === attention).length;
+  const topFindings = projectGates
+    .flatMap((project) => project.gates
+      .filter((gate) => gate.status === "fail" || gate.severity === "critical")
+      .map((gate) => ({
+        projectId: project.projectId,
+        name: project.name,
+        checkId: gate.checkId,
+        severity: gate.severity,
+        message: gate.message,
+      })))
+    .slice(0, 20);
+  return {
+    summary: {
+      projectsReviewed: projectGates.length,
+      safeProjects: countLevel("safe"),
+      watchProjects: countLevel("watch"),
+      unsafeProjects: countLevel("unsafe"),
+      criticalProjects: countLevel("critical"),
+      pmoAttention: countAttention("pmo"),
+      cioAttention: countAttention("cio"),
+      ceoAttention: countAttention("ceo"),
+    },
+    projects: projectGates,
+    topFindings,
+  };
+}
+
 function buildProjectIntelligence(projects, options = {}) {
   const result = {
     preview: buildBatchProjectPreview(projects, options),
@@ -1263,6 +1501,7 @@ function buildProjectIntelligence(projects, options = {}) {
     escalationReadinessScores: (projects || []).map((project) => buildEscalationReadinessScore(project, options)),
     crossProjectDependencyIntelligence: buildCrossProjectDependencyIntelligence(projects, options),
     reportQualityBenchmark: buildReportQualityBenchmark(projects, options),
+    projectSafetyGates: buildProjectSafetyGateSuite(projects, options),
     executiveOnePager: buildExecutiveOnePager(projects, options),
     unchangedStatusText: UNCHANGED_STATUS_TEXT,
   };
@@ -1311,6 +1550,8 @@ module.exports = {
   buildProjectManagerQualityCoach,
   buildProjectIntelligence,
   buildProjectNudges,
+  buildProjectSafetyGate,
+  buildProjectSafetyGateSuite,
   buildProjectTruthScore,
   buildPmoPolicySimulator,
   buildPortfolioConstraintRadar,

@@ -930,6 +930,8 @@ module.exports = {
   buildProjectManagerQualityCoach: projectIntelligence.buildProjectManagerQualityCoach,
   buildProjectIntelligence: projectIntelligence.buildProjectIntelligence,
   buildProjectNudges: projectIntelligence.buildProjectNudges,
+  buildProjectSafetyGate: projectIntelligence.buildProjectSafetyGate,
+  buildProjectSafetyGateSuite: projectIntelligence.buildProjectSafetyGateSuite,
   buildProjectTruthScore: projectIntelligence.buildProjectTruthScore,
   buildPmoPolicySimulator: projectIntelligence.buildPmoPolicySimulator,
   buildPortfolioConstraintRadar: projectIntelligence.buildPortfolioConstraintRadar,

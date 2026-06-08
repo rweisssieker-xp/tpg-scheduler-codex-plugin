@@ -70,7 +70,10 @@ Offline intelligence expects a JSON array of mapped project objects. Common fiel
 - Project leader status queue.
 - Portfolio risk list.
 - Decision radar and decision SLA cockpit.
+- Project Safety Gates with safety level, management attention, writeback risk, required evidence, and recommended actions.
 - Risk ledger rows.
 - PMO nudges and manual review drafts.
 - JSON intelligence pack.
 - CSV strings for management actions and risk ledger exports.
+
+Use `projectSafetyGates.summary` in JSON output to see portfolio-level safety counts and `projectSafetyGates.projects[*].gates` to inspect the advisory checks for a specific project.

@@ -33,6 +33,8 @@ const {
   buildProjectManagerQualityCoach,
   buildProjectIntelligence,
   buildProjectNudges,
+  buildProjectSafetyGate,
+  buildProjectSafetyGateSuite,
   buildPortfolioRiskList,
   buildProjectTruthScore,
   buildPmoPolicySimulator,
@@ -574,5 +576,40 @@ assert.deepEqual(buildHumanConfirmationAnalytics([
 });
 assert.equal(buildProjectIntelligence(projects, { today: "2026-05-13" }).evidenceGapDetector.summary.totalGaps, 3);
 assert.equal(buildProjectIntelligence(projects, { today: "2026-05-13" }).executiveQuestionGenerator.items.length, 1);
+
+const criticalSafetyGate = buildProjectSafetyGate(projects[0], {
+  today: "2026-05-20",
+  proposedStatusText: "Deployment blocked by vendor decision.",
+  draft: { fields: { tpg_title: "Deployment blocked by vendor decision." }, emailStatusUpdate: true },
+  projectManagerVerified: false,
+  auditEntry: null,
+});
+assert.equal(new Set(criticalSafetyGate.gates.map((item) => item.domain)).size, 8);
+assert.equal(criticalSafetyGate.gates.length >= 60, true);
+assert.equal(criticalSafetyGate.safetyLevel, "critical");
+assert.equal(criticalSafetyGate.managementAttention, "ceo");
+assert.equal(criticalSafetyGate.writebackRisk, "blocked_until_confirmation");
+assert.equal(criticalSafetyGate.gates.find((item) => item.checkId === "status_truth.kv_validity").evidenceCodes.includes("kv_blocked"), true);
+assert.equal(criticalSafetyGate.gates.find((item) => item.checkId === "writeback.email_status_update").status, "fail");
+assert.equal(criticalSafetyGate.gates.find((item) => item.checkId === "writeback.project_manager_verified").status, "fail");
+assert.equal(criticalSafetyGate.gates.find((item) => item.checkId === "decision_governance.decision_sla").status, "fail");
+assert.equal(criticalSafetyGate.requiredEvidence.includes("recordUrl"), true);
+assert.equal(criticalSafetyGate.recommendedActions.includes("Confirm project, status text, target fields, and email setting before save."), true);
+
+const healthySafetyGate = buildProjectSafetyGate(projects[1], { today: "2026-05-13", projectManagerVerified: true });
+assert.equal(["safe", "watch"].includes(healthySafetyGate.safetyLevel), true);
+assert.equal(healthySafetyGate.managementAttention === "none" || healthySafetyGate.managementAttention === "pmo", true);
+
+const safetySuite = buildProjectSafetyGateSuite(projects, {
+  today: "2026-05-20",
+  proposedStatusText: "Deployment blocked by vendor decision.",
+  draft: { fields: { tpg_title: "Deployment blocked by vendor decision." }, emailStatusUpdate: true },
+  projectManagerVerified: false,
+});
+assert.equal(safetySuite.summary.projectsReviewed, 2);
+assert.equal(safetySuite.summary.criticalProjects >= 1, true);
+assert.equal(safetySuite.summary.ceoAttention >= 1, true);
+assert.equal(safetySuite.topFindings.length > 0, true);
+assert.equal(buildProjectIntelligence(projects, { today: "2026-05-13" }).projectSafetyGates.summary.projectsReviewed, 2);
 
 console.log("project intelligence tests passed");

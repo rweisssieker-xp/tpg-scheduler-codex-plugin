@@ -7,6 +7,7 @@ The plugin separates browser workflow guidance from deterministic project intell
 - The skill file describes how Codex should operate inside the in-app Browser.
 - `scripts/statusbericht.js` exposes CLI commands, Dataverse helper snippets, URL builders, and public exports.
 - `scripts/lib/project-intelligence.js` contains pure functions for risk, decision, governance, and AI/KI intelligence features.
+- The project safety gate layer evaluates each project across eight advisory safety domains before status collection or CRM staging.
 - Tests validate normalization, CLI behavior, and project intelligence outputs without requiring Dynamics access.
 - `scripts/validate-plugin.js` validates plugin metadata, documentation presence, skill naming, and write-safety wording.
 - `assets/icon.svg` provides a lightweight public plugin asset for repository and marketplace use.
@@ -48,10 +49,19 @@ The plugin separates browser workflow guidance from deterministic project intell
 - governance replay and PMO policy simulation
 - report quality benchmarking
 - human confirmation analytics
+- maximum project safety gates
 
 ## Safety Boundaries
 
 The plugin does not directly automate CRM writes from Node.js. Browser-based CRM actions must remain confirmation-gated. Generated content is advisory until reviewed by the user.
+
+## Project Safety Gates
+
+`buildProjectSafetyGate(project, options)` returns a per-project advisory safety profile with `safetyScore`, `safetyLevel`, `managementAttention`, `writebackRisk`, gate evidence, required evidence, and recommended actions.
+
+`buildProjectSafetyGateSuite(projects, options)` aggregates the per-project gates and is included in `buildProjectIntelligence(projects, options)` as `projectSafetyGates`.
+
+The eight safety domains are data integrity, status truth, delivery risk, decision governance, financial/resource risk, escalation readiness, report quality, and writeback safety. The gates never save or block CRM automatically; they make risk visible before a human confirms any action.
 
 ## Testing Strategy
 
@@ -69,4 +79,5 @@ The tests cover:
 - Dataverse URL/snippet generation
 - project intelligence evidence rules
 - AI/KI helper outputs
+- maximum project safety gate outputs
 - CLI JSON/export behavior

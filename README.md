@@ -12,6 +12,7 @@ TPG-Scheduler-Codex-Plugin is a Codex plugin for confirmation-gated Dynamics 365
 
 ## AI/KI Differentiators
 
+- Maximum Project Safety Gates: evaluates every project across data integrity, status truth, delivery risk, governance, financial/resource risk, escalation readiness, report quality, and CRM writeback safety.
 - Decision Debt Analysis: measures open decisions, due dates, blocked projects, and decision-debt score.
 - Project Truth Score: detects status contradictions such as red KPI with weak narrative, overdue finish, or missing mitigation.
 - Sponsor Action Intelligence: turns steering agenda items into owner-specific sponsor actions.
@@ -65,4 +66,4 @@ npm run status-report:intelligence
 
 ## Safety Model
 
-The plugin is designed as a decision-support and draft-preparation workflow. Generated risk lists, nudges, reports, and CRM field drafts are advisory until reviewed. CRM writes require visible user confirmation, and `Email Status Update` is treated as a separate risky action.
+The plugin is designed as a decision-support and draft-preparation workflow. Project Safety Gates are advisory, evidence-backed checks that surface unsafe project states before status collection or staging. Generated risk lists, nudges, reports, and CRM field drafts are advisory until reviewed. CRM writes require visible user confirmation, and `Email Status Update` is treated as a separate risky action.
