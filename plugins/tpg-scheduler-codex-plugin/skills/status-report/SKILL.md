@@ -92,6 +92,7 @@ If Dynamics asks for login, pause and let the user complete Microsoft login manu
   `node ./scripts/statusbericht.js --pmo-report <projects.json> --project-status "In Progress" --last-status-before YYYY-MM-DD`
 - To write PMO Word and Excel files, add:
   `--docx reports/pmo-status.docx --xlsx reports/pmo-status.xlsx`
+  The DOCX and XLSX outputs must be treated as management-ready review artifacts generated from the same filtered real project data.
 - Use `--json` with `--intelligence` when another automation should consume the complete intelligence pack.
 - Use `--exports` with `--intelligence` to emit CSV strings for Power BI/import workflows and JSON for automation.
 - Available browser helper methods after injection:

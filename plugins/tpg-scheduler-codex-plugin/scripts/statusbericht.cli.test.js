@@ -3,6 +3,7 @@ const { execFileSync } = require("node:child_process");
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
+const JSZip = require("jszip");
 
 const scriptPath = path.join(__dirname, "statusbericht.js");
 const fixturePath = path.join(__dirname, "fixtures", "projects.sample.json");
@@ -109,4 +110,21 @@ assert.deepEqual([...fs.readFileSync(xlsxPath).subarray(0, 2)].map((byte) => Str
 assert.equal(pmoFileJson.writtenFiles.docx, path.resolve(docxPath));
 assert.equal(pmoFileJson.writtenFiles.xlsx, path.resolve(xlsxPath));
 
-console.log("statusbericht cli tests passed");
+Promise.all([
+  JSZip.loadAsync(fs.readFileSync(docxPath)),
+  JSZip.loadAsync(fs.readFileSync(xlsxPath)),
+]).then(async ([docxZip, xlsxZip]) => {
+  const docXml = await docxZip.file("word/document.xml").async("string");
+  const sheetXml = await xlsxZip.file("xl/worksheets/sheet3.xml").async("string");
+  const stylesXml = await xlsxZip.file("xl/styles.xml").async("string");
+  assert.match(docXml, /PMO Executive Status Report/);
+  assert.match(docXml, /w:shd/);
+  assert.match(sheetXml, /<pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"\/>/);
+  assert.match(sheetXml, /autoFilter ref="A1:J3"/);
+  assert.match(stylesXml, /FF1F4E79/);
+}).then(() => {
+  console.log("statusbericht cli tests passed");
+}).catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});

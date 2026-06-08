@@ -86,6 +86,8 @@ Generate PMO Word and Excel files:
 node ./scripts/statusbericht.js --pmo-report <real-project-export.json> --project-status "In Progress" --docx reports/pmo-status.docx --xlsx reports/pmo-status.xlsx
 ```
 
+The generated files are intended for PMO review: the Word report uses a management-style title section and KPI snapshot, while the Excel workbook includes styled worksheets, filterable project rows, and highlighted PMO/safety levels.
+
 ## Schema-Aware Consumers
 
 Consumer tools should start with:

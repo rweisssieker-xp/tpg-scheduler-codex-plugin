@@ -5,6 +5,8 @@ const fs = require("node:fs");
 const path = require("node:path");
 const JSZip = require("jszip");
 const {
+  AlignmentType,
+  BorderStyle,
   Document,
   HeadingLevel,
   Packer,
@@ -935,26 +937,95 @@ function ensureParentDirectory(outputPath) {
   fs.mkdirSync(directory, { recursive: true });
 }
 
-function textCell(value) {
+const DOCX_COLORS = Object.freeze({
+  navy: "1F4E79",
+  blue: "D9EAF7",
+  lightBlue: "EEF5FB",
+  green: "E2F0D9",
+  yellow: "FFF2CC",
+  red: "F4CCCC",
+  gray: "F2F2F2",
+  white: "FFFFFF",
+});
+
+function docxBorders(color = "D9E2F3") {
+  return {
+    top: { style: BorderStyle.SINGLE, size: 1, color },
+    bottom: { style: BorderStyle.SINGLE, size: 1, color },
+    left: { style: BorderStyle.SINGLE, size: 1, color },
+    right: { style: BorderStyle.SINGLE, size: 1, color },
+  };
+}
+
+function levelColor(value) {
+  const normalized = String(value || "").toLowerCase();
+  if (["critical", "red", "ceo", "executive_governance"].some((token) => normalized.includes(token))) {
+    return DOCX_COLORS.red;
+  }
+  if (["attention", "unsafe", "watch", "warning", "pmo_review", "pmo_intervention"].some((token) => normalized.includes(token))) {
+    return DOCX_COLORS.yellow;
+  }
+  if (["safe", "controlled", "none", "green"].some((token) => normalized.includes(token))) {
+    return DOCX_COLORS.green;
+  }
+  return DOCX_COLORS.white;
+}
+
+function textCell(value, options = {}) {
   return new TableCell({
-    children: [new Paragraph(String(value ?? ""))],
+    shading: { fill: options.fill || DOCX_COLORS.white },
+    margins: { top: 90, bottom: 90, left: 120, right: 120 },
+    borders: docxBorders(),
+    children: [new Paragraph({
+      alignment: options.alignment || AlignmentType.LEFT,
+      children: [new TextRun({
+        text: String(value ?? ""),
+        bold: Boolean(options.bold),
+        color: options.color || "1F1F1F",
+        size: options.size || 20,
+      })],
+    })],
   });
 }
 
-function buildDocxTable(headers, rows) {
+function buildDocxTable(headers, rows, options = {}) {
   return new Table({
     width: { size: 100, type: WidthType.PERCENTAGE },
     rows: [
       new TableRow({
         children: headers.map((header) => new TableCell({
-          children: [new Paragraph({ children: [new TextRun({ text: header, bold: true })] })],
+          shading: { fill: options.headerFill || DOCX_COLORS.navy },
+          margins: { top: 110, bottom: 110, left: 120, right: 120 },
+          borders: docxBorders("B7C9E2"),
+          children: [new Paragraph({
+            children: [new TextRun({ text: header, bold: true, color: DOCX_COLORS.white, size: 20 })],
+          })],
         })),
       }),
-      ...rows.map((row) => new TableRow({
-        children: headers.map((header) => textCell(row[header])),
+      ...rows.map((row, rowIndex) => new TableRow({
+        children: headers.map((header) => {
+          const value = row[header];
+          const highlight = /level|attention|intervention|severity|status/i.test(header) ? levelColor(value) : null;
+          return textCell(value, {
+            fill: highlight || (rowIndex % 2 === 0 ? DOCX_COLORS.white : DOCX_COLORS.lightBlue),
+            alignment: /score|count|total|matched|filtered|missing|unparsable/i.test(header) ? AlignmentType.CENTER : AlignmentType.LEFT,
+          });
+        }),
       })),
     ],
   });
+}
+
+function buildDocxKpiCards(report) {
+  const rows = [
+    {
+      "Projects total": report.summary.projectsTotal,
+      "Projects matched": report.summary.projectsMatched,
+      "Need PMO": report.pmoControlTower.summary.projectsNeedingPmo,
+      Critical: report.pmoControlTower.summary.criticalProjects,
+    },
+  ];
+  return buildDocxTable(["Projects total", "Projects matched", "Need PMO", "Critical"], rows, { headerFill: "305496" });
 }
 
 async function buildPmoStatusReportDocxBuffer(report) {
@@ -985,8 +1056,15 @@ async function buildPmoStatusReportDocxBuffer(report) {
   const document = new Document({
     sections: [{
       children: [
-        new Paragraph({ text: "PMO Status Report", heading: HeadingLevel.TITLE }),
-        new Paragraph({ text: `Generated: ${report.generatedAt}` }),
+        new Paragraph({
+          alignment: AlignmentType.CENTER,
+          shading: { fill: DOCX_COLORS.navy },
+          spacing: { after: 240 },
+          children: [new TextRun({ text: "PMO Executive Status Report", bold: true, color: DOCX_COLORS.white, size: 38 })],
+        }),
+        new Paragraph({ text: `Generated: ${report.generatedAt}`, alignment: AlignmentType.RIGHT }),
+        new Paragraph({ text: "Portfolio Snapshot", heading: HeadingLevel.HEADING_1 }),
+        buildDocxKpiCards(report),
         new Paragraph({ text: "Filters", heading: HeadingLevel.HEADING_1 }),
         buildDocxTable(["Filter", "Value"], filterRows),
         new Paragraph({ text: "Summary", heading: HeadingLevel.HEADING_1 }),
@@ -1018,16 +1096,45 @@ function xlsxColumnName(index) {
   return name;
 }
 
-function buildWorksheetXml(rows) {
+function xlsxStyleIndex(value, rowIndex) {
+  if (rowIndex === 0) {
+    return 1;
+  }
+  const normalized = String(value || "").toLowerCase();
+  if (["critical", "red", "ceo", "executive_governance"].some((token) => normalized.includes(token))) {
+    return 4;
+  }
+  if (["attention", "unsafe", "watch", "warning", "pmo_review", "pmo_intervention"].some((token) => normalized.includes(token))) {
+    return 3;
+  }
+  if (["safe", "controlled", "none", "green"].some((token) => normalized.includes(token))) {
+    return 2;
+  }
+  return rowIndex % 2 === 0 ? 5 : 0;
+}
+
+function buildWorksheetXml(rows, options = {}) {
+  const columnCount = rows[0]?.length || 1;
+  const colXml = Array.from({ length: columnCount }, (_, index) => {
+    const width = options.widths?.[index] || 18;
+    return `<col min="${index + 1}" max="${index + 1}" width="${width}" customWidth="1"/>`;
+  }).join("");
   const rowXml = rows.map((row, rowIndex) => {
     const cellXml = row.map((cell, cellIndex) => {
       const ref = `${xlsxColumnName(cellIndex)}${rowIndex + 1}`;
-      return `<c r="${ref}" t="inlineStr"><is><t>${xmlEscape(cell)}</t></is></c>`;
+      const style = options.styleForCell ? options.styleForCell(cell, rowIndex, cellIndex, row) : xlsxStyleIndex(cell, rowIndex);
+      return `<c r="${ref}" t="inlineStr" s="${style}"><is><t>${xmlEscape(cell)}</t></is></c>`;
     }).join("");
-    return `<row r="${rowIndex + 1}">${cellXml}</row>`;
+    return `<row r="${rowIndex + 1}" ht="${rowIndex === 0 ? 24 : 18}" customHeight="1">${cellXml}</row>`;
   }).join("");
+  const autoFilter = options.autoFilter ? `<autoFilter ref="A1:${xlsxColumnName(columnCount - 1)}${Math.max(rows.length, 1)}"/>` : "";
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>${rowXml}</sheetData></worksheet>`;
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+<sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>
+<cols>${colXml}</cols>
+<sheetData>${rowXml}</sheetData>
+${autoFilter}
+</worksheet>`;
 }
 
 function objectRows(headers, rows) {
@@ -1084,6 +1191,7 @@ async function buildPmoStatusReportXlsxBuffer(report) {
 <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
 <Default Extension="xml" ContentType="application/xml"/>
 <Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>
+<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>
 <Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
 <Override PartName="/xl/worksheets/sheet2.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
 <Override PartName="/xl/worksheets/sheet3.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
@@ -1108,12 +1216,42 @@ async function buildPmoStatusReportXlsxBuffer(report) {
 <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet2.xml"/>
 <Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet3.xml"/>
 <Relationship Id="rId4" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet4.xml"/>
+<Relationship Id="rId5" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
 </Relationships>`);
+  zip.folder("xl").file("styles.xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+<fonts count="2">
+<font><sz val="10"/><name val="Aptos"/></font>
+<font><b/><sz val="10"/><color rgb="FFFFFFFF"/><name val="Aptos"/></font>
+</fonts>
+<fills count="6">
+<fill><patternFill patternType="none"/></fill>
+<fill><patternFill patternType="gray125"/></fill>
+<fill><patternFill patternType="solid"><fgColor rgb="FF1F4E79"/><bgColor indexed="64"/></patternFill></fill>
+<fill><patternFill patternType="solid"><fgColor rgb="FFE2F0D9"/><bgColor indexed="64"/></patternFill></fill>
+<fill><patternFill patternType="solid"><fgColor rgb="FFFFF2CC"/><bgColor indexed="64"/></patternFill></fill>
+<fill><patternFill patternType="solid"><fgColor rgb="FFF4CCCC"/><bgColor indexed="64"/></patternFill></fill>
+</fills>
+<borders count="2">
+<border><left/><right/><top/><bottom/><diagonal/></border>
+<border><left style="thin"><color rgb="FFD9E2F3"/></left><right style="thin"><color rgb="FFD9E2F3"/></right><top style="thin"><color rgb="FFD9E2F3"/></top><bottom style="thin"><color rgb="FFD9E2F3"/></bottom><diagonal/></border>
+</borders>
+<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
+<cellXfs count="6">
+<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1"/>
+<xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center"/></xf>
+<xf numFmtId="0" fontId="0" fillId="3" borderId="1" xfId="0" applyFill="1" applyBorder="1"/>
+<xf numFmtId="0" fontId="0" fillId="4" borderId="1" xfId="0" applyFill="1" applyBorder="1"/>
+<xf numFmtId="0" fontId="0" fillId="5" borderId="1" xfId="0" applyFill="1" applyBorder="1"/>
+<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1"/>
+</cellXfs>
+<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>
+</styleSheet>`);
   const worksheets = zip.folder("xl").folder("worksheets");
-  worksheets.file("sheet1.xml", buildWorksheetXml(summaryRows));
-  worksheets.file("sheet2.xml", buildWorksheetXml(filtersRows));
-  worksheets.file("sheet3.xml", buildWorksheetXml(projectRows));
-  worksheets.file("sheet4.xml", buildWorksheetXml(findingRows));
+  worksheets.file("sheet1.xml", buildWorksheetXml(summaryRows, { widths: [28, 36], autoFilter: true }));
+  worksheets.file("sheet2.xml", buildWorksheetXml(filtersRows, { widths: [28, 42], autoFilter: true }));
+  worksheets.file("sheet3.xml", buildWorksheetXml(projectRows, { widths: [16, 34, 18, 18, 16, 12, 24, 16, 22, 52], autoFilter: true }));
+  worksheets.file("sheet4.xml", buildWorksheetXml(findingRows, { widths: [16, 34, 28, 14, 42], autoFilter: true }));
   return zip.generateAsync({ type: "nodebuffer", compression: "DEFLATE" });
 }
 

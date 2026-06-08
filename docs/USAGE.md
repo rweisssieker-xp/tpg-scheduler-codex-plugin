@@ -72,7 +72,7 @@ Write the PMO report as Word and Excel files:
 node ./scripts/statusbericht.js --pmo-report <real-project-export.json> --project-status "In Progress" --docx reports/pmo-status.docx --xlsx reports/pmo-status.xlsx
 ```
 
-The DOCX contains filter, summary, and project tables. The XLSX workbook contains separate worksheets for summary, filters, filtered projects, and PMO findings.
+The DOCX contains a PMO executive title band, KPI snapshot, filter table, summary table, and highlighted project table. The XLSX workbook contains styled worksheets for summary, filters, filtered projects, and PMO findings with frozen headers, widths, filters, and risk/status highlighting.
 
 ## Dynamics Browser Workflow
 
