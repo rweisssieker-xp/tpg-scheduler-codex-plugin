@@ -45,3 +45,5 @@ Attach or link:
 - Dynamics smoke-test notes with no customer data.
 - Status API live metadata notes with no customer data.
 - Known limitations.
+
+For v0.1.0, see `docs/LIVE_DYNAMICS_EVIDENCE_v0.1.0.md` for anonymized live Dynamics evidence.

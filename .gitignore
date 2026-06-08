@@ -5,3 +5,4 @@ reports/
 .agents/
 .codex-orchestrator/
 .playwright-mcp/
+live-dynamics-*.json

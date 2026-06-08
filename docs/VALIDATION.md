@@ -68,8 +68,10 @@ npm run validate
 npm test
 ```
 
-The repository also includes `.github/workflows/release.yml`. It runs on tags matching `v*`, repeats validation and tests, and uploads a review package artifact.
+The repository also includes `.github/workflows/release.yml`. It runs on tags matching `v*` and repeats validation and tests.
 
 ## Live Dynamics Smoke Test
 
 CI cannot authenticate into the tenant. Run `docs/DYNAMICS_E2E_RUNBOOK.md` before releases that change Browser behavior, Dataverse mapping, writeback confirmation flow, or status-update fields.
+
+The anonymized v0.1.0 live smoke-test evidence is recorded in `docs/LIVE_DYNAMICS_EVIDENCE_v0.1.0.md`. The evidence verifies read-only Dataverse access and form detection, and keeps API Status Update creation blocked until tenant-specific metadata is confirmed.

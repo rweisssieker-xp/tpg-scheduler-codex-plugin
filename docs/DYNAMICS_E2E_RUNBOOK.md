@@ -79,6 +79,10 @@ await TPGProjectAssist.retrieveStatusUpdates(project, {
 21. Turn on Email Status Update only in a safe test context and verify the workflow reports high writeback risk before any save.
 22. Record pass/fail notes without real project data.
 
+## Evidence Recording
+
+Keep raw browser exports and screenshots local only. Do not commit tenant-specific project names, record IDs, user names, status text, or downloaded Dataverse rows. Commit only anonymized evidence notes, such as `docs/LIVE_DYNAMICS_EVIDENCE_v0.1.0.md`, that record pass/fail status, detected control names, unresolved metadata, and whether any write was attempted.
+
 ## Pass Criteria
 
 - Active projects can be read only through the authenticated browser context.
