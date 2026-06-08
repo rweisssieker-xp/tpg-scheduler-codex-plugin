@@ -9,10 +9,13 @@ Use this root skill entry when the plugin is installed from the repository root 
 
 The implementation package, tests, and deeper documentation live in `plugins/tpg-scheduler-codex-plugin/`.
 
+Prefer real Dataverse-first input from the authenticated Dynamics browser. Generate it with `npm run status-report:dataverse`, then run `TPGProjectAssist.downloadPmoProjectExport()` or `TPGProjectAssist.copyPmoProjectExportToClipboard()` in Dynamics.
+
 ## Local Commands
 
 ```powershell
 cd plugins/tpg-scheduler-codex-plugin
+npm run status-report:dataverse
 node ./scripts/statusbericht.js --pmo-report <real-project-export.json> --pmo-report-type executive_exception --json
 node ./scripts/statusbericht.js --pmo-suite <real-project-export.json> --json
 node ./scripts/statusbericht.js --pmo-suite <real-project-export.json> --docx reports/pmo-suite.docx --xlsx reports/pmo-suite.xlsx
@@ -26,6 +29,7 @@ npm test
 ## Rules
 
 - Use real project data only.
+- Prefer real `tpg_pmo_project_export` envelopes with `source: "dataverse_web_api"`.
 - Do not use sample, fixture, synthetic, or mock data for PMO work.
 - Treat missing optional fields as data gaps.
 - Keep CRM write actions out of PMO report generation.

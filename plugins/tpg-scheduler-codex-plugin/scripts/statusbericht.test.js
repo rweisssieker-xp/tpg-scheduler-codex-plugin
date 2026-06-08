@@ -1,6 +1,10 @@
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const os = require("node:os");
+const path = require("node:path");
 const {
   DATAVERSE_ORG_URL,
+  PMO_PROJECT_EXPORT_TYPE,
   PROJECT_ENTITY_LOGICAL_NAME,
   PROJECT_ENTITY_SET_NAME,
   PROJECT_PRIMARY_ID_ATTRIBUTE,
@@ -13,6 +17,7 @@ const {
   buildBatchProjectPreview,
   buildCalibrationReport,
   buildDataCompletenessScore,
+  buildDataverseQuery,
   buildDecisionClosureItems,
   buildDynamicsProjectRecordUrl,
   buildExecutiveOnePager,
@@ -32,6 +37,7 @@ const {
   buildProjectSafetyGate,
   buildProjectSafetyGateSuite,
   buildPmoControlTower,
+  buildPmoProjectExport,
   buildPmoProjectControls,
   buildPmoReport,
   buildPmoReportSuite,
@@ -55,6 +61,8 @@ const {
   mapProjectDataverseRow,
   normalizeGuid,
   normalizeStatusInput,
+  readProjectsInput,
+  unwrapProjectInput,
 } = require("./statusbericht");
 
 assert.equal(normalizeStatusInput("kv"), UNCHANGED_STATUS_TEXT);
@@ -80,7 +88,10 @@ assert.match(
   buildProjectRecordApiUrl("84966c5d-996d-4d19-88de-97a4300a6a62"),
   /^https:\/\/posp365\.crm4\.dynamics\.com\/api\/data\/v9\.2\/tpg_projects\(84966c5d-996d-4d19-88de-97a4300a6a62\)\?\$select=/
 );
-assert.match(buildActiveProjectsApiUrl(), /\$filter=statecode eq 0$/);
+assert.match(buildActiveProjectsApiUrl(), /\$filter=statecode eq 0/);
+assert.match(buildActiveProjectsApiUrl(), /\$orderby=modifiedon desc$/);
+assert.match(buildActiveProjectsApiUrl(undefined, { top: 25 }), /\$top=25/);
+assert.match(buildDataverseQuery(["tpg_projectid"], "statecode eq 0", 5, "modifiedon desc"), /\$orderby=modifiedon desc$/);
 assert.equal(STATUS_UPDATE_FIELDS.statusSummary, "tpg_title");
 assert.equal(STATUS_UPDATE_FIELDS.accomplishedActivities, "tpg_accomplishedactivities");
 assert.equal(STATUS_UPDATE_FIELDS.submittedTo, "tpg_submittedto");
@@ -194,8 +205,28 @@ assert.match(getDataverseBrowserSnippet(), /buildAuditEntry/);
 assert.match(getDataverseBrowserSnippet(), /buildSteeringAgenda/);
 assert.match(getDataverseBrowserSnippet(), /buildRiskLedgerEntries/);
 assert.match(getDataverseBrowserSnippet(), /buildCalibrationReport/);
+assert.match(getDataverseBrowserSnippet(), /exportActiveProjectsForPmoReports/);
+assert.match(getDataverseBrowserSnippet(), /downloadPmoProjectExport/);
+assert.match(getDataverseBrowserSnippet(), /copyPmoProjectExportToClipboard/);
+assert.match(getDataverseBrowserSnippet(), /source: "dataverse_web_api"/);
 assert.equal(isSampleInputPath("./scripts/fixtures/projects.sample.json"), true);
 assert.equal(isSampleInputPath("./real-project-export.json"), false);
+const dataverseExport = buildPmoProjectExport([
+  {
+    id: "84966c5d-996d-4d19-88de-97a4300a6a62",
+    projectId: "2024-1058",
+    name: "Dataverse Export Project",
+    projectStatusLabel: "In Progress",
+  },
+], { generatedAt: "2026-06-08T10:00:00.000Z" });
+assert.equal(dataverseExport.exportType, PMO_PROJECT_EXPORT_TYPE);
+assert.equal(dataverseExport.source, "dataverse_web_api");
+assert.equal(dataverseExport.projectCount, 1);
+assert.equal(dataverseExport.safety.readOnlyExport, true);
+assert.equal(unwrapProjectInput(dataverseExport)[0].projectId, "2024-1058");
+const exportPath = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "tpg-dataverse-export-")), "projects.json");
+fs.writeFileSync(exportPath, JSON.stringify(dataverseExport), "utf8");
+assert.equal(readProjectsInput(exportPath)[0].name, "Dataverse Export Project");
 assert.equal(typeof buildAuditEntry, "function");
 assert.equal(typeof buildAudienceReport, "function");
 assert.equal(typeof buildCalibrationReport, "function");

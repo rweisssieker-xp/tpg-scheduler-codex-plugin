@@ -44,10 +44,14 @@ const skill = assertFile("plugins/tpg-scheduler-codex-plugin/skills/status-repor
 assert.match(skill, /^---\nname: status-report\n/m);
 assert.match(skill, /Never save, submit, send, delete, change ownership, or change CRM state without explicit user confirmation\./);
 assert.match(skill, /pmo-report-suite/);
+assert.match(skill, /TPGProjectAssist\.downloadPmoProjectExport/);
+assert.match(skill, /tpg_pmo_project_export/);
 const pmoSkill = assertFile("plugins/tpg-scheduler-codex-plugin/skills/pmo-report-suite/SKILL.md");
 const rootPmoSkill = assertFile("skills/pmo-report-suite/SKILL.md");
 assert.match(pmoSkill, /^---\nname: pmo-report-suite\n/m);
 assert.match(rootPmoSkill, /^---\nname: pmo-report-suite\n/m);
+assert.match(pmoSkill, /source: "dataverse_web_api"|tpg_pmo_project_export/);
+assert.match(rootPmoSkill, /source: "dataverse_web_api"|tpg_pmo_project_export/);
 for (const reportType of [
   "portfolio_steering",
   "decision_action_aging",

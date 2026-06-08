@@ -5,6 +5,7 @@ TPG-Scheduler-Codex-Plugin is a Codex plugin for confirmation-gated Dynamics 365
 ## What It Does
 
 - Opens and reviews active Dynamics 365 TPG project candidates through the Codex in-app Browser workflow.
+- Reads project portfolio data Dataverse-first through the authenticated Dynamics `Xrm.WebApi` context and exports a real PMO project JSON envelope for offline reports.
 - Verifies that the opened project record belongs to the configured project manager before status work continues.
 - Normalizes short `kv` input to the configured unchanged-status phrase used in the target Dynamics environment.
 - Builds project intelligence packs with evidence-backed risk, decision, PMO, and executive views.
@@ -17,6 +18,7 @@ TPG-Scheduler-Codex-Plugin is a Codex plugin for confirmation-gated Dynamics 365
 - PMO Filtered Status Report: creates PMO reports filtered by project status and last status report date or narrative text.
 - PMO Report Suite: generates 12 dedicated PMO management reports through the `pmo-report-suite` skill.
 - PMO Word/Excel Export: writes polished filtered PMO reports as `.docx` and `.xlsx` files with executive callouts, KPI cards, filter scope, status legend, project spotlight, highlighted project rows, and PMO findings from real project export data.
+- Dataverse-First PMO Export: downloads or copies `tpg_pmo_project_export` JSON from the logged-in Dynamics browser session; the CLI accepts either this export envelope or a direct project array.
 - Decision Debt Analysis: measures open decisions, due dates, blocked projects, and decision-debt score.
 - Project Truth Score: detects status contradictions such as red KPI with weak narrative, overdue finish, or missing mitigation.
 - Sponsor Action Intelligence: turns steering agenda items into owner-specific sponsor actions.
@@ -61,6 +63,7 @@ plugins/tpg-scheduler-codex-plugin/
 cd plugins/tpg-scheduler-codex-plugin
 npm test
 npm run status-report:help
+npm run status-report:dataverse
 node ./scripts/statusbericht.js --intelligence <real-project-export.json>
 ```
 

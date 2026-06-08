@@ -17,6 +17,7 @@ This runs:
 - PMO status report filter tests.
 - PMO DOCX and XLSX file export tests.
 - PMO report suite tests for all 12 report types.
+- Dataverse-first PMO export envelope tests for API helpers, browser snippet markers, and CLI input handling.
 - `pmo-report-suite` skill presence and report-type documentation.
 - CLI behavior tests.
 - Plugin metadata and documentation validation.
@@ -44,6 +45,7 @@ The validation script checks:
 - Productive npm intelligence scripts do not point at sample or fixture data.
 - No npm script exposes demo, mock, sample, or fixture data as an active command.
 - DOCX and XLSX export dependencies are validated, and the vulnerable `exceljs` dependency tree is disallowed.
+- Dataverse export helpers remain read-only and expose the PMO export contract expected by report commands.
 
 ## GitHub Actions
 

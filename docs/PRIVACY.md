@@ -5,6 +5,7 @@ TPG-Scheduler-Codex-Plugin is designed for local, review-only project reporting 
 ## Data Handling
 
 - The plugin reads project data from the authenticated Dynamics browser context when the user has access.
+- Dataverse PMO exports are read-only JSON envelopes created from the user's logged-in Dynamics session.
 - Offline commands read only the JSON files explicitly provided to the CLI.
 - The plugin does not intentionally persist CRM data outside the working files the user creates or commits.
 - Generated drafts, risk lists, evidence gaps, and reports are advisory until a human reviews them.
@@ -18,6 +19,8 @@ TPG-Scheduler-Codex-Plugin is designed for local, review-only project reporting 
 ## Public Repository Guidance
 
 Do not commit real customer, project, vendor, budget, employee, or decision data. Use anonymized fixtures only. Remove record URLs or replace them with synthetic examples before publishing evidence.
+
+Store real `tpg_pmo_project_export` files under local, ignored paths such as `reports/` and delete them when they are no longer needed.
 
 ## Logs And Examples
 

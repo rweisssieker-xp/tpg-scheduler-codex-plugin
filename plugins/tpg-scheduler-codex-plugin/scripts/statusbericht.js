@@ -28,6 +28,8 @@ const PROJECT_ENTITY_LOGICAL_NAME = "tpg_project";
 const PROJECT_ENTITY_SET_NAME = "tpg_projects";
 const PROJECT_PRIMARY_ID_ATTRIBUTE = "tpg_projectid";
 const PROJECT_PRIMARY_NAME_ATTRIBUTE = "tpg_subject";
+const PMO_PROJECT_EXPORT_TYPE = "tpg_pmo_project_export";
+const PMO_PROJECT_EXPORT_VERSION = "1.0";
 const PROJECT_DEFAULT_SELECT_COLUMNS = [
   PROJECT_PRIMARY_ID_ATTRIBUTE,
   "tpg_projectnum",
@@ -104,19 +106,38 @@ function buildDataverseUrl(pathAndQuery) {
   return `${DATAVERSE_ORG_URL}/api/data/${DATAVERSE_API_VERSION}/${path}`;
 }
 
+function buildDataverseQuery(selectColumns = PROJECT_DEFAULT_SELECT_COLUMNS, filter = PROJECT_ACTIVE_STATE_FILTER, top, orderBy) {
+  const parts = [];
+  if (selectColumns?.length) {
+    parts.push(`$select=${selectColumns.join(",")}`);
+  }
+  if (filter) {
+    parts.push(`$filter=${filter}`);
+  }
+  if (top) {
+    parts.push(`$top=${Number(top)}`);
+  }
+  if (orderBy) {
+    parts.push(`$orderby=${orderBy}`);
+  }
+  return parts.length ? `?${parts.join("&")}` : "";
+}
+
 function buildProjectRecordApiUrl(projectId, selectColumns = PROJECT_DEFAULT_SELECT_COLUMNS) {
   const id = normalizeGuid(projectId);
   if (!id) {
     throw new Error("projectId is required");
   }
-  const select = selectColumns.length ? `?$select=${selectColumns.join(",")}` : "";
-  return buildDataverseUrl(`${PROJECT_ENTITY_SET_NAME}(${id})${select}`);
+  return buildDataverseUrl(`${PROJECT_ENTITY_SET_NAME}(${id})${buildDataverseQuery(selectColumns, null)}`);
 }
 
-function buildActiveProjectsApiUrl(selectColumns = PROJECT_DEFAULT_SELECT_COLUMNS) {
-  const select = selectColumns.length ? `$select=${selectColumns.join(",")}` : "";
-  const filter = `$filter=${PROJECT_ACTIVE_STATE_FILTER}`;
-  return buildDataverseUrl(`${PROJECT_ENTITY_SET_NAME}?${[select, filter].filter(Boolean).join("&")}`);
+function buildActiveProjectsApiUrl(selectColumns = PROJECT_DEFAULT_SELECT_COLUMNS, options = {}) {
+  return buildDataverseUrl(`${PROJECT_ENTITY_SET_NAME}${buildDataverseQuery(
+    selectColumns,
+    options.filter || PROJECT_ACTIVE_STATE_FILTER,
+    options.top,
+    options.orderBy || "modifiedon desc"
+  )}`);
 }
 
 function formatOptionLabel(attributeName, value, formattedValue) {
@@ -161,6 +182,43 @@ function mapProjectDataverseRow(row) {
     ownerName: getFormattedValue(row, "_ownerid_value"),
     raw: row,
   };
+}
+
+function buildPmoProjectExport(projects, options = {}) {
+  const normalizedProjects = (projects || []).map((project) => (
+    project?.raw && project.raw[PROJECT_PRIMARY_ID_ATTRIBUTE] ? mapProjectDataverseRow(project.raw) : project
+  ));
+  return {
+    exportType: PMO_PROJECT_EXPORT_TYPE,
+    version: PMO_PROJECT_EXPORT_VERSION,
+    source: "dataverse_web_api",
+    generatedAt: options.generatedAt || new Date().toISOString(),
+    organizationUrl: options.organizationUrl || DATAVERSE_ORG_URL,
+    apiVersion: options.apiVersion || DATAVERSE_API_VERSION,
+    entityLogicalName: options.entityLogicalName || PROJECT_ENTITY_LOGICAL_NAME,
+    entitySetName: options.entitySetName || PROJECT_ENTITY_SET_NAME,
+    filter: options.filter || PROJECT_ACTIVE_STATE_FILTER,
+    selectColumns: options.selectColumns || PROJECT_DEFAULT_SELECT_COLUMNS,
+    orderBy: options.orderBy || "modifiedon desc",
+    projectCount: normalizedProjects.length,
+    projects: normalizedProjects,
+    safety: {
+      readOnlyExport: true,
+      crmWritesIncluded: false,
+      requiresExplicitSaveConfirmationForWriteback: true,
+      mockDataAllowed: false,
+    },
+  };
+}
+
+function unwrapProjectInput(parsed) {
+  if (Array.isArray(parsed)) {
+    return parsed;
+  }
+  if (parsed && typeof parsed === "object" && Array.isArray(parsed.projects)) {
+    return parsed.projects;
+  }
+  throw new Error("Project intelligence input must be a JSON array of projects or a Dataverse PMO project export with a projects array.");
 }
 
 function isActiveProjectCandidate(project) {
@@ -275,10 +333,16 @@ function buildStatusUpdateDraft(statusText, options = {}) {
 function getDataverseBrowserSnippet() {
   return String.raw`(() => {
   const constants = ${JSON.stringify({
+    DATAVERSE_ORG_URL,
+    DATAVERSE_API_VERSION,
+    DYNAMICS_APP_ID,
+    PROJECT_LIST_URL,
     PROJECT_ENTITY_LOGICAL_NAME,
     PROJECT_ENTITY_SET_NAME,
     PROJECT_PRIMARY_ID_ATTRIBUTE,
     PROJECT_PRIMARY_NAME_ATTRIBUTE,
+    PMO_PROJECT_EXPORT_TYPE,
+    PMO_PROJECT_EXPORT_VERSION,
     PROJECT_DEFAULT_SELECT_COLUMNS,
     PROJECT_ACTIVE_STATE_FILTER,
     PROJECT_MANAGER_NAME,
@@ -304,11 +368,26 @@ function getDataverseBrowserSnippet() {
     return row?.[attributeName + "@OData.Community.Display.V1.FormattedValue"] || null;
   }
 
-  function buildQuery(selectColumns = constants.PROJECT_DEFAULT_SELECT_COLUMNS, filter = constants.PROJECT_ACTIVE_STATE_FILTER, top) {
+  function buildDynamicsProjectRecordUrl(projectId) {
+    const id = normalizeGuid(projectId);
+    return id
+      ? constants.DATAVERSE_ORG_URL + "/main.aspx?appid=" + constants.DYNAMICS_APP_ID + "&forceUCI=1&pagetype=entityrecord&etn=" + constants.PROJECT_ENTITY_LOGICAL_NAME + "&id=" + id
+      : null;
+  }
+
+  function buildProjectRecordApiUrl(projectId, selectColumns = constants.PROJECT_DEFAULT_SELECT_COLUMNS) {
+    const id = normalizeGuid(projectId);
+    return id
+      ? constants.DATAVERSE_ORG_URL + "/api/data/" + constants.DATAVERSE_API_VERSION + "/" + constants.PROJECT_ENTITY_SET_NAME + "(" + id + ")" + buildQuery(selectColumns, null)
+      : null;
+  }
+
+  function buildQuery(selectColumns = constants.PROJECT_DEFAULT_SELECT_COLUMNS, filter = constants.PROJECT_ACTIVE_STATE_FILTER, top, orderBy) {
     const parts = [];
     if (selectColumns.length) parts.push("$select=" + selectColumns.join(","));
     if (filter) parts.push("$filter=" + filter);
     if (top) parts.push("$top=" + Number(top));
+    if (orderBy) parts.push("$orderby=" + orderBy);
     return "?" + parts.join("&");
   }
 
@@ -330,6 +409,8 @@ function getDataverseBrowserSnippet() {
       lastStatusUpdate: row.gbl_laststatusupdate || null,
       ownerId: normalizeGuid(row._ownerid_value),
       ownerName: formatted(row, "_ownerid_value"),
+      recordUrl: buildDynamicsProjectRecordUrl(id),
+      apiUrl: buildProjectRecordApiUrl(id),
       raw: row,
     };
   }
@@ -640,9 +721,87 @@ function getDataverseBrowserSnippet() {
 
   async function retrieveActiveProjects(options = {}) {
     const xrm = getXrm();
-    const query = buildQuery(options.selectColumns || constants.PROJECT_DEFAULT_SELECT_COLUMNS, options.filter || constants.PROJECT_ACTIVE_STATE_FILTER, options.top);
+    const query = buildQuery(
+      options.selectColumns || constants.PROJECT_DEFAULT_SELECT_COLUMNS,
+      options.filter || constants.PROJECT_ACTIVE_STATE_FILTER,
+      options.top,
+      options.orderBy || "modifiedon desc"
+    );
     const response = await xrm.WebApi.retrieveMultipleRecords(constants.PROJECT_ENTITY_LOGICAL_NAME, query);
     return response.entities.map(mapProject);
+  }
+
+  async function retrievePmoProjectPortfolio(options = {}) {
+    return retrieveActiveProjects({
+      ...options,
+      filter: options.filter || constants.PROJECT_ACTIVE_STATE_FILTER,
+      selectColumns: options.selectColumns || constants.PROJECT_DEFAULT_SELECT_COLUMNS,
+      orderBy: options.orderBy || "modifiedon desc",
+    });
+  }
+
+  function buildPmoProjectExport(projects, options = {}) {
+    return {
+      exportType: constants.PMO_PROJECT_EXPORT_TYPE,
+      version: constants.PMO_PROJECT_EXPORT_VERSION,
+      source: "dataverse_web_api",
+      generatedAt: options.generatedAt || new Date().toISOString(),
+      organizationUrl: constants.DATAVERSE_ORG_URL,
+      apiVersion: constants.DATAVERSE_API_VERSION,
+      entityLogicalName: constants.PROJECT_ENTITY_LOGICAL_NAME,
+      entitySetName: constants.PROJECT_ENTITY_SET_NAME,
+      filter: options.filter || constants.PROJECT_ACTIVE_STATE_FILTER,
+      selectColumns: options.selectColumns || constants.PROJECT_DEFAULT_SELECT_COLUMNS,
+      orderBy: options.orderBy || "modifiedon desc",
+      projectCount: (projects || []).length,
+      projects: projects || [],
+      safety: {
+        readOnlyExport: true,
+        crmWritesIncluded: false,
+        requiresExplicitSaveConfirmationForWriteback: true,
+        mockDataAllowed: false,
+      },
+    };
+  }
+
+  async function exportActiveProjectsForPmoReports(options = {}) {
+    const projects = await retrievePmoProjectPortfolio(options);
+    return buildPmoProjectExport(projects, options);
+  }
+
+  async function copyPmoProjectExportToClipboard(options = {}) {
+    const payload = await exportActiveProjectsForPmoReports(options);
+    await navigator.clipboard.writeText(JSON.stringify(payload, null, 2));
+    return {
+      copied: true,
+      exportType: payload.exportType,
+      source: payload.source,
+      projectCount: payload.projectCount,
+      generatedAt: payload.generatedAt,
+    };
+  }
+
+  async function downloadPmoProjectExport(options = {}) {
+    const payload = await exportActiveProjectsForPmoReports(options);
+    const day = payload.generatedAt.slice(0, 10);
+    const filename = options.filename || "tpg-pmo-project-export-" + day + ".json";
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    return {
+      downloaded: true,
+      filename,
+      exportType: payload.exportType,
+      source: payload.source,
+      projectCount: payload.projectCount,
+      generatedAt: payload.generatedAt,
+    };
   }
 
   async function retrieveProject(projectId, selectColumns = constants.PROJECT_DEFAULT_SELECT_COLUMNS) {
@@ -704,6 +863,11 @@ function getDataverseBrowserSnippet() {
 
   window.TPGProjectAssist = {
     constants,
+    buildPmoProjectExport,
+    copyPmoProjectExportToClipboard,
+    downloadPmoProjectExport,
+    exportActiveProjectsForPmoReports,
+    retrievePmoProjectPortfolio,
     retrieveActiveProjects,
     retrieveProject,
     buildBatchProjectPreview,
@@ -761,9 +925,12 @@ Dataverse active projects API:
 
 Dataverse browser snippet:
   npm run statusbericht:dataverse
+  In the authenticated Dynamics browser console:
+    await TPGProjectAssist.downloadPmoProjectExport()
+    await TPGProjectAssist.copyPmoProjectExportToClipboard()
 
 Offline intelligence:
-  node ./scripts/statusbericht.js --intelligence <real-project-export.json>
+  node ./scripts/statusbericht.js --intelligence <real-dataverse-export.json>
   node ./scripts/statusbericht.js --intelligence <real-project-export.json> --json
   node ./scripts/statusbericht.js --intelligence <real-project-export.json> --exports
 
@@ -790,10 +957,7 @@ function readProjectsInput(inputPath) {
     ? fs.readFileSync(inputPath, "utf8")
     : fs.readFileSync(0, "utf8");
   const parsed = JSON.parse(raw);
-  if (!Array.isArray(parsed)) {
-    throw new Error("Project intelligence input must be a JSON array of projects.");
-  }
-  return parsed;
+  return unwrapProjectInput(parsed);
 }
 
 function isSampleInputPath(inputPath) {
@@ -1592,6 +1756,8 @@ module.exports = {
   PROJECT_ENTITY_SET_NAME,
   PROJECT_PRIMARY_ID_ATTRIBUTE,
   PROJECT_PRIMARY_NAME_ATTRIBUTE,
+  PMO_PROJECT_EXPORT_TYPE,
+  PMO_PROJECT_EXPORT_VERSION,
   PROJECT_ACTIVE_STATE_FILTER,
   PROJECT_MANAGER_NAME,
   PROJECT_DEFAULT_SELECT_COLUMNS,
@@ -1604,8 +1770,10 @@ module.exports = {
   UNCHANGED_STATUS_TEXT,
   buildActiveProjectsApiUrl,
   buildBatchProjectPreview,
+  buildDataverseQuery,
   buildDataverseUrl,
   buildDynamicsProjectRecordUrl,
+  buildPmoProjectExport,
   buildProjectRecordApiUrl,
   buildStatusUpdateDraft,
   buildPmoStatusReportDocxBuffer,
@@ -1678,6 +1846,7 @@ module.exports = {
   formatOptionLabel,
   getDataverseBrowserSnippet,
   readProjectsInput,
+  unwrapProjectInput,
   isSampleInputPath,
   isActiveProjectCandidate,
   mapProjectDataverseRow,

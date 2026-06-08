@@ -12,7 +12,8 @@ For PMO reporting, portfolio management packs, the 12-report PMO suite, or DOCX/
 ## Operating Rules
 
 - Use the Codex in-app Browser for Dynamics 365 work.
-- Read Dataverse data only through the authenticated browser context unless the user explicitly provides offline JSON.
+- Read Dataverse data through the authenticated Dynamics browser context as the primary path unless the user explicitly provides offline JSON.
+- For PMO inputs, create a read-only `tpg_pmo_project_export` via `TPGProjectAssist.downloadPmoProjectExport()` or `copyPmoProjectExportToClipboard()`.
 - Verify the configured project manager before collecting or staging a status update.
 - Show project safety level and PMO control findings before collecting or staging a status update.
 - Treat `kv` as the configured unchanged-status shortcut.

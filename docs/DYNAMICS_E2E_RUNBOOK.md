@@ -23,24 +23,37 @@ cd plugins/tpg-scheduler-codex-plugin
 npm run status-report:dataverse
 ```
 
-3. Retrieve active project candidates.
-4. Open one healthy project and one risky project when available.
-5. Verify the current project manager check returns the expected configured owner before collecting status.
-6. Build project intelligence and inspect:
+3. In the authenticated Dynamics browser console, run:
+
+```javascript
+await TPGProjectAssist.downloadPmoProjectExport()
+```
+
+4. Confirm that the downloaded JSON has `exportType: "tpg_pmo_project_export"`, `source: "dataverse_web_api"`, and a real `projects` array.
+5. Generate a PMO suite from the export:
+
+```powershell
+node ./scripts/statusbericht.js --pmo-suite <real-dataverse-export.json> --docx reports/pmo-suite.docx --xlsx reports/pmo-suite.xlsx --json
+```
+
+6. Open one healthy project and one risky project when available.
+7. Verify the current project manager check returns the expected configured owner before collecting status.
+8. Build project intelligence and inspect:
 
 - `projectSafetyGates.summary`
 - `projectSafetyGates.projects[*].safetyLevel`
 - `pmoControlTower.summary`
 - `pmoControlTower.projects[*].checks`
 
-7. Test `kv` normalization in a draft.
-8. Confirm that no save occurs unless the user explicitly confirms project, status text, and email setting.
-9. Turn on Email Status Update only in a safe test context and verify the workflow reports high writeback risk before any save.
-10. Record pass/fail notes without real project data.
+9. Test `kv` normalization in a draft.
+10. Confirm that no save occurs unless the user explicitly confirms project, status text, and email setting.
+11. Turn on Email Status Update only in a safe test context and verify the workflow reports high writeback risk before any save.
+12. Record pass/fail notes without real project data.
 
 ## Pass Criteria
 
 - Active projects can be read only through the authenticated browser context.
+- The PMO export envelope is produced from Dataverse Web API data and can drive CLI JSON, DOCX, and XLSX outputs.
 - Non-matching project manager records are not processed for status staging.
 - Safety gates and PMO controls appear before staging.
 - `kv` expands to the configured unchanged-status phrase.

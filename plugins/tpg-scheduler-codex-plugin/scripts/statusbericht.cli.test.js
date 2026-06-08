@@ -101,6 +101,23 @@ assert.equal(suiteJson.summary.reportCount, 12);
 assert.equal(suiteJson.reports.map((report) => report.reportType).includes("audit_writeback_safety"), true);
 
 const outputDir = fs.mkdtempSync(path.join(os.tmpdir(), "tpg-pmo-report-"));
+const dataverseExportPath = path.join(outputDir, "real-dataverse-export.json");
+fs.writeFileSync(dataverseExportPath, JSON.stringify({
+  exportType: "tpg_pmo_project_export",
+  version: "1.0",
+  source: "dataverse_web_api",
+  generatedAt: "2026-06-08T10:00:00.000Z",
+  organizationUrl: "https://posp365.crm4.dynamics.com",
+  projects: JSON.parse(fs.readFileSync(fixturePath, "utf8")),
+}), "utf8");
+const dataverseSuiteOutput = execFileSync(
+  process.execPath,
+  [scriptPath, "--pmo-suite", dataverseExportPath, "--json"],
+  { encoding: "utf8" }
+);
+const dataverseSuiteJson = JSON.parse(dataverseSuiteOutput);
+assert.equal(dataverseSuiteJson.summary.reportCount, 12);
+assert.equal(dataverseSuiteJson.summary.projectsReviewed, 2);
 const docxPath = path.join(outputDir, "pmo-status.docx");
 const xlsxPath = path.join(outputDir, "pmo-status.xlsx");
 const suiteDocxPath = path.join(outputDir, "pmo-suite.docx");

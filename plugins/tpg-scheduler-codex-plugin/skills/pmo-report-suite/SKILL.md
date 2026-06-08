@@ -10,10 +10,12 @@ Use this skill when the user asks for PMO reports, portfolio steering packs, man
 ## Ground Rules
 
 - Use real Dynamics 365 TPG project data or an explicit real project JSON export.
+- Prefer the Dataverse-first export from the authenticated Dynamics browser: `TPGProjectAssist.downloadPmoProjectExport()` or `copyPmoProjectExportToClipboard()`.
 - Do not use sample, fixture, synthetic, or mock data for productive PMO reporting.
 - Keep outputs advisory and evidence-backed.
 - Do not save, submit, send, delete, change ownership, or change CRM state.
 - If live Dynamics data is needed, use the authenticated Codex in-app Browser context and the `status-report` workflow rules for safe Dataverse reads.
+- Accept only real `tpg_pmo_project_export` envelopes or real mapped project arrays as report input.
 - Write report files only to user-requested local paths such as `reports/*.docx` or `reports/*.xlsx`.
 
 ## Report Types
@@ -35,6 +37,7 @@ Use this skill when the user asks for PMO reports, portfolio steering packs, man
 
 ```powershell
 cd plugins/tpg-scheduler-codex-plugin
+npm run status-report:dataverse
 node ./scripts/statusbericht.js --pmo-report <real-project-export.json> --pmo-report-type executive_exception --json
 node ./scripts/statusbericht.js --pmo-suite <real-project-export.json> --json
 node ./scripts/statusbericht.js --pmo-suite <real-project-export.json> --docx reports/pmo-suite.docx --xlsx reports/pmo-suite.xlsx

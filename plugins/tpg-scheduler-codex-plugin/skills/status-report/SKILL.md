@@ -34,6 +34,7 @@ If Dynamics asks for login, pause and let the user complete Microsoft login manu
 ## Dataverse Access
 
 - Prefer Dataverse reads over visual UI scraping after a Dynamics browser session is authenticated.
+- Treat Dataverse Web API reads through `Xrm.WebApi` as the primary data path for candidate discovery and PMO exports.
 - Use the logged-in Dynamics page context for Dataverse reads; do not introduce a separate OAuth, Azure CLI, Power Platform CLI, service-principal, or browser process unless the user explicitly asks for it.
 - The project table discovered from Dynamics is:
   - logical name: `tpg_project`
@@ -50,6 +51,7 @@ If Dynamics asks for login, pause and let the user complete Microsoft login manu
   - `buildActiveProjectsApiUrl()`
   - `buildProjectRecordApiUrl(projectId)`
   - `buildDynamicsProjectRecordUrl(projectId)`
+  - `buildPmoProjectExport(projects, options)`
   - `mapProjectDataverseRow(row)`
   - `evaluateProjectStatusQuality(project, options)`
   - `buildBatchProjectPreview(projects, options)`
@@ -85,6 +87,10 @@ If Dynamics asks for login, pause and let the user complete Microsoft login manu
   - `buildPmoControlTower(projects, options)`
   - `buildStatusUpdateDraft(statusText, options)`
   - `getDataverseBrowserSnippet()`
+- When PMO report data is needed, load the Dataverse snippet and use:
+  - `await TPGProjectAssist.downloadPmoProjectExport()`
+  - `await TPGProjectAssist.copyPmoProjectExportToClipboard()`
+- The export must be read-only with `exportType: "tpg_pmo_project_export"` and `source: "dataverse_web_api"`.
 - To install browser-context helpers into an authenticated Dynamics page, print the snippet with:
   `npm run statusbericht:dataverse`
   Then run that JavaScript in the in-app Browser page context. It exposes `window.TPGProjectAssist`.

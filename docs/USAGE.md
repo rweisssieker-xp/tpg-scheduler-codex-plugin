@@ -9,7 +9,24 @@
 
 ## Offline Intelligence
 
-Run an intelligence report from a real project export:
+The preferred input is a real Dataverse PMO project export created from the authenticated Dynamics browser context. A direct JSON array of mapped projects is still accepted for controlled offline workflows.
+
+Create a Dataverse-first export after signing in to Dynamics:
+
+```powershell
+npm run status-report:dataverse
+```
+
+Paste the printed snippet into the authenticated Dynamics browser console, then run one of these read-only helpers:
+
+```javascript
+await TPGProjectAssist.downloadPmoProjectExport()
+await TPGProjectAssist.copyPmoProjectExportToClipboard()
+```
+
+The export has `exportType: "tpg_pmo_project_export"`, `source: "dataverse_web_api"`, source metadata, and a `projects` array. It contains no CRM writes and no mock data.
+
+Run an intelligence report from a real Dataverse export:
 
 ```powershell
 cd plugins/tpg-scheduler-codex-plugin
@@ -113,7 +130,7 @@ npm test
 
 ## Data Inputs
 
-Offline intelligence expects a JSON array of mapped project objects. Common fields:
+Offline intelligence accepts either a Dataverse PMO project export envelope or a JSON array of mapped project objects. Common project fields:
 
 - `projectId`
 - `name`
