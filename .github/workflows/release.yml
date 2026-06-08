@@ -20,10 +20,10 @@ jobs:
         working-directory: plugins/tpg-scheduler-codex-plugin
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: "22"
           cache: npm
@@ -39,7 +39,7 @@ jobs:
         run: npm test
 
       - name: Upload review package
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: tpg-scheduler-codex-plugin-${{ github.ref_name }}
           path: |

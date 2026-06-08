@@ -40,6 +40,11 @@ assert.equal(/sample|fixture/.test(pkg.scripts["statusbericht:intelligence"]), f
 assert.equal(Object.keys(pkg.scripts).some((scriptName) => scriptName.includes("demo")), false, "npm scripts must not expose demo or mock data as active commands");
 assert.match(ciWorkflow, /FORCE_JAVASCRIPT_ACTIONS_TO_NODE24:\s*true/, "CI must opt into Node 24 JavaScript action runtime");
 assert.match(releaseWorkflow, /FORCE_JAVASCRIPT_ACTIONS_TO_NODE24:\s*true/, "release workflow must opt into Node 24 JavaScript action runtime");
+assert.match(ciWorkflow, /actions\/checkout@v5/, "CI must use checkout action v5");
+assert.match(ciWorkflow, /actions\/setup-node@v5/, "CI must use setup-node action v5");
+assert.match(releaseWorkflow, /actions\/checkout@v5/, "release workflow must use checkout action v5");
+assert.match(releaseWorkflow, /actions\/setup-node@v5/, "release workflow must use setup-node action v5");
+assert.match(releaseWorkflow, /actions\/upload-artifact@v5/, "release workflow must use upload-artifact action v5");
 assert.equal(fs.existsSync(path.join(root, plugin.skills)), true, "skills path must exist");
 assert.equal(fs.existsSync(path.join(root, plugin.mcpServers)), true, "mcpServers path must exist");
 assert.equal(fs.existsSync(path.join(root, plugin.apps)), true, "apps path must exist");
