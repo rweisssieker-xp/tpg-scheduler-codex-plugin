@@ -11,6 +11,7 @@ Initial public release for confirmation-gated Dynamics 365 TPG project status re
 - Maximum Project Safety Gates and PMO Control Tower checks.
 - Status API Max Layer with JSON schemas, synthetic examples, audit events, writeback queues, and Dataverse error mapping.
 - Release-readiness checks and machine-readable release evidence manifest.
+- Anonymized live Dynamics evidence note for read-only Dataverse access and form detection.
 
 ## Safety
 
@@ -34,3 +35,7 @@ npm audit --audit-level=moderate
 ```
 
 Run `docs/DYNAMICS_E2E_RUNBOOK.md` before production status writeback use.
+
+## Live Dynamics Evidence
+
+The anonymized smoke-test note is available at `docs/LIVE_DYNAMICS_EVIDENCE_v0.1.0.md`. It verifies read-only Dataverse access, project form detection, and Status Update tab/subgrid detection. API Status Update creation remains blocked until the tenant-specific Status Update table metadata is confirmed.
