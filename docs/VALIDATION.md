@@ -37,6 +37,8 @@ The validation script checks:
 - Public docs use en-US wording, except for the fixed German CRM `kv` phrase where explicitly documented.
 - JSON schemas parse and expose the required project safety and PMO contract anchors.
 - The synthetic sample output includes `projectSafetyGates` and `pmoControlTower`.
+- Productive npm intelligence scripts do not point at sample or fixture data.
+- No npm script exposes demo, mock, sample, or fixture data as an active command.
 
 ## GitHub Actions
 

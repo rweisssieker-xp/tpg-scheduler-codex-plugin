@@ -9,24 +9,26 @@
 
 ## Offline Intelligence
 
-Run the sample intelligence report:
+Run an intelligence report from a real project export:
 
 ```powershell
 cd plugins/tpg-scheduler-codex-plugin
-npm run status-report:intelligence
+node ./scripts/statusbericht.js --intelligence <real-project-export.json>
 ```
 
 Emit machine-readable JSON:
 
 ```powershell
-node ./scripts/statusbericht.js --intelligence ./scripts/fixtures/projects.sample.json --json
+node ./scripts/statusbericht.js --intelligence <real-project-export.json> --json
 ```
 
 Emit CSV-ready export payloads:
 
 ```powershell
-node ./scripts/statusbericht.js --intelligence ./scripts/fixtures/projects.sample.json --exports
+node ./scripts/statusbericht.js --intelligence <real-project-export.json> --exports
 ```
+
+Sample and synthetic files are blocked by default and are reserved for automated tests and documentation fixtures.
 
 ## Dynamics Browser Workflow
 
@@ -44,7 +46,7 @@ node ./scripts/statusbericht.js --intelligence ./scripts/fixtures/projects.sampl
 ```powershell
 npm run status-report:help
 npm run status-report:dataverse
-npm run status-report:intelligence
+node ./scripts/statusbericht.js --intelligence <real-project-export.json>
 npm test
 ```
 
@@ -89,7 +91,7 @@ Machine-readable contracts are stored in `schemas/`:
 - `project-safety-gates.schema.json`
 - `pmo-control-tower.schema.json`
 
-A compact synthetic JSON example is available at `examples/project-intelligence.sample.json`.
+A compact synthetic JSON example is available at `examples/project-intelligence.sample.json` for documentation and consumer tests only. It is not accepted by productive CLI runs.
 
 ## Live Verification
 

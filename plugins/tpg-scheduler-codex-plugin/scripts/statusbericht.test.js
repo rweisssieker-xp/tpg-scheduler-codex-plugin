@@ -44,6 +44,7 @@ const {
   evaluateStatusQuality,
   extractDecisionRadar,
   getDataverseBrowserSnippet,
+  isSampleInputPath,
   isActiveProjectCandidate,
   mapProjectDataverseRow,
   normalizeGuid,
@@ -187,6 +188,8 @@ assert.match(getDataverseBrowserSnippet(), /buildAuditEntry/);
 assert.match(getDataverseBrowserSnippet(), /buildSteeringAgenda/);
 assert.match(getDataverseBrowserSnippet(), /buildRiskLedgerEntries/);
 assert.match(getDataverseBrowserSnippet(), /buildCalibrationReport/);
+assert.equal(isSampleInputPath("./scripts/fixtures/projects.sample.json"), true);
+assert.equal(isSampleInputPath("./real-project-export.json"), false);
 assert.equal(typeof buildAuditEntry, "function");
 assert.equal(typeof buildAudienceReport, "function");
 assert.equal(typeof buildCalibrationReport, "function");

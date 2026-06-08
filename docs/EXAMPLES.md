@@ -4,7 +4,7 @@
 
 ```powershell
 cd plugins/tpg-scheduler-codex-plugin
-npm run status-report:intelligence
+node ./scripts/statusbericht.js --intelligence <real-project-export.json>
 ```
 
 Example output shape:
@@ -27,7 +27,7 @@ Projects OK: 1
 ## JSON Intelligence
 
 ```powershell
-node ./scripts/statusbericht.js --intelligence ./scripts/fixtures/projects.sample.json --json
+node ./scripts/statusbericht.js --intelligence <real-project-export.json> --json
 ```
 
 The JSON payload includes:
@@ -44,12 +44,12 @@ The JSON payload includes:
 - `executiveQuestionGenerator`
 - `reportQualityBenchmark`
 
-A compact synthetic sample is stored at `examples/project-intelligence.sample.json`.
+A compact synthetic sample is stored at `examples/project-intelligence.sample.json` for documentation and consumer tests only. Productive CLI runs reject sample and fixture paths.
 
 ## Export Payload
 
 ```powershell
-node ./scripts/statusbericht.js --intelligence ./scripts/fixtures/projects.sample.json --exports
+node ./scripts/statusbericht.js --intelligence <real-project-export.json> --exports
 ```
 
 The export payload includes CSV strings for:

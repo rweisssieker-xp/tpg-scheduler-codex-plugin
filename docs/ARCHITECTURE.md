@@ -10,7 +10,7 @@ The plugin separates browser workflow guidance from deterministic project intell
 - The project safety gate layer evaluates each project across eight advisory safety domains before status collection or CRM staging.
 - The PMO control tower layer evaluates each project across 25 governance and portfolio-control routines for PMO review.
 - `schemas/` defines stable JSON contracts for downstream PMO and executive tooling.
-- `examples/` contains synthetic output that can be used in documentation and consumer tests.
+- `examples/` contains synthetic output for documentation and consumer tests only; productive CLI paths reject sample files.
 - Tests validate normalization, CLI behavior, and project intelligence outputs without requiring Dynamics access.
 - `scripts/validate-plugin.js` validates plugin metadata, documentation presence, skill naming, and write-safety wording.
 - `assets/icon.svg` provides a lightweight public plugin asset for repository and marketplace use.
@@ -106,5 +106,5 @@ The tests cover:
 - maximum project safety gate outputs
 - PMO control tower outputs
 - CLI JSON/export behavior
-- schema and sample-output presence
+- schema and documentation-only sample-output presence
 - release, privacy, ownership, and dependency-management files

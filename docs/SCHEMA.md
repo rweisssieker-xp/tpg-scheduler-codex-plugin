@@ -24,4 +24,4 @@ cd plugins/tpg-scheduler-codex-plugin
 npm run validate
 ```
 
-The validator parses every schema, verifies the safety and PMO contract anchors, and checks the sample output.
+The validator parses every schema, verifies the safety and PMO contract anchors, and checks the documentation-only sample output. Productive CLI runs reject sample or fixture paths.

@@ -35,6 +35,6 @@ Attach or link:
 
 - CI run URL.
 - Plugin validation output.
-- Offline sample output.
+- Offline output generated from a real or anonymized project export.
 - Dynamics smoke-test notes with no customer data.
 - Known limitations.

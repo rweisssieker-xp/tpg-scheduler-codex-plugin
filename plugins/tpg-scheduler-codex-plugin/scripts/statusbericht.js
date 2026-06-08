@@ -748,9 +748,11 @@ Dataverse browser snippet:
   npm run statusbericht:dataverse
 
 Offline intelligence:
-  node ./scripts/statusbericht.js --intelligence ./scripts/fixtures/projects.sample.json
-  node ./scripts/statusbericht.js --intelligence ./scripts/fixtures/projects.sample.json --json
-  node ./scripts/statusbericht.js --intelligence ./scripts/fixtures/projects.sample.json --exports
+  node ./scripts/statusbericht.js --intelligence <real-project-export.json>
+  node ./scripts/statusbericht.js --intelligence <real-project-export.json> --json
+  node ./scripts/statusbericht.js --intelligence <real-project-export.json> --exports
+
+Sample and fixture inputs are rejected by default. They are reserved for automated tests and documentation fixtures.
 `);
 }
 
@@ -759,6 +761,9 @@ function printDataverseSnippet() {
 }
 
 function readProjectsInput(inputPath) {
+  if (isSampleInputPath(inputPath) && !process.argv.includes("--allow-sample")) {
+    throw new Error("Sample or synthetic project data is not accepted for production runs. Use live Dynamics data or an explicit real project JSON export.");
+  }
   const raw = inputPath && inputPath !== "-"
     ? fs.readFileSync(inputPath, "utf8")
     : fs.readFileSync(0, "utf8");
@@ -767,6 +772,14 @@ function readProjectsInput(inputPath) {
     throw new Error("Project intelligence input must be a JSON array of projects.");
   }
   return parsed;
+}
+
+function isSampleInputPath(inputPath) {
+  if (!inputPath || inputPath === "-") {
+    return false;
+  }
+  const normalized = String(inputPath).replace(/\\/g, "/").toLowerCase();
+  return normalized.includes("/fixtures/") || normalized.includes("/examples/") || normalized.includes(".sample.");
 }
 
 function getArgValue(name) {
@@ -957,6 +970,7 @@ module.exports = {
   formatOptionLabel,
   getDataverseBrowserSnippet,
   readProjectsInput,
+  isSampleInputPath,
   isActiveProjectCandidate,
   mapProjectDataverseRow,
   normalizeStatusInput,

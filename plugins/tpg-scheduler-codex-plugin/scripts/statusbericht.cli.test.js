@@ -5,7 +5,12 @@ const path = require("node:path");
 const scriptPath = path.join(__dirname, "statusbericht.js");
 const fixturePath = path.join(__dirname, "fixtures", "projects.sample.json");
 
-const output = execFileSync(process.execPath, [scriptPath, "--intelligence", fixturePath, "--today", "2026-05-13"], {
+assert.throws(
+  () => execFileSync(process.execPath, [scriptPath, "--intelligence", fixturePath, "--today", "2026-05-13"], { encoding: "utf8" }),
+  /Sample or synthetic project data is not accepted for production runs/
+);
+
+const output = execFileSync(process.execPath, [scriptPath, "--intelligence", fixturePath, "--today", "2026-05-13", "--allow-sample"], {
   encoding: "utf8",
 });
 
@@ -20,7 +25,7 @@ assert.match(output, /## Nudges/);
 
 const jsonOutput = execFileSync(
   process.execPath,
-  [scriptPath, "--intelligence", fixturePath, "--today", "2026-05-13", "--json"],
+  [scriptPath, "--intelligence", fixturePath, "--today", "2026-05-13", "--json", "--allow-sample"],
   { encoding: "utf8" }
 );
 const parsed = JSON.parse(jsonOutput);
@@ -33,7 +38,7 @@ assert.equal(parsed.nudges.length, 1);
 
 const exportsOutput = execFileSync(
   process.execPath,
-  [scriptPath, "--intelligence", fixturePath, "--today", "2026-05-13", "--exports"],
+  [scriptPath, "--intelligence", fixturePath, "--today", "2026-05-13", "--exports", "--allow-sample"],
   { encoding: "utf8" }
 );
 const exportsParsed = JSON.parse(exportsOutput);

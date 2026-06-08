@@ -58,7 +58,7 @@ plugins/tpg-scheduler-codex-plugin/
 cd plugins/tpg-scheduler-codex-plugin
 npm test
 npm run status-report:help
-npm run status-report:intelligence
+node ./scripts/statusbericht.js --intelligence <real-project-export.json>
 ```
 
 ## Documentation
@@ -83,4 +83,4 @@ The plugin is designed as a decision-support and draft-preparation workflow. Pro
 
 ## Public Release Readiness
 
-The repository includes schema contracts, synthetic example output, CI validation, Dependabot configuration, CODEOWNERS, privacy guidance, and a tag-based release validation workflow. Live Dynamics verification is intentionally documented as a manual smoke test because it depends on authenticated tenant access.
+The repository includes schema contracts, documentation-only synthetic example output, CI validation, Dependabot configuration, CODEOWNERS, privacy guidance, and a tag-based release validation workflow. Productive CLI paths reject sample data; fixtures are reserved for automated tests and documentation only. Live Dynamics verification is intentionally documented as a manual smoke test because it depends on authenticated tenant access.

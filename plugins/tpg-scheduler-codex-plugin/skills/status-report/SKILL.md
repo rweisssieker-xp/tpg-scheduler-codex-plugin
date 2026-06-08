@@ -87,8 +87,6 @@ If Dynamics asks for login, pause and let the user complete Microsoft login manu
   `npm run statusbericht:dataverse`
   Then run that JavaScript in the in-app Browser page context. It exposes `window.TPGProjectAssist`.
 - To generate an offline project intelligence report from exported project JSON, run:
-  `npm run statusbericht:intelligence`
-  or:
   `node ./scripts/statusbericht.js --intelligence <projects.json> --today YYYY-MM-DD`
 - Use `--json` with `--intelligence` when another automation should consume the complete intelligence pack.
 - Use `--exports` with `--intelligence` to emit CSV strings for Power BI/import workflows and JSON for automation.
@@ -126,7 +124,7 @@ If Dynamics asks for login, pause and let the user complete Microsoft login manu
   - nudges
 - JSON output includes the full result of `buildProjectIntelligence(projects, options)`.
 - Export output includes `csv.managementActions`, `csv.riskLedger`, and a JSON payload with intelligence, risk ledger, and management action rows.
-- Sample data is available at `scripts/fixtures/projects.sample.json`.
+- Sample data is documentation-only and blocked in normal CLI runs. Do not use fixture data for project work.
 - When a project record is open, read form data through the Dynamics form context before relying on visible labels:
   ```js
   const xrm = window.Xrm || window.parent?.Xrm;
