@@ -7,6 +7,8 @@ description: Use when drafting confirmation-gated Dynamics 365 TPG project statu
 
 Use this skill when the user asks to create, draft, collect, or update status reports for TPG projects in Dynamics 365.
 
+For PMO reporting, portfolio management packs, the 12-report PMO suite, or DOCX/XLSX management reports, use the `pmo-report-suite` skill instead.
+
 ## Ground Rules
 
 - Use the Codex in-app Browser plugin for all Dynamics navigation and UI interaction.

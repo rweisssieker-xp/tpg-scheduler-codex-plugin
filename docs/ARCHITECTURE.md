@@ -77,6 +77,8 @@ The eight safety domains are data integrity, status truth, delivery risk, decisi
 
 The CLI can serialize the filtered PMO status report to DOCX and XLSX. DOCX generation uses the `docx` package with a styled title band, subtitle band, executive callout, KPI cards, filter scope, status legend, project spotlight, summary, and project sections. XLSX generation writes a styled Office Open XML workbook through `jszip`, including frozen headers, column widths, autofilters, and PMO/safety highlighting while avoiding heavier spreadsheet dependency trees.
 
+`buildPmoReport(reportType, projects, options)` builds one of the 12 PMO management reports. `buildPmoReportSuite(projects, options)` returns the complete 12-report suite. The `pmo-report-suite` skill is the user-facing entrypoint for these reports, while `status-report` remains focused on Dynamics status-entry workflows.
+
 ## Schema Layer
 
 The schema layer documents output contracts without adding runtime dependencies. Validation checks parse each schema and assert critical contract anchors:

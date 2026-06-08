@@ -88,6 +88,18 @@ node ./scripts/statusbericht.js --pmo-report <real-project-export.json> --projec
 
 The generated files are intended for PMO review: the Word report uses a management-style title section, executive callouts, KPI cards, status legend, and project spotlight; the Excel workbook includes styled worksheets, filterable project rows, and highlighted PMO/safety levels.
 
+## PMO Report Suite
+
+```powershell
+node ./scripts/statusbericht.js --pmo-suite <real-project-export.json> --docx reports/pmo-suite.docx --xlsx reports/pmo-suite.xlsx --json
+```
+
+Create a single dedicated report:
+
+```powershell
+node ./scripts/statusbericht.js --pmo-report <real-project-export.json> --pmo-report-type decision_action_aging --json
+```
+
 ## Schema-Aware Consumers
 
 Consumer tools should start with:

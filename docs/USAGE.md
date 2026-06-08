@@ -38,6 +38,20 @@ Create a PMO report from real project export data:
 node ./scripts/statusbericht.js --pmo-report <real-project-export.json>
 ```
 
+Create one of the 12 PMO management reports:
+
+```powershell
+node ./scripts/statusbericht.js --pmo-report <real-project-export.json> --pmo-report-type executive_exception --json
+```
+
+Create the complete 12-report suite:
+
+```powershell
+node ./scripts/statusbericht.js --pmo-suite <real-project-export.json> --docx reports/pmo-suite.docx --xlsx reports/pmo-suite.xlsx --json
+```
+
+Use the `pmo-report-suite` skill for PMO reports and the `status-report` skill for Dynamics status-entry work.
+
 Filter by project status:
 
 ```powershell
@@ -73,6 +87,8 @@ node ./scripts/statusbericht.js --pmo-report <real-project-export.json> --projec
 ```
 
 The DOCX contains a PMO executive title band, subtitle band, executive-attention callout, KPI snapshot cards, filter-scope callout, status legend, project spotlight, summary table, and highlighted project table. The XLSX workbook contains styled worksheets for summary, filters, filtered projects, and PMO findings with frozen headers, widths, filters, and risk/status highlighting.
+
+Supported `--pmo-report-type` values are `portfolio_steering`, `decision_action_aging`, `project_health_trend`, `risk_issue_register`, `dependency_constraint`, `resource_capacity`, `milestone_baseline_drift`, `budget_financial_risk`, `status_quality_compliance`, `executive_exception`, `pmo_work_queue`, and `audit_writeback_safety`.
 
 ## Dynamics Browser Workflow
 

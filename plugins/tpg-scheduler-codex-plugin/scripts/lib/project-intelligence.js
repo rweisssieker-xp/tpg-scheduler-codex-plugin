@@ -14,6 +14,34 @@ const DEFAULT_PMO_CONFIG = Object.freeze({
   requireSaveConfirmation: true,
   verifyProjectManager: true,
 });
+const PMO_REPORT_TYPES = Object.freeze([
+  "portfolio_steering",
+  "decision_action_aging",
+  "project_health_trend",
+  "risk_issue_register",
+  "dependency_constraint",
+  "resource_capacity",
+  "milestone_baseline_drift",
+  "budget_financial_risk",
+  "status_quality_compliance",
+  "executive_exception",
+  "pmo_work_queue",
+  "audit_writeback_safety",
+]);
+const PMO_REPORT_TITLES = Object.freeze({
+  portfolio_steering: "Portfolio Steering Report",
+  decision_action_aging: "Decision & Action Aging Report",
+  project_health_trend: "Project Health Trend Report",
+  risk_issue_register: "Risk & Issue Register Report",
+  dependency_constraint: "Dependency & Constraint Report",
+  resource_capacity: "Resource & Capacity Report",
+  milestone_baseline_drift: "Milestone & Baseline Drift Report",
+  budget_financial_risk: "Budget & Financial Risk Report",
+  status_quality_compliance: "Status Quality & Compliance Report",
+  executive_exception: "Executive Exception Report",
+  pmo_work_queue: "PMO Work Queue Report",
+  audit_writeback_safety: "Audit & Writeback Safety Report",
+});
 
 function buildPmoConfig(overrides = {}) {
   return { ...DEFAULT_PMO_CONFIG, ...overrides };
@@ -1715,6 +1743,211 @@ function buildPmoStatusReport(projects, options = {}) {
   };
 }
 
+function reportDataGap(project, field, message) {
+  return {
+    projectId: project?.projectId || project?.id || null,
+    name: project?.name || null,
+    field,
+    message,
+  };
+}
+
+function buildReportEnvelope(reportType, projects, options, summary, rows, sections = [], evidenceItems = [], dataGaps = []) {
+  return {
+    reportType,
+    title: PMO_REPORT_TITLES[reportType],
+    generatedAt: options.generatedAt || new Date().toISOString(),
+    filters: {
+      projectStatusLabels: normalizeListFilter(options.projectStatusLabels || options.projectStatusLabel),
+      lastStatusBefore: options.lastStatusBefore || null,
+      lastStatusAfter: options.lastStatusAfter || null,
+      lastStatusOn: options.lastStatusOn || null,
+      lastStatusContains: options.lastStatusContains || null,
+      lastStatusMissing: Boolean(options.lastStatusMissing),
+    },
+    summary: {
+      projectsReviewed: (projects || []).length,
+      ...summary,
+    },
+    sections,
+    rows,
+    evidence: evidenceItems,
+    dataGaps,
+  };
+}
+
+function buildPmoReport(reportType, projects, options = {}) {
+  if (!PMO_REPORT_TYPES.includes(reportType)) {
+    throw new Error(`Unsupported PMO report type: ${reportType}`);
+  }
+  const sourceProjects = projects || [];
+  const statusReport = buildPmoStatusReport(sourceProjects, options);
+  const filteredProjects = statusReport.projects;
+  const originalById = new Map(sourceProjects.map((project) => [project.projectId || project.id || null, project]));
+  const originals = filteredProjects.map((project) => originalById.get(project.projectId) || project);
+  const safetySuite = statusReport.projectSafetyGates;
+  const pmoTower = statusReport.pmoControlTower;
+
+  if (reportType === "portfolio_steering") {
+    const risks = buildPortfolioRiskList(originals, options);
+    const decisions = buildDecisionClosureItems(originals, options);
+    const rows = [
+      ...risks.slice(0, 10).map((risk) => ({ type: "risk", projectId: risk.projectId, name: risk.name, priority: risk.riskLevel, action: risk.reasons.join(" ") })),
+      ...decisions.slice(0, 10).map((item) => ({ type: "decision", projectId: item.projectId, name: item.name, priority: item.sla?.status || item.status, action: item.decision })),
+    ];
+    return buildReportEnvelope(reportType, filteredProjects, options, {
+      topRisks: risks.length,
+      openDecisions: decisions.length,
+      ceoAttention: safetySuite.summary.ceoAttention,
+      cioAttention: safetySuite.summary.cioAttention,
+    }, rows, [{ title: "Steering focus", text: "Top portfolio risks and management decisions for steering review." }], rows.map((row) => ({ code: row.type, projectId: row.projectId })));
+  }
+
+  if (reportType === "decision_action_aging") {
+    const decisions = buildDecisionClosureItems(originals, options);
+    const commitments = buildCommitmentTracker(originals, options).items || [];
+    const rows = [
+      ...decisions.map((item) => ({ type: "decision", projectId: item.projectId, name: item.name, owner: item.owner, dueDate: item.dueDate, status: item.sla?.status || item.status, action: item.decision })),
+      ...commitments.map((item) => ({ type: item.type || "commitment", projectId: item.projectId, name: item.name, owner: item.owner || "", dueDate: item.dueDate || "", status: item.status, action: item.commitment })),
+    ];
+    return buildReportEnvelope(reportType, filteredProjects, options, {
+      openItems: rows.length,
+      overdueItems: rows.filter((row) => row.status === "overdue").length,
+    }, rows, [{ title: "Aging queue", text: "Open decisions and commitments that need owner follow-up." }], rows.map((row) => ({ code: row.type, projectId: row.projectId })));
+  }
+
+  if (reportType === "project_health_trend") {
+    const snapshots = options.previousSnapshots || [];
+    const rows = filteredProjects.map((project) => ({ projectId: project.projectId, name: project.name, pmoLevel: project.pmoLevel, safetyLevel: project.safetyLevel, lastStatusReportDate: project.lastStatusReportDate }));
+    const dataGaps = snapshots.length ? [] : [reportDataGap(null, "previousSnapshots", "Project health trend requires previousSnapshots for historical trend lines.")];
+    return buildReportEnvelope(reportType, filteredProjects, options, {
+      projectsWithTrend: snapshots.length ? rows.length : 0,
+      historyAvailable: Boolean(snapshots.length),
+    }, rows, [{ title: "Health movement", text: snapshots.length ? "Trend source snapshots are available." : "No historical snapshots were provided." }], [], dataGaps);
+  }
+
+  if (reportType === "risk_issue_register") {
+    const risks = buildRiskLedgerEntries(originals, options);
+    const rows = risks.map((risk) => ({ projectId: risk.projectId, name: risk.name, status: risk.status, detectedAt: risk.detectedAt, evidenceCode: risk.evidenceCode, field: risk.field, value: risk.value }));
+    return buildReportEnvelope(reportType, filteredProjects, options, {
+      risks: rows.length,
+      openRisks: rows.filter((row) => row.status === "open").length,
+    }, rows, [{ title: "Risk register", text: "Evidence-backed risks and issues by project." }], rows.map((row) => ({ code: row.evidenceCode, projectId: row.projectId, field: row.field })));
+  }
+
+  if (reportType === "dependency_constraint") {
+    const dependency = buildCrossProjectDependencyIntelligence(originals, options);
+    const constraints = buildPortfolioConstraintRadar(originals, options);
+    const dependencyRows = (dependency.dependencies || dependency.items || []).map((item) => ({ type: "dependency", ...item }));
+    const constraintRows = (constraints.items || constraints.constraints || []).map((item) => ({ type: "constraint", ...item }));
+    return buildReportEnvelope(reportType, filteredProjects, options, {
+      sharedDependencies: dependency.summary?.sharedDependencies || 0,
+      constraints: constraintRows.length,
+    }, [...dependencyRows, ...constraintRows], [{ title: "Portfolio constraints", text: "Shared dependency, vendor, interface, owner, and resource constraints." }]);
+  }
+
+  if (reportType === "resource_capacity") {
+    const rows = originals.map((project) => ({
+      projectId: project.projectId || project.id || null,
+      name: project.name || null,
+      ownerName: project.ownerName || null,
+      resourceStatusLabel: project.resourceStatusLabel || null,
+      pmoLevel: pmoTower.projects.find((item) => item.projectId === (project.projectId || project.id))?.pmoLevel || null,
+    }));
+    const dataGaps = originals.filter((project) => !project.resourceStatusLabel).map((project) => reportDataGap(project, "resourceStatusLabel", "Resource status is missing."));
+    return buildReportEnvelope(reportType, filteredProjects, options, {
+      resourceRisks: rows.filter((row) => row.resourceStatusLabel === "Understaffed").length,
+      missingResourceStatus: dataGaps.length,
+    }, rows, [{ title: "Capacity watch", text: "Resource risk, ownership concentration, and PMO capacity signals." }], [], dataGaps);
+  }
+
+  if (reportType === "milestone_baseline_drift") {
+    const snapshots = options.previousSnapshots || [];
+    const rows = originals.map((project) => ({ projectId: project.projectId || project.id || null, name: project.name || null, finish: project.finish || null, progress: project.progress ?? null, projectStatusLabel: project.projectStatusLabel || null }));
+    const dataGaps = originals.filter((project) => !project.finish).map((project) => reportDataGap(project, "finish", "Finish date is missing."));
+    if (!snapshots.length) dataGaps.push(reportDataGap(null, "previousSnapshots", "Baseline drift requires previousSnapshots."));
+    return buildReportEnvelope(reportType, filteredProjects, options, {
+      milestonesTracked: rows.filter((row) => row.finish).length,
+      baselineHistoryAvailable: Boolean(snapshots.length),
+    }, rows, [{ title: "Milestone control", text: "Milestone dates, progress, and baseline drift readiness." }], [], dataGaps);
+  }
+
+  if (reportType === "budget_financial_risk") {
+    const rows = originals.map((project) => ({ projectId: project.projectId || project.id || null, name: project.name || null, budgetStatusLabel: project.budgetStatusLabel || null, budgetRisk: project.budgetRisk || null, decisions: project.decisions || null, sponsorActions: project.sponsorActions || null }));
+    const dataGaps = originals.filter((project) => !project.budgetStatusLabel && !project.budgetRisk).map((project) => reportDataGap(project, "budgetStatusLabel", "Budget status or budget risk is missing."));
+    return buildReportEnvelope(reportType, filteredProjects, options, {
+      budgetRisks: rows.filter((row) => row.budgetStatusLabel === "Over Budget" || row.budgetRisk).length,
+      missingBudgetData: dataGaps.length,
+    }, rows, [{ title: "Financial risk", text: "Budget risk, funding decisions, and scope tradeoffs." }], [], dataGaps);
+  }
+
+  if (reportType === "status_quality_compliance") {
+    const benchmark = buildReportQualityBenchmark(originals, options);
+    const rows = originals.map((project) => {
+      const quality = evaluateStatusQuality(project, options);
+      return { projectId: project.projectId || project.id || null, name: project.name || null, score: quality.score, severity: quality.severity, warnings: quality.warnings.join(" ") };
+    });
+    return buildReportEnvelope(reportType, filteredProjects, options, {
+      averageScore: benchmark.summary.averageScore,
+      lowestProjectId: benchmark.summary.lowestProjectId,
+      nonCompliantProjects: rows.filter((row) => row.severity !== "ok").length,
+    }, rows, [{ title: "Status compliance", text: "Status completeness, specificity, evidence, and quality warnings." }], rows.flatMap((row) => row.warnings ? [{ code: "status_quality", projectId: row.projectId }] : []));
+  }
+
+  if (reportType === "executive_exception") {
+    const rows = safetySuite.projects
+      .filter((project) => ["critical", "unsafe"].includes(project.safetyLevel) || ["ceo", "cio"].includes(project.managementAttention))
+      .map((project) => ({ projectId: project.projectId, name: project.name, safetyLevel: project.safetyLevel, managementAttention: project.managementAttention, safetyScore: project.safetyScore, action: project.recommendedActions.join(" ") }));
+    return buildReportEnvelope(reportType, filteredProjects, options, {
+      exceptions: rows.length,
+      ceoAttention: rows.filter((row) => row.managementAttention === "ceo").length,
+      cioAttention: rows.filter((row) => row.managementAttention === "cio").length,
+    }, rows, [{ title: "Executive exceptions", text: "Only projects requiring CIO/CEO attention or unsafe/critical handling." }], rows.map((row) => ({ code: "executive_exception", projectId: row.projectId })));
+  }
+
+  if (reportType === "pmo_work_queue") {
+    const nudges = buildProjectNudges(originals, options);
+    const rows = pmoTower.projects
+      .filter((project) => project.intervention !== "none" || ["attention", "critical"].includes(project.pmoLevel))
+      .map((project) => ({ projectId: project.projectId, name: project.name, pmoLevel: project.pmoLevel, intervention: project.intervention, nextAction: nudges.find((nudge) => nudge.projectId === project.projectId)?.prompt || "PMO review" }));
+    return buildReportEnvelope(reportType, filteredProjects, options, {
+      workItems: rows.length,
+      criticalProjects: pmoTower.summary.criticalProjects,
+    }, rows, [{ title: "PMO queue", text: "Daily PMO review, coaching, escalation, and follow-up queue." }], rows.map((row) => ({ code: "pmo_work_queue", projectId: row.projectId })));
+  }
+
+  if (reportType === "audit_writeback_safety") {
+    const confirmation = buildHumanConfirmationAnalytics(options.confirmationEvents || []);
+    const rows = originals.map((project) => {
+      const simulation = buildSafeWritebackSimulation(project, options.draft || {});
+      return { projectId: project.projectId || project.id || null, name: project.name || null, canAutoSave: simulation.canAutoSave, blockers: simulation.blockers.join(" "), confirmationRequired: true };
+    });
+    const dataGaps = (options.auditTrail || []).length ? [] : [reportDataGap(null, "auditTrail", "Audit trail is missing for writeback safety review.")];
+    return buildReportEnvelope(reportType, filteredProjects, options, {
+      simulatedProjects: rows.length,
+      blockedWritebacks: rows.filter((row) => row.blockers).length,
+      confirmationEvents: confirmation.summary.total,
+    }, rows, [{ title: "Writeback safety", text: "Review-only CRM writeback simulations, confirmations, and audit readiness." }], rows.map((row) => ({ code: "writeback_simulation", projectId: row.projectId })), dataGaps);
+  }
+
+  return buildReportEnvelope(reportType, filteredProjects, options, {}, [], [], [], []);
+}
+
+function buildPmoReportSuite(projects, options = {}) {
+  const reports = PMO_REPORT_TYPES.map((reportType) => buildPmoReport(reportType, projects, options));
+  return {
+    generatedAt: options.generatedAt || new Date().toISOString(),
+    filters: reports[0]?.filters || {},
+    summary: {
+      reportCount: reports.length,
+      reportTypes: PMO_REPORT_TYPES,
+      projectsReviewed: (projects || []).length,
+      totalDataGaps: reports.reduce((sum, report) => sum + report.dataGaps.length, 0),
+    },
+    reports,
+  };
+}
+
 function buildProjectIntelligence(projects, options = {}) {
   const result = {
     preview: buildBatchProjectPreview(projects, options),
@@ -1754,6 +1987,7 @@ function buildProjectIntelligence(projects, options = {}) {
     projectSafetyGates: buildProjectSafetyGateSuite(projects, options),
     pmoControlTower: buildPmoControlTower(projects, options),
     pmoStatusReport: buildPmoStatusReport(projects, options),
+    pmoReportSuite: buildPmoReportSuite(projects, options),
     executiveOnePager: buildExecutiveOnePager(projects, options),
     unchangedStatusText: UNCHANGED_STATUS_TEXT,
   };
@@ -1766,6 +2000,7 @@ function buildProjectIntelligence(projects, options = {}) {
 module.exports = {
   ACTIVE_PROJECT_STATUS_LABELS,
   DEFAULT_PMO_CONFIG,
+  PMO_REPORT_TYPES,
   UNCHANGED_STATUS_TEXT,
   buildAiEscalationPack,
   buildAutonomousPmoWatchtower,
@@ -1808,6 +2043,8 @@ module.exports = {
   buildPmoControlTower,
   buildPmoPolicySimulator,
   buildPmoProjectControls,
+  buildPmoReport,
+  buildPmoReportSuite,
   buildPmoStatusReport,
   buildPortfolioConstraintRadar,
   buildNoSurpriseForecast,

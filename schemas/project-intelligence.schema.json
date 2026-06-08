@@ -51,6 +51,27 @@
         },
         "projects": { "type": "array" }
       }
+    },
+    "pmoReportSuite": {
+      "type": "object",
+      "required": ["generatedAt", "filters", "summary", "reports"],
+      "additionalProperties": true,
+      "properties": {
+        "summary": {
+          "type": "object",
+          "required": ["reportCount", "reportTypes", "projectsReviewed", "totalDataGaps"],
+          "additionalProperties": true
+        },
+        "reports": {
+          "type": "array",
+          "minItems": 12,
+          "items": {
+            "type": "object",
+            "required": ["reportType", "title", "generatedAt", "filters", "summary", "sections", "rows", "evidence", "dataGaps"],
+            "additionalProperties": true
+          }
+        }
+      }
     }
   }
 }

@@ -81,10 +81,30 @@ const pmoJsonOutput = execFileSync(
 const pmoJson = JSON.parse(pmoJsonOutput);
 assert.equal(pmoJson.filters.projectStatusLabels[0], "In Progress");
 assert.equal(pmoJson.pmoControlTower.summary.projectsReviewed, 2);
+const executiveExceptionOutput = execFileSync(
+  process.execPath,
+  [scriptPath, "--pmo-report", fixturePath, "--pmo-report-type", "executive_exception", "--json", "--allow-sample"],
+  { encoding: "utf8" }
+);
+const executiveException = JSON.parse(executiveExceptionOutput);
+assert.equal(executiveException.reportType, "executive_exception");
+assert.equal(Array.isArray(executiveException.rows), true);
+assert.equal(Array.isArray(executiveException.dataGaps), true);
+
+const suiteJsonOutput = execFileSync(
+  process.execPath,
+  [scriptPath, "--pmo-suite", fixturePath, "--json", "--allow-sample"],
+  { encoding: "utf8" }
+);
+const suiteJson = JSON.parse(suiteJsonOutput);
+assert.equal(suiteJson.summary.reportCount, 12);
+assert.equal(suiteJson.reports.map((report) => report.reportType).includes("audit_writeback_safety"), true);
 
 const outputDir = fs.mkdtempSync(path.join(os.tmpdir(), "tpg-pmo-report-"));
 const docxPath = path.join(outputDir, "pmo-status.docx");
 const xlsxPath = path.join(outputDir, "pmo-status.xlsx");
+const suiteDocxPath = path.join(outputDir, "pmo-suite.docx");
+const suiteXlsxPath = path.join(outputDir, "pmo-suite.xlsx");
 const pmoFileOutput = execFileSync(
   process.execPath,
   [
@@ -105,6 +125,26 @@ const pmoFileOutput = execFileSync(
 const pmoFileJson = JSON.parse(pmoFileOutput);
 assert.equal(fs.existsSync(docxPath), true);
 assert.equal(fs.existsSync(xlsxPath), true);
+const suiteFileOutput = execFileSync(
+  process.execPath,
+  [
+    scriptPath,
+    "--pmo-suite",
+    fixturePath,
+    "--docx",
+    suiteDocxPath,
+    "--xlsx",
+    suiteXlsxPath,
+    "--json",
+    "--allow-sample",
+  ],
+  { encoding: "utf8" }
+);
+const suiteFileJson = JSON.parse(suiteFileOutput);
+assert.equal(fs.existsSync(suiteDocxPath), true);
+assert.equal(fs.existsSync(suiteXlsxPath), true);
+assert.equal(suiteFileJson.writtenFiles.docx, path.resolve(suiteDocxPath));
+assert.equal(suiteFileJson.writtenFiles.xlsx, path.resolve(suiteXlsxPath));
 assert.deepEqual([...fs.readFileSync(docxPath).subarray(0, 2)].map((byte) => String.fromCharCode(byte)).join(""), "PK");
 assert.deepEqual([...fs.readFileSync(xlsxPath).subarray(0, 2)].map((byte) => String.fromCharCode(byte)).join(""), "PK");
 assert.equal(pmoFileJson.writtenFiles.docx, path.resolve(docxPath));

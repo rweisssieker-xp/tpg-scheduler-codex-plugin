@@ -16,6 +16,8 @@ This runs:
 - PMO control tower tests.
 - PMO status report filter tests.
 - PMO DOCX and XLSX file export tests.
+- PMO report suite tests for all 12 report types.
+- `pmo-report-suite` skill presence and report-type documentation.
 - CLI behavior tests.
 - Plugin metadata and documentation validation.
 - The same validation flow used by GitHub Actions CI.

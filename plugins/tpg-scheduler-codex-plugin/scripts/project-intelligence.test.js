@@ -40,7 +40,10 @@ const {
   buildPmoPolicySimulator,
   buildPmoControlTower,
   buildPmoProjectControls,
+  buildPmoReport,
+  buildPmoReportSuite,
   buildPmoStatusReport,
+  PMO_REPORT_TYPES,
   buildPortfolioConstraintRadar,
   buildNoSurpriseForecast,
   buildReportQualityBenchmark,
@@ -694,5 +697,24 @@ const missingStatusReport = buildPmoStatusReport([
   { projectId: "2024-2001", name: "Has Report", projectStatusLabel: "In Progress", lastStatusReportDate: "2026-05-15" },
 ], { lastStatusMissing: true });
 assert.deepEqual(missingStatusReport.projects.map((project) => project.projectId), ["2024-2000"]);
+assert.equal(PMO_REPORT_TYPES.length, 12);
+for (const reportType of PMO_REPORT_TYPES) {
+  const report = buildPmoReport(reportType, projects, { today: "2026-05-13" });
+  assert.equal(report.reportType, reportType);
+  assert.equal(typeof report.title, "string");
+  assert.equal(Boolean(report.generatedAt), true);
+  assert.equal(Boolean(report.filters), true);
+  assert.equal(Boolean(report.summary), true);
+  assert.equal(Array.isArray(report.sections), true);
+  assert.equal(Array.isArray(report.rows), true);
+  assert.equal(Array.isArray(report.evidence), true);
+  assert.equal(Array.isArray(report.dataGaps), true);
+}
+assert.throws(() => buildPmoReport("not_a_report", projects), /Unsupported PMO report type/);
+const reportSuite = buildPmoReportSuite(projects, { today: "2026-05-13" });
+assert.equal(reportSuite.summary.reportCount, 12);
+assert.deepEqual(reportSuite.reports.map((report) => report.reportType), PMO_REPORT_TYPES);
+assert.equal(reportSuite.reports.find((report) => report.reportType === "budget_financial_risk").dataGaps.length > 0, true);
+assert.equal(buildProjectIntelligence(projects, { today: "2026-05-13" }).pmoReportSuite.summary.reportCount, 12);
 
 console.log("project intelligence tests passed");

@@ -7,6 +7,8 @@ description: Run the TPG-Scheduler-Codex-Plugin workflow for confirmation-gated 
 
 Use this root skill entry when the plugin is installed from the repository root. The implementation package, tests, fixtures, and deeper documentation live in `plugins/tpg-scheduler-codex-plugin/`.
 
+For PMO reporting, portfolio management packs, the 12-report PMO suite, or DOCX/XLSX management reports, use the `pmo-report-suite` skill instead.
+
 ## Operating Rules
 
 - Use the Codex in-app Browser for Dynamics 365 work.

@@ -33,9 +33,12 @@ const {
   buildProjectSafetyGateSuite,
   buildPmoControlTower,
   buildPmoProjectControls,
+  buildPmoReport,
+  buildPmoReportSuite,
   buildPmoStatusReport,
   buildPmoStatusReportDocxBuffer,
   buildPmoStatusReportXlsxBuffer,
+  PMO_REPORT_TYPES,
   buildRiskLedgerEntries,
   buildRiskTrendIntelligence,
   buildSafeWritebackSimulation,
@@ -214,9 +217,12 @@ assert.equal(typeof buildProjectSafetyGate, "function");
 assert.equal(typeof buildProjectSafetyGateSuite, "function");
 assert.equal(typeof buildPmoControlTower, "function");
 assert.equal(typeof buildPmoProjectControls, "function");
+assert.equal(typeof buildPmoReport, "function");
+assert.equal(typeof buildPmoReportSuite, "function");
 assert.equal(typeof buildPmoStatusReport, "function");
 assert.equal(typeof buildPmoStatusReportDocxBuffer, "function");
 assert.equal(typeof buildPmoStatusReportXlsxBuffer, "function");
+assert.equal(PMO_REPORT_TYPES.length, 12);
 assert.equal(typeof buildRiskLedgerEntries, "function");
 assert.equal(typeof buildRiskTrendIntelligence, "function");
 assert.equal(typeof buildSafeWritebackSimulation, "function");

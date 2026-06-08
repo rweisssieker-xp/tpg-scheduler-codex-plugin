@@ -43,6 +43,27 @@ assert.equal(fs.existsSync(path.join(root, plugin.apps)), true, "apps path must 
 const skill = assertFile("plugins/tpg-scheduler-codex-plugin/skills/status-report/SKILL.md");
 assert.match(skill, /^---\nname: status-report\n/m);
 assert.match(skill, /Never save, submit, send, delete, change ownership, or change CRM state without explicit user confirmation\./);
+assert.match(skill, /pmo-report-suite/);
+const pmoSkill = assertFile("plugins/tpg-scheduler-codex-plugin/skills/pmo-report-suite/SKILL.md");
+const rootPmoSkill = assertFile("skills/pmo-report-suite/SKILL.md");
+assert.match(pmoSkill, /^---\nname: pmo-report-suite\n/m);
+assert.match(rootPmoSkill, /^---\nname: pmo-report-suite\n/m);
+for (const reportType of [
+  "portfolio_steering",
+  "decision_action_aging",
+  "project_health_trend",
+  "risk_issue_register",
+  "dependency_constraint",
+  "resource_capacity",
+  "milestone_baseline_drift",
+  "budget_financial_risk",
+  "status_quality_compliance",
+  "executive_exception",
+  "pmo_work_queue",
+  "audit_writeback_safety",
+]) {
+  assert.match(pmoSkill, new RegExp(reportType), `pmo-report-suite skill must document ${reportType}`);
+}
 
 const requiredDocs = [
   "README.md",
@@ -66,11 +87,13 @@ const requiredDocs = [
   ".github/workflows/ci.yml",
   ".github/workflows/release.yml",
   "skills/status-report/SKILL.md",
+  "skills/pmo-report-suite/SKILL.md",
   "schemas/project-intelligence.schema.json",
   "schemas/project-safety-gates.schema.json",
   "schemas/pmo-control-tower.schema.json",
   "examples/project-intelligence.sample.json",
   "plugins/tpg-scheduler-codex-plugin/README.md",
+  "plugins/tpg-scheduler-codex-plugin/skills/pmo-report-suite/SKILL.md",
   "plugins/tpg-scheduler-codex-plugin/assets/icon.svg",
 ];
 for (const doc of requiredDocs) {
@@ -112,6 +135,7 @@ const intelligenceSchema = JSON.parse(assertFile("schemas/project-intelligence.s
 assert.equal(Boolean(intelligenceSchema.properties.projectSafetyGates), true, "project intelligence schema must include projectSafetyGates");
 assert.equal(Boolean(intelligenceSchema.properties.pmoControlTower), true, "project intelligence schema must include pmoControlTower");
 assert.equal(Boolean(intelligenceSchema.properties.pmoStatusReport), true, "project intelligence schema must include pmoStatusReport");
+assert.equal(Boolean(intelligenceSchema.properties.pmoReportSuite), true, "project intelligence schema must include pmoReportSuite");
 
 const safetySchema = JSON.parse(assertFile("schemas/project-safety-gates.schema.json"));
 assert.deepEqual(safetySchema.properties.projects.items.required, [

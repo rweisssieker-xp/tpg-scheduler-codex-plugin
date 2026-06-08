@@ -10,6 +10,8 @@ npm test
 npm run status-report:help
 node ./scripts/statusbericht.js --intelligence <real-project-export.json>
 node ./scripts/statusbericht.js --pmo-report <real-project-export.json> --project-status "In Progress"
+node ./scripts/statusbericht.js --pmo-report <real-project-export.json> --pmo-report-type executive_exception --json
+node ./scripts/statusbericht.js --pmo-suite <real-project-export.json> --docx reports/pmo-suite.docx --xlsx reports/pmo-suite.xlsx
 node ./scripts/statusbericht.js --pmo-report <real-project-export.json> --docx reports/pmo-status.docx --xlsx reports/pmo-status.xlsx
 ```
 
@@ -18,6 +20,8 @@ The legacy `statusbericht:*` npm script names are kept as compatibility aliases.
 ## Skill
 
 Use the `status-report` skill for the Dynamics workflow. The skill requires the Codex in-app Browser, verifies the configured project manager, and keeps all CRM writes behind explicit confirmation.
+
+Use the `pmo-report-suite` skill for PMO management reports, the 12-report suite, and DOCX/XLSX portfolio outputs.
 
 ## Safety
 

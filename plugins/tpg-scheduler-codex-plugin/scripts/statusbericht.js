@@ -770,6 +770,8 @@ Offline intelligence:
 PMO report with filters:
   node ./scripts/statusbericht.js --pmo-report <real-project-export.json> --project-status "In Progress" --last-status-before YYYY-MM-DD
   node ./scripts/statusbericht.js --pmo-report <real-project-export.json> --project-status "In Progress,Planning" --last-status-contains "vendor" --json
+  node ./scripts/statusbericht.js --pmo-report <real-project-export.json> --pmo-report-type executive_exception --json
+  node ./scripts/statusbericht.js --pmo-suite <real-project-export.json> --docx reports/pmo-suite.docx --xlsx reports/pmo-suite.xlsx
   node ./scripts/statusbericht.js --pmo-report <real-project-export.json> --project-status "In Progress" --docx reports/pmo-status.docx --xlsx reports/pmo-status.xlsx
 
 Sample and fixture inputs are rejected by default. They are reserved for automated tests and documentation fixtures.
@@ -868,6 +870,7 @@ function formatProjectIntelligenceMarkdown(intelligence) {
 function buildPmoReportOptions() {
   return {
     today: getArgValue("--today") || undefined,
+    reportType: getArgValue("--pmo-report-type") || "pmo_status",
     projectStatusLabels: getArgValue("--project-status") || undefined,
     lastStatusBefore: getArgValue("--last-status-before") || undefined,
     lastStatusAfter: getArgValue("--last-status-after") || undefined,
@@ -877,7 +880,120 @@ function buildPmoReportOptions() {
   };
 }
 
+function isPmoReportSuite(report) {
+  return Array.isArray(report?.reports);
+}
+
+function isPmoStatusReport(report) {
+  return Boolean(report?.pmoControlTower && report?.projectSafetyGates && report?.projects);
+}
+
+function officeReportTitle(report) {
+  return isPmoReportSuite(report) ? "PMO Report Suite" : report.title || "PMO Executive Status Report";
+}
+
+function officeReportFilters(report) {
+  const filters = report.filters || {};
+  return {
+    projectStatusLabels: Array.isArray(filters.projectStatusLabels) ? filters.projectStatusLabels : [],
+    lastStatusBefore: filters.lastStatusBefore || null,
+    lastStatusAfter: filters.lastStatusAfter || null,
+    lastStatusOn: filters.lastStatusOn || null,
+    lastStatusContains: filters.lastStatusContains || null,
+    lastStatusMissing: Boolean(filters.lastStatusMissing),
+  };
+}
+
+function officeProjectRows(report) {
+  if (isPmoReportSuite(report)) {
+    return report.reports.map((item) => ({
+      projectId: item.reportType,
+      name: item.title,
+      projectStatusLabel: "report",
+      lastStatusReportDate: item.generatedAt?.slice(0, 10) || "",
+      pmoLevel: item.rows.length ? "populated" : "empty",
+      pmoScore: item.rows.length,
+      intervention: `${item.dataGaps.length} data gap(s)`,
+      safetyLevel: item.dataGaps.length ? "watch" : "controlled",
+      managementAttention: item.summary.ceoAttention ? "ceo" : item.summary.cioAttention ? "cio" : "pmo",
+      recordUrl: "",
+    }));
+  }
+  if (isPmoStatusReport(report)) {
+    return report.projects;
+  }
+  return (report.rows || []).map((row) => ({
+    projectId: row.projectId || row.type || "",
+    name: row.name || row.title || row.action || row.Project || "",
+    projectStatusLabel: row.status || row.priority || row.type || "",
+    lastStatusReportDate: row.dueDate || row.detectedAt || "",
+    pmoLevel: row.pmoLevel || row.severity || row.safetyLevel || "",
+    pmoScore: row.pmoScore ?? row.score ?? "",
+    intervention: row.intervention || row.action || row.recommendation || "",
+    safetyLevel: row.safetyLevel || row.managementAttention || "",
+    managementAttention: row.managementAttention || "",
+    recordUrl: row.recordUrl || "",
+  }));
+}
+
+function officeSummary(report) {
+  if (isPmoReportSuite(report)) {
+    return {
+      projectsTotal: report.summary.projectsReviewed,
+      projectsMatched: report.summary.reportCount,
+      projectsFilteredOut: 0,
+      missingLastStatusReports: 0,
+      unparsableLastStatusReports: 0,
+      oldestLastStatusReport: null,
+      newestLastStatusReport: null,
+      statusCounts: Object.fromEntries(report.reports.map((item) => [item.reportType, item.rows.length])),
+    };
+  }
+  if (isPmoStatusReport(report)) {
+    return report.summary;
+  }
+  return {
+    projectsTotal: report.summary.projectsReviewed || 0,
+    projectsMatched: (report.rows || []).length,
+    projectsFilteredOut: 0,
+    missingLastStatusReports: report.dataGaps?.length || 0,
+    unparsableLastStatusReports: 0,
+    oldestLastStatusReport: null,
+    newestLastStatusReport: null,
+    statusCounts: { [report.reportType]: (report.rows || []).length },
+  };
+}
+
+function officePmoControlTower(report) {
+  if (isPmoStatusReport(report)) {
+    return report.pmoControlTower;
+  }
+  const rows = officeProjectRows(report);
+  return {
+    summary: {
+      projectsNeedingPmo: rows.filter((row) => !["controlled", "safe", "none"].includes(String(row.safetyLevel || row.pmoLevel).toLowerCase())).length,
+      criticalProjects: rows.filter((row) => /critical|ceo|red/i.test(`${row.safetyLevel} ${row.pmoLevel} ${row.managementAttention}`)).length,
+    },
+    portfolioFindings: isPmoReportSuite(report)
+      ? report.reports.flatMap((item) => item.dataGaps.map((gap) => ({ projectId: item.reportType, name: item.title, checkId: gap.field, severity: "warning", recommendation: gap.message }))).slice(0, 50)
+      : (report.dataGaps || []).map((gap) => ({ projectId: gap.projectId, name: gap.name, checkId: gap.field, severity: "warning", recommendation: gap.message })),
+  };
+}
+
+function toOfficeReport(report) {
+  return {
+    ...report,
+    title: officeReportTitle(report),
+    generatedAt: report.generatedAt || new Date().toISOString(),
+    filters: officeReportFilters(report),
+    summary: officeSummary(report),
+    projects: officeProjectRows(report),
+    pmoControlTower: officePmoControlTower(report),
+  };
+}
+
 function formatPmoStatusReportMarkdown(report) {
+  report = toOfficeReport(report);
   const filterLines = [];
   if (report.filters.projectStatusLabels.length) {
     filterLines.push(`- Project status: ${report.filters.projectStatusLabels.join(", ")}`);
@@ -1105,6 +1221,7 @@ function buildDocxProjectSpotlight(report) {
 }
 
 async function buildPmoStatusReportDocxBuffer(report) {
+  report = toOfficeReport(report);
   const filterRows = [
     { Filter: "Project status", Value: report.filters.projectStatusLabels.join(", ") || "All" },
     { Filter: "Last status before", Value: report.filters.lastStatusBefore || "" },
@@ -1136,7 +1253,7 @@ async function buildPmoStatusReportDocxBuffer(report) {
           alignment: AlignmentType.CENTER,
           shading: { fill: DOCX_COLORS.navy },
           spacing: { after: 120 },
-          children: [new TextRun({ text: "PMO Executive Status Report", bold: true, color: DOCX_COLORS.white, size: 38 })],
+          children: [new TextRun({ text: report.title || "PMO Executive Status Report", bold: true, color: DOCX_COLORS.white, size: 38 })],
         }),
         new Paragraph({
           alignment: AlignmentType.CENTER,
@@ -1234,6 +1351,7 @@ function objectRows(headers, rows) {
 }
 
 async function buildPmoStatusReportXlsxBuffer(report) {
+  report = toOfficeReport(report);
   const zip = new JSZip();
   const summaryRows = [
     ["Metric", "Value"],
@@ -1362,6 +1480,10 @@ async function writePmoStatusReportFiles(report, options = {}) {
   return writtenFiles;
 }
 
+async function writePmoReportFiles(reportOrSuite, options = {}) {
+  return writePmoStatusReportFiles(reportOrSuite, options);
+}
+
 function printProjectIntelligence() {
   const inputPath = getArgValue("--intelligence");
   if (!inputPath) {
@@ -1390,7 +1512,10 @@ async function printPmoStatusReport() {
     throw new Error("--pmo-report requires a JSON file path or '-' for stdin.");
   }
   const projects = readProjectsInput(inputPath);
-  const report = projectIntelligence.buildPmoStatusReport(projects, buildPmoReportOptions());
+  const options = buildPmoReportOptions();
+  const report = options.reportType === "pmo_status"
+    ? projectIntelligence.buildPmoStatusReport(projects, options)
+    : projectIntelligence.buildPmoReport(options.reportType, projects, options);
   const writtenFiles = await writePmoStatusReportFiles(report, {
     docxPath: getArgValue("--docx"),
     xlsxPath: getArgValue("--xlsx"),
@@ -1405,12 +1530,42 @@ async function printPmoStatusReport() {
   console.log(`${formatPmoStatusReportMarkdown(report)}${fileLines}`);
 }
 
+async function printPmoReportSuite() {
+  const inputPath = getArgValue("--pmo-suite");
+  if (!inputPath) {
+    throw new Error("--pmo-suite requires a JSON file path or '-' for stdin.");
+  }
+  const projects = readProjectsInput(inputPath);
+  const suite = projectIntelligence.buildPmoReportSuite(projects, buildPmoReportOptions());
+  const writtenFiles = await writePmoReportFiles(suite, {
+    docxPath: getArgValue("--docx"),
+    xlsxPath: getArgValue("--xlsx"),
+  });
+  if (process.argv.includes("--json")) {
+    console.log(JSON.stringify({ ...suite, writtenFiles }, null, 2));
+    return;
+  }
+  console.log([
+    "# PMO Report Suite",
+    "",
+    `Reports: ${suite.summary.reportCount}`,
+    `Projects reviewed: ${suite.summary.projectsReviewed}`,
+    `Data gaps: ${suite.summary.totalDataGaps}`,
+    "",
+    ...suite.reports.map((report) => `- ${report.title} (${report.reportType}): ${report.rows.length} row(s), ${report.dataGaps.length} data gap(s)`),
+    "",
+    Object.keys(writtenFiles).length ? `Files written:\n${Object.entries(writtenFiles).map(([type, outputPath]) => `- ${type}: ${outputPath}`).join("\n")}` : "",
+  ].filter(Boolean).join("\n"));
+}
+
 async function main() {
   try {
     if (process.argv.includes("--help") || process.argv.includes("-h")) {
       printHelp();
     } else if (process.argv.includes("--dataverse")) {
       printDataverseSnippet();
+    } else if (process.argv.includes("--pmo-suite")) {
+      await printPmoReportSuite();
     } else if (process.argv.includes("--pmo-report")) {
       await printPmoStatusReport();
     } else if (process.argv.includes("--intelligence")) {
@@ -1441,6 +1596,7 @@ module.exports = {
   PROJECT_MANAGER_NAME,
   PROJECT_DEFAULT_SELECT_COLUMNS,
   ACTIVE_PROJECT_STATUS_LABELS,
+  PMO_REPORT_TYPES: projectIntelligence.PMO_REPORT_TYPES,
   STATUS_UPDATE_FIELDS,
   STATUS_UPDATE_REQUIRED_FIELDS,
   STATUS_UPDATE_SUBGRID_NAME,
@@ -1457,6 +1613,7 @@ module.exports = {
   formatProjectIntelligenceMarkdown,
   formatPmoStatusReportMarkdown,
   writePmoStatusReportFiles,
+  writePmoReportFiles,
   buildAuditEntry: projectIntelligence.buildAuditEntry,
   buildAiEscalationPack: projectIntelligence.buildAiEscalationPack,
   buildAudienceReport: projectIntelligence.buildAudienceReport,
@@ -1497,6 +1654,8 @@ module.exports = {
   buildPmoControlTower: projectIntelligence.buildPmoControlTower,
   buildPmoPolicySimulator: projectIntelligence.buildPmoPolicySimulator,
   buildPmoProjectControls: projectIntelligence.buildPmoProjectControls,
+  buildPmoReport: projectIntelligence.buildPmoReport,
+  buildPmoReportSuite: projectIntelligence.buildPmoReportSuite,
   buildPmoStatusReport: projectIntelligence.buildPmoStatusReport,
   buildPortfolioConstraintRadar: projectIntelligence.buildPortfolioConstraintRadar,
   buildNoSurpriseForecast: projectIntelligence.buildNoSurpriseForecast,
