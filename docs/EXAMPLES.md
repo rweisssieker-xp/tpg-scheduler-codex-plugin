@@ -36,11 +36,15 @@ The JSON payload includes:
 - `portfolioRisks`
 - `decisionClosureItems`
 - `riskLedger`
+- `projectSafetyGates`
+- `pmoControlTower`
 - `decisionDebtAnalysis`
 - `projectTruthScores`
 - `evidenceGapDetector`
 - `executiveQuestionGenerator`
 - `reportQualityBenchmark`
+
+A compact synthetic sample is stored at `examples/project-intelligence.sample.json`.
 
 ## Export Payload
 
@@ -54,3 +58,13 @@ The export payload includes CSV strings for:
 - risk ledger
 
 It also includes the full JSON intelligence payload for downstream automation.
+
+## Schema-Aware Consumers
+
+Consumer tools should start with:
+
+- `schemas/project-intelligence.schema.json`
+- `schemas/project-safety-gates.schema.json`
+- `schemas/pmo-control-tower.schema.json`
+
+The schemas are stable enough for dashboards, PMO review queues, release checks, and executive reporting, while allowing future advisory fields.

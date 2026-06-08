@@ -1,0 +1,47 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  release-validation:
+    name: Release validation
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: plugins/tpg-scheduler-codex-plugin
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: plugins/tpg-scheduler-codex-plugin/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Validate plugin
+        run: npm run validate
+
+      - name: Test
+        run: npm test
+
+      - name: Upload review package
+        uses: actions/upload-artifact@v4
+        with:
+          name: tpg-scheduler-codex-plugin-${{ github.ref_name }}
+          path: |
+            .codex-plugin/
+            docs/
+            examples/
+            schemas/
+            plugins/tpg-scheduler-codex-plugin/

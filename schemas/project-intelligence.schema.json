@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/rweisssieker-xp/tpg-scheduler-codex-plugin/schemas/project-intelligence.schema.json",
+  "title": "Project Intelligence Pack",
+  "type": "object",
+  "required": ["preview", "portfolioRisks", "decisionRadar", "projectSafetyGates", "pmoControlTower"],
+  "additionalProperties": true,
+  "properties": {
+    "preview": { "type": "array" },
+    "portfolioRisks": { "type": "array" },
+    "decisionRadar": { "type": "array" },
+    "steeringAgenda": { "type": "array" },
+    "decisionClosureItems": { "type": "array" },
+    "riskLedger": { "type": "array" },
+    "nudges": { "type": "array" },
+    "nudgeDrafts": { "type": "array" },
+    "calibrationReport": { "type": "object" },
+    "liveDynamicsRunPlan": { "type": "object" },
+    "executiveOnePager": { "type": "string" },
+    "projectSafetyGates": {
+      "type": "object",
+      "required": ["summary", "projects", "topFindings"],
+      "additionalProperties": true
+    },
+    "pmoControlTower": {
+      "type": "object",
+      "required": ["summary", "projects", "portfolioFindings"],
+      "additionalProperties": true
+    }
+  }
+}

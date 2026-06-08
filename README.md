@@ -36,6 +36,14 @@ TPG-Scheduler-Codex-Plugin is a Codex plugin for confirmation-gated Dynamics 365
 ## Repository Layout
 
 ```text
+.codex-plugin/plugin.json
+.app.json
+.mcp.json
+skills/status-report/SKILL.md
+docs/
+examples/project-intelligence.sample.json
+schemas/*.schema.json
+.github/workflows/
 plugins/tpg-scheduler-codex-plugin/
   .codex-plugin/plugin.json
   skills/status-report/SKILL.md
@@ -59,6 +67,10 @@ npm run status-report:intelligence
 - [Installation](docs/INSTALLATION.md)
 - [Validation](docs/VALIDATION.md)
 - [Examples](docs/EXAMPLES.md)
+- [JSON Schemas](docs/SCHEMA.md)
+- [Dynamics End-to-End Runbook](docs/DYNAMICS_E2E_RUNBOOK.md)
+- [Release Process](docs/RELEASE.md)
+- [Privacy](docs/PRIVACY.md)
 - [Architecture](docs/ARCHITECTURE.md)
 - [Contributing](CONTRIBUTING.md)
 - [Security](SECURITY.md)
@@ -68,3 +80,7 @@ npm run status-report:intelligence
 ## Safety Model
 
 The plugin is designed as a decision-support and draft-preparation workflow. Project Safety Gates are advisory, evidence-backed checks that surface unsafe project states before status collection or staging. Generated risk lists, nudges, reports, and CRM field drafts are advisory until reviewed. CRM writes require visible user confirmation, and `Email Status Update` is treated as a separate risky action.
+
+## Public Release Readiness
+
+The repository includes schema contracts, synthetic example output, CI validation, Dependabot configuration, CODEOWNERS, privacy guidance, and a tag-based release validation workflow. Live Dynamics verification is intentionally documented as a manual smoke test because it depends on authenticated tenant access.

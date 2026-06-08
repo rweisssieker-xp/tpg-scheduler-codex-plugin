@@ -31,9 +31,12 @@ The validation script checks:
 - Repository metadata points to GitHub.
 - Skill, app, and MCP paths exist.
 - Required public documentation files exist.
+- Release, privacy, schema, example, ownership, and dependency-management files exist.
 - The primary skill is named `status-report`.
 - Critical CRM write-safety language remains present.
 - Public docs use en-US wording, except for the fixed German CRM `kv` phrase where explicitly documented.
+- JSON schemas parse and expose the required project safety and PMO contract anchors.
+- The synthetic sample output includes `projectSafetyGates` and `pmoControlTower`.
 
 ## GitHub Actions
 
@@ -45,3 +48,9 @@ npm ci
 npm run validate
 npm test
 ```
+
+The repository also includes `.github/workflows/release.yml`. It runs on tags matching `v*`, repeats validation and tests, and uploads a review package artifact.
+
+## Live Dynamics Smoke Test
+
+CI cannot authenticate into the tenant. Run `docs/DYNAMICS_E2E_RUNBOOK.md` before releases that change Browser behavior, Dataverse mapping, writeback confirmation flow, or status-update fields.

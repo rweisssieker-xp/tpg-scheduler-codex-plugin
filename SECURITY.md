@@ -26,3 +26,7 @@ Never commit:
 - browser profiles
 - Dynamics session data
 - screenshots or logs containing confidential project data
+
+## Privacy
+
+See `docs/PRIVACY.md` for data-handling guidance, public repository rules, and sample-output restrictions.

@@ -1,0 +1,244 @@
+{
+  "preview": [
+    {
+      "projectId": "2024-9999",
+      "name": "ERP Cutover",
+      "quality": {
+        "severity": "critical",
+        "recommendedAction": "needs_attention"
+      }
+    }
+  ],
+  "portfolioRisks": [
+    {
+      "projectId": "2024-9999",
+      "name": "ERP Cutover",
+      "riskLevel": "critical"
+    }
+  ],
+  "decisionRadar": [
+    {
+      "projectId": "2024-9999",
+      "name": "ERP Cutover",
+      "managementAsk": "Approve fallback interface."
+    }
+  ],
+  "projectSafetyGates": {
+    "summary": {
+      "projectsReviewed": 2,
+      "safeProjects": 0,
+      "watchProjects": 1,
+      "unsafeProjects": 0,
+      "criticalProjects": 1,
+      "pmoAttention": 1,
+      "cioAttention": 0,
+      "ceoAttention": 1
+    },
+    "projects": [
+      {
+        "projectId": "2024-9999",
+        "name": "ERP Cutover",
+        "safetyScore": 0,
+        "safetyLevel": "critical",
+        "managementAttention": "ceo",
+        "writebackRisk": "blocked_until_confirmation",
+        "gates": [
+          {
+            "id": "finish_overdue",
+            "domain": "delivery_risk",
+            "severity": "critical",
+            "status": "critical",
+            "message": "Finish date is overdue."
+          }
+        ],
+        "requiredEvidence": ["recordUrl"],
+        "recommendedActions": ["Prepare an escalation pack before status staging."]
+      }
+    ],
+    "topFindings": [
+      {
+        "projectId": "2024-9999",
+        "gateId": "finish_overdue",
+        "severity": "critical"
+      }
+    ]
+  },
+  "pmoControlTower": {
+    "summary": {
+      "projectsReviewed": 2,
+      "checksPerProject": 25,
+      "projectsControlled": 0,
+      "projectsWatching": 1,
+      "projectsNeedingPmo": 1,
+      "criticalProjects": 1
+    },
+    "projects": [
+      {
+        "projectId": "2024-9999",
+        "name": "ERP Cutover",
+        "pmoScore": 0,
+        "pmoLevel": "critical",
+        "intervention": "executive_governance",
+        "checks": [
+          {
+            "id": "steering_readiness",
+            "status": "critical",
+            "severity": "critical",
+            "message": "Steering readiness is insufficient."
+          },
+          {
+            "id": "pmo_policy_compliance",
+            "status": "fail",
+            "severity": "fail",
+            "message": "PMO policy compliance needs review."
+          },
+          {
+            "id": "portfolio_priority_drift",
+            "status": "watch",
+            "severity": "warning",
+            "message": "Portfolio priority drift is possible."
+          },
+          {
+            "id": "milestone_integrity",
+            "status": "watch",
+            "severity": "warning",
+            "message": "Milestone integrity needs evidence."
+          },
+          {
+            "id": "baseline_drift",
+            "status": "watch",
+            "severity": "warning",
+            "message": "Baseline drift should be checked."
+          },
+          {
+            "id": "risk_aging",
+            "status": "fail",
+            "severity": "fail",
+            "message": "Risk aging indicates unresolved exposure."
+          },
+          {
+            "id": "action_aging",
+            "status": "watch",
+            "severity": "warning",
+            "message": "Open actions require follow-up."
+          },
+          {
+            "id": "decision_aging",
+            "status": "critical",
+            "severity": "critical",
+            "message": "Decision aging affects delivery."
+          },
+          {
+            "id": "owner_accountability",
+            "status": "watch",
+            "severity": "warning",
+            "message": "Owner accountability should be confirmed."
+          },
+          {
+            "id": "due_date_accountability",
+            "status": "watch",
+            "severity": "warning",
+            "message": "Due date accountability should be confirmed."
+          },
+          {
+            "id": "single_point_of_failure",
+            "status": "watch",
+            "severity": "warning",
+            "message": "Single point of failure risk exists."
+          },
+          {
+            "id": "vendor_concentration_risk",
+            "status": "fail",
+            "severity": "fail",
+            "message": "Vendor concentration risk affects delivery."
+          },
+          {
+            "id": "resource_contention",
+            "status": "watch",
+            "severity": "warning",
+            "message": "Resource contention needs PMO attention."
+          },
+          {
+            "id": "status_quality_trend",
+            "status": "watch",
+            "severity": "warning",
+            "message": "Status quality trend needs review."
+          },
+          {
+            "id": "false_green",
+            "status": "pass",
+            "severity": "info",
+            "message": "No false-green signal in this sample row."
+          },
+          {
+            "id": "false_red",
+            "status": "pass",
+            "severity": "info",
+            "message": "No false-red signal in this sample row."
+          },
+          {
+            "id": "pm_coaching_trigger",
+            "status": "watch",
+            "severity": "warning",
+            "message": "Project manager coaching may be useful."
+          },
+          {
+            "id": "escalation_fatigue",
+            "status": "watch",
+            "severity": "warning",
+            "message": "Escalation fatigue should be monitored."
+          },
+          {
+            "id": "management_attention_overload",
+            "status": "watch",
+            "severity": "warning",
+            "message": "Management attention load should be balanced."
+          },
+          {
+            "id": "governance_exception_aging",
+            "status": "watch",
+            "severity": "warning",
+            "message": "Governance exception aging needs review."
+          },
+          {
+            "id": "audit_completeness",
+            "status": "fail",
+            "severity": "fail",
+            "message": "Audit completeness is insufficient."
+          },
+          {
+            "id": "evidence_traceability",
+            "status": "fail",
+            "severity": "fail",
+            "message": "Evidence traceability is incomplete."
+          },
+          {
+            "id": "report_comparability",
+            "status": "watch",
+            "severity": "warning",
+            "message": "Report comparability should be normalized."
+          },
+          {
+            "id": "portfolio_heatmap_consistency",
+            "status": "watch",
+            "severity": "warning",
+            "message": "Portfolio heatmap consistency needs PMO review."
+          },
+          {
+            "id": "pmo_intervention_recommendation",
+            "status": "critical",
+            "severity": "critical",
+            "message": "Executive governance intervention is recommended."
+          }
+        ]
+      }
+    ],
+    "portfolioFindings": [
+      {
+        "projectId": "2024-9999",
+        "checkId": "steering_readiness",
+        "severity": "critical"
+      }
+    ]
+  }
+}

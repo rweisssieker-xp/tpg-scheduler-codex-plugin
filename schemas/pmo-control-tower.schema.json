@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/rweisssieker-xp/tpg-scheduler-codex-plugin/schemas/pmo-control-tower.schema.json",
+  "title": "PMO Control Tower",
+  "type": "object",
+  "required": ["summary", "projects", "portfolioFindings"],
+  "additionalProperties": true,
+  "properties": {
+    "summary": {
+      "type": "object",
+      "required": [
+        "projectsReviewed",
+        "checksPerProject",
+        "projectsControlled",
+        "projectsWatching",
+        "projectsNeedingPmo",
+        "criticalProjects"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "projectsReviewed": { "type": "integer", "minimum": 0 },
+        "checksPerProject": { "const": 25 },
+        "projectsControlled": { "type": "integer", "minimum": 0 },
+        "projectsWatching": { "type": "integer", "minimum": 0 },
+        "projectsNeedingPmo": { "type": "integer", "minimum": 0 },
+        "criticalProjects": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "projects": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["projectId", "name", "pmoScore", "pmoLevel", "intervention", "checks"],
+        "additionalProperties": true,
+        "properties": {
+          "projectId": { "type": ["string", "null"] },
+          "name": { "type": ["string", "null"] },
+          "pmoScore": { "type": "integer", "minimum": 0, "maximum": 100 },
+          "pmoLevel": { "enum": ["controlled", "watch", "intervene", "critical"] },
+          "intervention": { "enum": ["none", "pmo_review", "pmo_intervention", "executive_governance"] },
+          "checks": {
+            "type": "array",
+            "minItems": 25,
+            "items": {
+              "type": "object",
+              "required": ["id", "status", "severity", "message"],
+              "additionalProperties": true,
+              "properties": {
+                "id": { "type": "string" },
+                "status": { "enum": ["pass", "watch", "fail", "critical"] },
+                "severity": { "enum": ["info", "warning", "fail", "critical"] },
+                "message": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "portfolioFindings": { "type": "array" }
+  }
+}

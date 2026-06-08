@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/rweisssieker-xp/tpg-scheduler-codex-plugin/schemas/project-safety-gates.schema.json",
+  "title": "Project Safety Gate Suite",
+  "type": "object",
+  "required": ["summary", "projects", "topFindings"],
+  "additionalProperties": true,
+  "properties": {
+    "summary": {
+      "type": "object",
+      "required": [
+        "projectsReviewed",
+        "safeProjects",
+        "watchProjects",
+        "unsafeProjects",
+        "criticalProjects",
+        "pmoAttention",
+        "cioAttention",
+        "ceoAttention"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "projectsReviewed": { "type": "integer", "minimum": 0 },
+        "safeProjects": { "type": "integer", "minimum": 0 },
+        "watchProjects": { "type": "integer", "minimum": 0 },
+        "unsafeProjects": { "type": "integer", "minimum": 0 },
+        "criticalProjects": { "type": "integer", "minimum": 0 },
+        "pmoAttention": { "type": "integer", "minimum": 0 },
+        "cioAttention": { "type": "integer", "minimum": 0 },
+        "ceoAttention": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "projects": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "projectId",
+          "name",
+          "safetyScore",
+          "safetyLevel",
+          "managementAttention",
+          "writebackRisk",
+          "gates",
+          "requiredEvidence",
+          "recommendedActions"
+        ],
+        "additionalProperties": true,
+        "properties": {
+          "projectId": { "type": ["string", "null"] },
+          "name": { "type": ["string", "null"] },
+          "safetyScore": { "type": "integer", "minimum": 0, "maximum": 100 },
+          "safetyLevel": { "enum": ["safe", "watch", "unsafe", "critical"] },
+          "managementAttention": { "enum": ["none", "pmo", "cio", "ceo"] },
+          "writebackRisk": { "enum": ["low", "medium", "high", "blocked_until_confirmation"] },
+          "gates": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["id", "domain", "severity", "status", "message"],
+              "additionalProperties": true,
+              "properties": {
+                "id": { "type": "string" },
+                "domain": { "type": "string" },
+                "severity": { "enum": ["info", "warning", "fail", "critical"] },
+                "status": { "enum": ["pass", "info", "warning", "fail", "critical"] },
+                "message": { "type": "string" }
+              }
+            }
+          },
+          "requiredEvidence": { "type": "array", "items": { "type": "string" } },
+          "recommendedActions": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "topFindings": { "type": "array" }
+  }
+}

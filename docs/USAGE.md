@@ -80,3 +80,17 @@ Offline intelligence expects a JSON array of mapped project objects. Common fiel
 Use `projectSafetyGates.summary` in JSON output to see portfolio-level safety counts and `projectSafetyGates.projects[*].gates` to inspect the advisory checks for a specific project.
 
 Use `pmoControlTower.summary` to see PMO workload and `pmoControlTower.projects[*].checks` to inspect the 25 PMO routines for one project.
+
+## Stable Contracts
+
+Machine-readable contracts are stored in `schemas/`:
+
+- `project-intelligence.schema.json`
+- `project-safety-gates.schema.json`
+- `pmo-control-tower.schema.json`
+
+A compact synthetic JSON example is available at `examples/project-intelligence.sample.json`.
+
+## Live Verification
+
+Use `docs/DYNAMICS_E2E_RUNBOOK.md` before a release or after changing browser-field mapping. The runbook keeps the test read-only until explicit confirmation is required for a controlled draft-staging check.

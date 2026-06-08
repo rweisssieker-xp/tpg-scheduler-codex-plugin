@@ -20,3 +20,7 @@ Use the `status-report` skill for the Dynamics workflow. The skill requires the 
 ## Safety
 
 This package does not provide an unattended CRM writer. It prepares evidence-backed drafts, reports, and decision-support outputs. Saving in Dynamics remains a user-confirmed browser action.
+
+## Public Artifacts
+
+Repository-level documentation includes JSON schemas, a synthetic sample output, privacy guidance, a release process, and a manual Dynamics smoke-test runbook. Package validation checks these artifacts from `npm run validate`.

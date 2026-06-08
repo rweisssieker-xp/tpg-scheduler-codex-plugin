@@ -31,7 +31,7 @@
       "Confirmation-Gated Write"
     ],
     "websiteURL": "https://posp365.crm4.dynamics.com/",
-    "privacyPolicyURL": "https://github.com/rweisssieker-xp/tpg-scheduler-codex-plugin/blob/main/SECURITY.md",
+    "privacyPolicyURL": "https://github.com/rweisssieker-xp/tpg-scheduler-codex-plugin/blob/main/docs/PRIVACY.md",
     "termsOfServiceURL": "https://github.com/rweisssieker-xp/tpg-scheduler-codex-plugin/blob/main/LICENSE",
     "defaultPrompt": [
       "Create status reports for my TPG projects.",
