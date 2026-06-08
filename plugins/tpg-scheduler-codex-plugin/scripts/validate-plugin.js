@@ -39,6 +39,7 @@ assert.equal(/sample|fixture/.test(pkg.scripts["status-report:intelligence"]), f
 assert.equal(/sample|fixture/.test(pkg.scripts["statusbericht:intelligence"]), false, "legacy production intelligence script must not use sample data");
 assert.equal(Object.keys(pkg.scripts).some((scriptName) => scriptName.includes("demo")), false, "npm scripts must not expose demo or mock data as active commands");
 assert.equal(pkg.scripts["release:check"], "node ./scripts/release-readiness.js", "release readiness script must be available");
+assert.equal(pkg.scripts["release:manifest"], "node ./scripts/release-manifest.js", "release manifest script must be available");
 assert.match(ciWorkflow, /FORCE_JAVASCRIPT_ACTIONS_TO_NODE24:\s*true/, "CI must opt into Node 24 JavaScript action runtime");
 assert.match(releaseWorkflow, /FORCE_JAVASCRIPT_ACTIONS_TO_NODE24:\s*true/, "release workflow must opt into Node 24 JavaScript action runtime");
 assert.match(ciWorkflow, /actions\/checkout@v5/, "CI must use checkout action v5");
@@ -121,6 +122,7 @@ const requiredDocs = [
   "plugins/tpg-scheduler-codex-plugin/skills/pmo-report-suite/SKILL.md",
   "plugins/tpg-scheduler-codex-plugin/assets/icon.svg",
   "plugins/tpg-scheduler-codex-plugin/scripts/release-readiness.js",
+  "plugins/tpg-scheduler-codex-plugin/scripts/release-manifest.js",
 ];
 for (const doc of requiredDocs) {
   assertFile(doc);

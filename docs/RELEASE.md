@@ -12,6 +12,7 @@ npm ci
 npm test
 npm run validate
 npm run release:check
+npm run release:manifest
 ```
 
 2. Run the Dynamics end-to-end smoke test from `docs/DYNAMICS_E2E_RUNBOOK.md`.
@@ -38,6 +39,7 @@ Attach or link:
 
 - CI run URL.
 - Plugin validation output.
+- Release manifest output from `npm run release:manifest`.
 - Offline output generated from a real or anonymized project export.
 - Dynamics smoke-test notes with no customer data.
 - Status API live metadata notes with no customer data.

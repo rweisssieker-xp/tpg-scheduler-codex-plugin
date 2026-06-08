@@ -74,6 +74,7 @@ plugins/tpg-scheduler-codex-plugin/
 cd plugins/tpg-scheduler-codex-plugin
 npm test
 npm run release:check
+npm run release:manifest
 npm run status-report:help
 npm run status-report:dataverse
 node ./scripts/statusbericht.js --intelligence <real-project-export.json>

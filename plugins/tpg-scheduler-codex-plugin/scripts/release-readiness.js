@@ -4,6 +4,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const { execFileSync } = require("node:child_process");
+const { buildReleaseManifest } = require("./release-manifest");
 
 const root = path.resolve(__dirname, "..");
 const repoRoot = path.resolve(root, "..", "..");
@@ -69,5 +70,15 @@ const statusApiSample = readJson("examples/status-api-max.sample.json");
 assert.equal(statusApiSample.monthlyWritebackQueue.summary.canAutoSave, false);
 assert.equal(statusApiSample.createPlan.canAutoSave, false);
 assert.match(statusApiSample.createPlan.confirmationText, /^CONFIRM DATAVERSE STATUS CREATE/);
+
+const manifest = buildReleaseManifest({ generatedAt: "2026-06-08T00:00:00.000Z" });
+assert.equal(manifest.manifestType, "tpg_scheduler_release_evidence");
+assert.equal(manifest.package.name, "tpg-scheduler-codex-plugin");
+assert.equal(manifest.safetyPosture.confirmationGatedCrmWrites, true);
+assert.equal(manifest.safetyPosture.nodeWritesCrmData, false);
+assert.equal(manifest.releaseArtifacts.includesStatusApiSchemas, true);
+assert.equal(manifest.releaseArtifacts.automaticCrmInstaller, false);
+assert.equal(manifest.checks.includes("npm run release:check"), true);
+assert.equal(manifest.documentation.every((item) => item.present), true);
 
 console.log("release readiness checks passed");
