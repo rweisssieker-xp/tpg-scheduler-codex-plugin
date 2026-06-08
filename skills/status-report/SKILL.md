@@ -16,6 +16,7 @@ For PMO reporting, portfolio management packs, the 12-report PMO suite, or DOCX/
 - For PMO inputs, create a read-only `tpg_pmo_project_export` via `TPGProjectAssist.downloadPmoProjectExport()` or `copyPmoProjectExportToClipboard()`.
 - Verify the configured project manager before collecting or staging a status update.
 - For monthly runs, prepare one Status Update per active verified project and report month with `--monthly-status-plan`.
+- Use the Status API Max Layer for status history, duplicate checks, idempotency, writeback queues, metadata discovery, permission probes, audit events, and confirmation-gated Dataverse create plans.
 - Show project safety level and PMO control findings before collecting or staging a status update.
 - Treat `kv` as the configured unchanged-status shortcut.
 - Never save, submit, send, delete, change ownership, or change CRM state without explicit user confirmation.

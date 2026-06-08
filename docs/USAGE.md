@@ -140,6 +140,26 @@ The output contains one monthly draft per project, the report period, prepared S
 4. Verify `Submitted To` and `Email Status Update`.
 5. Save only after explicit confirmation for the exact project, month, status text, and email setting.
 
+## Status API Max Layer
+
+The status API layer exposes these integration helpers for real Dynamics workflows:
+
+- `retrieveAllRecords`: paginated Dataverse reads.
+- `retrieveProjectDelta`: active project changes since `modifiedon`.
+- `retrieveStatusUpdates`: status history by project and month.
+- `discoverStatusUpdateMetadata`: entity metadata, entity set, attributes, and privileges.
+- `probeDataversePermissions`: read and metadata-based write readiness probe without creating data.
+- `buildStructuredStatusUpdateDraft`: structured fields for current status, next steps, risks, decisions, and sponsor actions.
+- `buildStatusUpdateDuplicateCheck`: duplicate detection for project/month.
+- `buildStatusReportIdempotencyKey`: stable key for project/month/status.
+- `validateMonthlyStatusDraft`: required field, duplicate, and writeback blocker validation.
+- `buildStatusWritebackQueue`: bulk monthly writeback queue with proposed/blocked states.
+- `buildStatusUpdateCreateRecordPlan`: confirmation-gated Dataverse create plan.
+- `createStatusUpdateWithConfirmation`: browser-context `Xrm.WebApi.createRecord`, only when the exact confirmation text matches.
+- `buildStatusWritebackAuditEvent`: audit event for proposed, staged, saved, skipped, or failed actions.
+- `buildStatusUpdateAttachmentPlan`: explicit-confirmation plan for linking DOCX/XLSX/JSON artifacts.
+- `mapDataverseError`: translates Dataverse errors into actionable categories.
+
 ## Important Commands
 
 ```powershell

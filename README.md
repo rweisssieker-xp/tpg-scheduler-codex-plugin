@@ -17,6 +17,7 @@ TPG-Scheduler-Codex-Plugin is a Codex plugin for confirmation-gated Dynamics 365
 - PMO Control Tower: runs 25 PMO governance, accountability, aging, portfolio concentration, audit, traceability, comparability, and intervention checks per project.
 - PMO Filtered Status Report: creates PMO reports filtered by project status and last status report date or narrative text.
 - Monthly Project-Leader Status Writeback: prepares one status update per active project and report month, with Quick Create staging, project-manager verification, safety gates, and explicit save confirmation.
+- Status API Max Layer: adds status history reads, duplicate checks, idempotency keys, delta exports, pagination, metadata discovery, permission probes, structured status payloads, validation, writeback queues, audit events, attachment plans, Dataverse error mapping, schema envelopes, and confirmation-gated `Xrm.WebApi.createRecord` plans.
 - PMO Report Suite: generates 12 dedicated PMO management reports through the `pmo-report-suite` skill.
 - PMO Word/Excel Export: writes polished filtered PMO reports as `.docx` and `.xlsx` files with executive callouts, KPI cards, filter scope, status legend, project spotlight, highlighted project rows, and PMO findings from real project export data.
 - Dataverse-First PMO Export: downloads or copies `tpg_pmo_project_export` JSON from the logged-in Dynamics browser session; the CLI accepts either this export envelope or a direct project array.

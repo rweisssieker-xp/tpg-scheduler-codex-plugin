@@ -48,6 +48,8 @@ assert.match(skill, /TPGProjectAssist\.downloadPmoProjectExport/);
 assert.match(skill, /tpg_pmo_project_export/);
 assert.match(skill, /buildMonthlyStatusReportDraft/);
 assert.match(skill, /--monthly-status-plan/);
+assert.match(skill, /createStatusUpdateWithConfirmation/);
+assert.match(skill, /buildStatusWritebackQueue/);
 const pmoSkill = assertFile("plugins/tpg-scheduler-codex-plugin/skills/pmo-report-suite/SKILL.md");
 const rootPmoSkill = assertFile("skills/pmo-report-suite/SKILL.md");
 assert.match(pmoSkill, /^---\nname: pmo-report-suite\n/m);

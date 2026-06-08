@@ -3,6 +3,7 @@
 
 const fs = require("node:fs");
 const path = require("node:path");
+const crypto = require("node:crypto");
 const JSZip = require("jszip");
 const {
   AlignmentType,
@@ -30,6 +31,12 @@ const PROJECT_PRIMARY_ID_ATTRIBUTE = "tpg_projectid";
 const PROJECT_PRIMARY_NAME_ATTRIBUTE = "tpg_subject";
 const PMO_PROJECT_EXPORT_TYPE = "tpg_pmo_project_export";
 const PMO_PROJECT_EXPORT_VERSION = "1.0";
+const STATUS_API_FEATURE_VERSION = "1.0";
+const STATUS_UPDATE_ENTITY_LOGICAL_NAME_CANDIDATES = [
+  "tpg_statusupdate",
+  "tpg_projectstatusupdate",
+  "gbl_statusupdate",
+];
 const PROJECT_DEFAULT_SELECT_COLUMNS = [
   PROJECT_PRIMARY_ID_ATTRIBUTE,
   "tpg_projectnum",
@@ -450,6 +457,340 @@ function buildMonthlyStatusReportRun(projects = [], options = {}) {
   };
 }
 
+function stableJson(value) {
+  if (Array.isArray(value)) {
+    return `[${value.map(stableJson).join(",")}]`;
+  }
+  if (value && typeof value === "object") {
+    return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${stableJson(value[key])}`).join(",")}}`;
+  }
+  return JSON.stringify(value);
+}
+
+function hashPayload(value) {
+  return crypto.createHash("sha256").update(stableJson(value)).digest("hex");
+}
+
+function buildStatusReportIdempotencyKey(project = {}, draft = {}, options = {}) {
+  const reportMonth = normalizeReportMonth(options.reportMonth || draft.reportMonth || draft.fields?.[STATUS_UPDATE_FIELDS.reportDate] || options.today);
+  const payload = {
+    projectId: project.projectId || project.id || draft.projectId || null,
+    reportMonth,
+    statusSummary: draft.fields?.[STATUS_UPDATE_FIELDS.statusSummary] || draft.statusText || "",
+    reportDate: draft.fields?.[STATUS_UPDATE_FIELDS.reportDate] || null,
+  };
+  return `status:${payload.projectId || "unknown"}:${reportMonth}:${hashPayload(payload).slice(0, 16)}`;
+}
+
+function buildStructuredStatusUpdateDraft(input = {}, options = {}) {
+  const statusText = input.statusSummary || input.currentStatus || input.accomplishedActivities || input.statusText || "";
+  return buildStatusUpdateDraft(statusText, {
+    ...options,
+    reportDate: input.reportDate || options.reportDate,
+    accomplishedActivities: input.accomplishedActivities ?? input.currentStatus ?? statusText,
+    missedActivities: input.missedActivities,
+    plannedActivities: input.plannedActivities ?? input.nextSteps,
+    sponsorActions: input.sponsorActions,
+    obstaclesAndMeasures: input.obstaclesAndMeasures ?? input.risks,
+    decisions: input.decisions,
+    submittedTo: input.submittedTo || options.submittedTo,
+    emailStatusUpdate: input.emailStatusUpdate ?? options.emailStatusUpdate,
+  });
+}
+
+function getStatusUpdateReportMonth(update = {}) {
+  return normalizeReportMonth(
+    update.reportMonth
+      || update[STATUS_UPDATE_FIELDS.reportDate]
+      || update.reportDate
+      || update.createdon
+      || update.createdOn
+      || update.modifiedon
+  );
+}
+
+function buildStatusUpdateDuplicateCheck(existingUpdates = [], draft = {}, options = {}) {
+  const reportMonth = normalizeReportMonth(options.reportMonth || draft.reportMonth || draft.fields?.[STATUS_UPDATE_FIELDS.reportDate] || options.today);
+  const projectId = normalizeGuid(options.projectId || options.projectGuid || draft.projectGuid || "");
+  const projectBusinessId = String(options.projectBusinessId || draft.projectId || "").toLowerCase();
+  const matches = (existingUpdates || []).filter((update) => {
+    let updateMonth = null;
+    try {
+      updateMonth = getStatusUpdateReportMonth(update);
+    } catch {
+      return false;
+    }
+    const updateProjectGuid = normalizeGuid(update._tpg_project_value || update.projectGuid || update.projectIdGuid || "");
+    const updateProjectBusinessId = String(update.projectId || update.tpg_projectnum || "").toLowerCase();
+    const sameProject = projectId
+      ? updateProjectGuid === projectId
+      : projectBusinessId
+        ? updateProjectBusinessId === projectBusinessId
+        : true;
+    return sameProject && updateMonth === reportMonth;
+  });
+  return {
+    projectId: options.projectBusinessId || draft.projectId || null,
+    projectGuid: projectId || null,
+    reportMonth,
+    duplicateFound: matches.length > 0,
+    duplicateCount: matches.length,
+    matches,
+    recommendedAction: matches.length ? "review_existing_status_update_before_writeback" : "safe_to_stage_new_status_update",
+  };
+}
+
+function validateMonthlyStatusDraft(project = {}, monthlyDraft = {}, options = {}) {
+  const requiredFields = [
+    STATUS_UPDATE_FIELDS.reportDate,
+    STATUS_UPDATE_FIELDS.statusSummary,
+    STATUS_UPDATE_FIELDS.accomplishedActivities,
+  ];
+  const fields = monthlyDraft.draft?.fields || monthlyDraft.fields || {};
+  const missingFields = requiredFields.filter((field) => !fields[field]);
+  const blockers = [
+    ...missingFields.map((field) => `Missing required draft field: ${field}`),
+    ...(!project.recordUrl ? ["Project record URL is missing."] : []),
+    ...(monthlyDraft.writeback?.blockers || []),
+  ];
+  const duplicateCheck = buildStatusUpdateDuplicateCheck(options.existingUpdates || [], {
+    ...monthlyDraft,
+    fields,
+    projectId: project.projectId,
+  }, {
+    projectId: project.id,
+    projectBusinessId: project.projectId,
+    reportMonth: monthlyDraft.reportMonth || options.reportMonth,
+  });
+  if (duplicateCheck.duplicateFound) {
+    blockers.push("Monthly status update already exists for this project/month.");
+  }
+  return {
+    projectId: project.projectId || project.id || null,
+    name: project.name || null,
+    reportMonth: duplicateCheck.reportMonth,
+    valid: blockers.length === 0,
+    blockers,
+    duplicateCheck,
+    idempotencyKey: buildStatusReportIdempotencyKey(project, fields ? { fields } : monthlyDraft.draft, {
+      reportMonth: duplicateCheck.reportMonth,
+    }),
+  };
+}
+
+function buildStatusWritebackQueue(monthlyRun = {}, options = {}) {
+  const reports = monthlyRun.reports || [];
+  const items = reports.map((report, index) => {
+    const validation = validateMonthlyStatusDraft({
+      id: report.projectId,
+      projectId: report.projectId,
+      name: report.name,
+      recordUrl: report.recordUrl,
+    }, report, {
+      reportMonth: report.reportMonth || monthlyRun.reportMonth,
+      existingUpdates: options.existingUpdatesByProjectId?.[report.projectId] || [],
+    });
+    const status = validation.valid ? "proposed" : "blocked";
+    return {
+      queueId: `monthly-status:${monthlyRun.reportMonth || report.reportMonth}:${report.projectId || index}`,
+      status,
+      projectId: report.projectId || null,
+      name: report.name || null,
+      reportMonth: report.reportMonth || monthlyRun.reportMonth,
+      idempotencyKey: validation.idempotencyKey,
+      validation,
+      draft: report.draft,
+      confirmationText: report.writeback?.confirmationText || null,
+      canAutoSave: false,
+    };
+  });
+  return {
+    queueType: "monthly_status_writeback",
+    version: STATUS_API_FEATURE_VERSION,
+    reportMonth: monthlyRun.reportMonth || null,
+    generatedAt: options.generatedAt || new Date().toISOString(),
+    summary: {
+      total: items.length,
+      proposed: items.filter((item) => item.status === "proposed").length,
+      blocked: items.filter((item) => item.status === "blocked").length,
+      canAutoSave: false,
+    },
+    items,
+  };
+}
+
+function buildStatusWritebackAuditEvent(action, payload = {}, options = {}) {
+  return {
+    eventType: "status_writeback_audit",
+    version: STATUS_API_FEATURE_VERSION,
+    at: options.at || new Date().toISOString(),
+    actor: options.actor || "Codex",
+    action,
+    projectId: payload.projectId || payload.project?.projectId || null,
+    reportMonth: payload.reportMonth || null,
+    idempotencyKey: payload.idempotencyKey || null,
+    outcome: payload.outcome || "not_saved",
+    confirmationText: payload.confirmationText || null,
+    evidence: payload.evidence || [],
+  };
+}
+
+function buildStatusUpdateHistoryQuery(project = {}, options = {}) {
+  const projectGuid = normalizeGuid(options.projectGuid || project.id || "");
+  const month = options.reportMonth ? getMonthBounds(options.reportMonth) : null;
+  const filters = [];
+  if (projectGuid) {
+    filters.push(`_${STATUS_UPDATE_FIELDS.project}_value eq ${projectGuid}`);
+  }
+  if (month) {
+    filters.push(`${STATUS_UPDATE_FIELDS.reportDate} ge ${month.periodStart} and ${STATUS_UPDATE_FIELDS.reportDate} le ${month.periodEnd}`);
+  }
+  return {
+    entityLogicalName: options.entityLogicalName || null,
+    entitySetName: options.entitySetName || null,
+    selectColumns: options.selectColumns || [
+      STATUS_UPDATE_FIELDS.reportDate,
+      STATUS_UPDATE_FIELDS.statusSummary,
+      STATUS_UPDATE_FIELDS.accomplishedActivities,
+      STATUS_UPDATE_FIELDS.plannedActivities,
+      STATUS_UPDATE_FIELDS.obstaclesAndMeasures,
+      STATUS_UPDATE_FIELDS.decisions,
+      STATUS_UPDATE_FIELDS.emailStatusUpdate,
+    ],
+    filter: filters.join(" and "),
+    orderBy: `${STATUS_UPDATE_FIELDS.reportDate} desc`,
+    top: options.top || 50,
+  };
+}
+
+function buildDeltaProjectsApiUrl(options = {}) {
+  const modifiedSince = options.modifiedSince || options.since;
+  if (!modifiedSince) {
+    throw new Error("modifiedSince is required for a delta project API URL.");
+  }
+  const filter = `${PROJECT_ACTIVE_STATE_FILTER} and modifiedon gt ${modifiedSince}`;
+  return buildActiveProjectsApiUrl(options.selectColumns || PROJECT_DEFAULT_SELECT_COLUMNS, {
+    filter,
+    top: options.top,
+    orderBy: options.orderBy || "modifiedon desc",
+  });
+}
+
+function buildStatusUpdateWritebackPayload(project = {}, draft = {}, metadata = {}, options = {}) {
+  const entityLogicalName = options.entityLogicalName || metadata.entityLogicalName;
+  const projectLookupBinding = options.projectLookupBinding || metadata.projectLookupBinding;
+  const submittedToBinding = options.submittedToBinding || metadata.submittedToBinding;
+  const projectGuid = normalizeGuid(options.projectGuid || project.id || "");
+  const fields = { ...(draft.fields || {}) };
+  if (projectLookupBinding && projectGuid) {
+    fields[`${projectLookupBinding}@odata.bind`] = `/${PROJECT_ENTITY_SET_NAME}(${projectGuid})`;
+  }
+  if (submittedToBinding && options.submittedToId) {
+    fields[`${submittedToBinding}@odata.bind`] = `/${options.submittedToEntitySet || "systemusers"}(${normalizeGuid(options.submittedToId)})`;
+  }
+  if (draft.emailStatusUpdate != null) {
+    fields[STATUS_UPDATE_FIELDS.emailStatusUpdate] = Boolean(draft.emailStatusUpdate);
+  }
+  const blockers = [];
+  if (!entityLogicalName) blockers.push("Status Update entity logical name is missing.");
+  if (!projectLookupBinding) blockers.push("Project lookup binding field is missing.");
+  if (!projectGuid) blockers.push("Project GUID is missing.");
+  if (!fields[STATUS_UPDATE_FIELDS.reportDate]) blockers.push("Report Date is missing.");
+  if (!fields[STATUS_UPDATE_FIELDS.statusSummary]) blockers.push("Status Summary is missing.");
+  return {
+    entityLogicalName: entityLogicalName || null,
+    payload: fields,
+    blockers,
+    canCreate: blockers.length === 0,
+  };
+}
+
+function buildStatusUpdateCreateRecordPlan(project = {}, draft = {}, metadata = {}, options = {}) {
+  const writebackPayload = buildStatusUpdateWritebackPayload(project, draft, metadata, options);
+  const reportMonth = normalizeReportMonth(options.reportMonth || draft.fields?.[STATUS_UPDATE_FIELDS.reportDate] || options.today);
+  const idempotencyKey = buildStatusReportIdempotencyKey(project, draft, { reportMonth });
+  return {
+    operation: "Xrm.WebApi.createRecord",
+    version: STATUS_API_FEATURE_VERSION,
+    projectId: project.projectId || project.id || null,
+    reportMonth,
+    idempotencyKey,
+    entityLogicalName: writebackPayload.entityLogicalName,
+    payload: writebackPayload.payload,
+    blockers: writebackPayload.blockers,
+    canCreateAfterConfirmation: writebackPayload.canCreate,
+    canAutoSave: false,
+    confirmationText: `CONFIRM DATAVERSE STATUS CREATE | Project: ${project.name || project.projectId || project.id || "unknown project"} | Month: ${reportMonth} | Idempotency: ${idempotencyKey}`,
+  };
+}
+
+function buildStatusUpdateAttachmentPlan(project = {}, reportArtifact = {}, options = {}) {
+  return {
+    operation: "attach_status_report_artifact",
+    version: STATUS_API_FEATURE_VERSION,
+    projectId: project.projectId || project.id || null,
+    reportMonth: options.reportMonth || reportArtifact.reportMonth || null,
+    artifactName: reportArtifact.name || reportArtifact.path || null,
+    artifactType: reportArtifact.type || path.extname(reportArtifact.path || "").replace(".", "") || "unknown",
+    target: options.target || "annotation_or_link",
+    canAutoAttach: false,
+    blockers: [
+      ...(!reportArtifact.path && !reportArtifact.url ? ["Artifact path or URL is missing."] : []),
+      ...(!options.confirmed ? ["Attachment requires explicit confirmation."] : []),
+    ],
+  };
+}
+
+function mapDataverseError(error = {}) {
+  const message = String(error.message || error.error?.message || error.statusText || error);
+  const code = error.errorCode || error.status || error.code || null;
+  let category = "unknown";
+  if (/privilege|permission|access|401|403/i.test(message)) category = "permission";
+  else if (/required|missing|null/i.test(message)) category = "required_field";
+  else if (/duplicate|alternate key|idempot/i.test(message)) category = "duplicate";
+  else if (/lookup|bind|navigation/i.test(message)) category = "lookup_binding";
+  else if (/plugin|business process|validation/i.test(message)) category = "business_rule";
+  return {
+    category,
+    code,
+    message,
+    userMessage: {
+      permission: "Dataverse permission is missing for this status operation.",
+      required_field: "A required Status Update field is missing or empty.",
+      duplicate: "A matching status update may already exist.",
+      lookup_binding: "A Dataverse lookup binding is invalid or incomplete.",
+      business_rule: "A Dynamics business rule or plugin rejected the operation.",
+      unknown: "Dataverse returned an unmapped error.",
+    }[category],
+  };
+}
+
+function buildDataversePermissionProbePlan(options = {}) {
+  return {
+    operation: "dataverse_permission_probe",
+    version: STATUS_API_FEATURE_VERSION,
+    readProbe: {
+      entityLogicalName: PROJECT_ENTITY_LOGICAL_NAME,
+      query: buildDataverseQuery([PROJECT_PRIMARY_ID_ATTRIBUTE], PROJECT_ACTIVE_STATE_FILTER, 1),
+    },
+    writeProbe: {
+      entityLogicalName: options.statusUpdateEntityLogicalName || null,
+      safeMode: "metadata_only_no_create",
+      requiredPrivileges: ["Read", "Create"],
+    },
+  };
+}
+
+function buildStatusApiEnvelope(payload = {}, options = {}) {
+  return {
+    api: "tpg_status_api",
+    version: STATUS_API_FEATURE_VERSION,
+    generatedAt: options.generatedAt || new Date().toISOString(),
+    schemaVersion: options.schemaVersion || "2026-06",
+    payload,
+  };
+}
+
 function getDataverseBrowserSnippet() {
   return String.raw`(() => {
   const constants = ${JSON.stringify({
@@ -463,6 +804,8 @@ function getDataverseBrowserSnippet() {
     PROJECT_PRIMARY_NAME_ATTRIBUTE,
     PMO_PROJECT_EXPORT_TYPE,
     PMO_PROJECT_EXPORT_VERSION,
+    STATUS_API_FEATURE_VERSION,
+    STATUS_UPDATE_ENTITY_LOGICAL_NAME_CANDIDATES,
     PROJECT_DEFAULT_SELECT_COLUMNS,
     PROJECT_ACTIVE_STATE_FILTER,
     PROJECT_MANAGER_NAME,
@@ -952,16 +1295,209 @@ function getDataverseBrowserSnippet() {
     };
   }
 
-  async function retrieveActiveProjects(options = {}) {
+  function stableJson(value) {
+    if (Array.isArray(value)) return "[" + value.map(stableJson).join(",") + "]";
+    if (value && typeof value === "object") {
+      return "{" + Object.keys(value).sort().map((key) => JSON.stringify(key) + ":" + stableJson(value[key])).join(",") + "}";
+    }
+    return JSON.stringify(value);
+  }
+
+  function hashString(value) {
+    let hash = 0;
+    const text = String(value || "");
+    for (let index = 0; index < text.length; index += 1) {
+      hash = ((hash << 5) - hash) + text.charCodeAt(index);
+      hash |= 0;
+    }
+    return Math.abs(hash).toString(16).padStart(8, "0");
+  }
+
+  function buildStatusReportIdempotencyKey(project = {}, draft = {}, options = {}) {
+    const reportMonth = normalizeReportMonth(options.reportMonth || draft.reportMonth || draft.fields?.[constants.STATUS_UPDATE_FIELDS.reportDate] || options.today);
+    const payload = {
+      projectId: project.projectId || project.id || draft.projectId || null,
+      reportMonth,
+      statusSummary: draft.fields?.[constants.STATUS_UPDATE_FIELDS.statusSummary] || draft.statusText || "",
+      reportDate: draft.fields?.[constants.STATUS_UPDATE_FIELDS.reportDate] || null,
+    };
+    return "status:" + (payload.projectId || "unknown") + ":" + reportMonth + ":" + hashString(stableJson(payload));
+  }
+
+  function buildStructuredStatusUpdateDraft(input = {}, options = {}) {
+    const statusText = input.statusSummary || input.currentStatus || input.accomplishedActivities || input.statusText || "";
+    return buildStatusUpdateDraft(statusText, {
+      ...options,
+      reportDate: input.reportDate || options.reportDate,
+      accomplishedActivities: input.accomplishedActivities ?? input.currentStatus ?? statusText,
+      missedActivities: input.missedActivities,
+      plannedActivities: input.plannedActivities ?? input.nextSteps,
+      sponsorActions: input.sponsorActions,
+      obstaclesAndMeasures: input.obstaclesAndMeasures ?? input.risks,
+      decisions: input.decisions,
+      submittedTo: input.submittedTo || options.submittedTo,
+      emailStatusUpdate: input.emailStatusUpdate ?? options.emailStatusUpdate,
+    });
+  }
+
+  function buildStatusUpdateDuplicateCheck(existingUpdates = [], draft = {}, options = {}) {
+    const reportMonth = normalizeReportMonth(options.reportMonth || draft.reportMonth || draft.fields?.[constants.STATUS_UPDATE_FIELDS.reportDate] || options.today);
+    const projectId = normalizeGuid(options.projectId || options.projectGuid || draft.projectGuid || "");
+    const projectBusinessId = String(options.projectBusinessId || draft.projectId || "").toLowerCase();
+    const matches = (existingUpdates || []).filter((update) => {
+      const date = update.reportMonth || update[constants.STATUS_UPDATE_FIELDS.reportDate] || update.reportDate || update.createdon || update.modifiedon;
+      if (!date || normalizeReportMonth(date) !== reportMonth) return false;
+      const updateProjectGuid = normalizeGuid(update._tpg_project_value || update.projectGuid || update.projectIdGuid || "");
+      const updateProjectBusinessId = String(update.projectId || update.tpg_projectnum || "").toLowerCase();
+      return projectId ? updateProjectGuid === projectId : projectBusinessId ? updateProjectBusinessId === projectBusinessId : true;
+    });
+    return {
+      reportMonth,
+      duplicateFound: matches.length > 0,
+      duplicateCount: matches.length,
+      matches,
+      recommendedAction: matches.length ? "review_existing_status_update_before_writeback" : "safe_to_stage_new_status_update",
+    };
+  }
+
+  function validateMonthlyStatusDraft(project = {}, monthlyDraft = {}, options = {}) {
+    const fields = monthlyDraft.draft?.fields || monthlyDraft.fields || {};
+    const missingFields = [
+      constants.STATUS_UPDATE_FIELDS.reportDate,
+      constants.STATUS_UPDATE_FIELDS.statusSummary,
+      constants.STATUS_UPDATE_FIELDS.accomplishedActivities,
+    ].filter((field) => !fields[field]);
+    const duplicateCheck = buildStatusUpdateDuplicateCheck(options.existingUpdates || [], { ...monthlyDraft, fields, projectId: project.projectId }, {
+      projectId: project.id,
+      projectBusinessId: project.projectId,
+      reportMonth: monthlyDraft.reportMonth || options.reportMonth,
+    });
+    const blockers = [
+      ...missingFields.map((field) => "Missing required draft field: " + field),
+      ...(!project.recordUrl ? ["Project record URL is missing."] : []),
+      ...(monthlyDraft.writeback?.blockers || []),
+      ...(duplicateCheck.duplicateFound ? ["Monthly status update already exists for this project/month."] : []),
+    ];
+    return {
+      projectId: project.projectId || project.id || null,
+      reportMonth: duplicateCheck.reportMonth,
+      valid: blockers.length === 0,
+      blockers,
+      duplicateCheck,
+      idempotencyKey: buildStatusReportIdempotencyKey(project, { fields }, { reportMonth: duplicateCheck.reportMonth }),
+    };
+  }
+
+  function buildStatusWritebackQueue(monthlyRun = {}, options = {}) {
+    const reports = monthlyRun.reports || [];
+    const items = reports.map((report, index) => {
+      const validation = validateMonthlyStatusDraft({ id: report.projectId, projectId: report.projectId, name: report.name, recordUrl: report.recordUrl }, report, {
+        reportMonth: report.reportMonth || monthlyRun.reportMonth,
+        existingUpdates: options.existingUpdatesByProjectId?.[report.projectId] || [],
+      });
+      return {
+        queueId: "monthly-status:" + (monthlyRun.reportMonth || report.reportMonth) + ":" + (report.projectId || index),
+        status: validation.valid ? "proposed" : "blocked",
+        projectId: report.projectId || null,
+        reportMonth: report.reportMonth || monthlyRun.reportMonth,
+        idempotencyKey: validation.idempotencyKey,
+        validation,
+        draft: report.draft,
+        confirmationText: report.writeback?.confirmationText || null,
+        canAutoSave: false,
+      };
+    });
+    return {
+      queueType: "monthly_status_writeback",
+      version: constants.STATUS_API_FEATURE_VERSION,
+      reportMonth: monthlyRun.reportMonth || null,
+      generatedAt: options.generatedAt || new Date().toISOString(),
+      summary: {
+        total: items.length,
+        proposed: items.filter((item) => item.status === "proposed").length,
+        blocked: items.filter((item) => item.status === "blocked").length,
+        canAutoSave: false,
+      },
+      items,
+    };
+  }
+
+  function buildStatusUpdateWritebackPayload(project = {}, draft = {}, metadata = {}, options = {}) {
+    const entityLogicalName = options.entityLogicalName || metadata.entityLogicalName;
+    const projectLookupBinding = options.projectLookupBinding || metadata.projectLookupBinding;
+    const projectGuid = normalizeGuid(options.projectGuid || project.id || "");
+    const fields = { ...(draft.fields || {}) };
+    if (projectLookupBinding && projectGuid) fields[projectLookupBinding + "@odata.bind"] = "/" + constants.PROJECT_ENTITY_SET_NAME + "(" + projectGuid + ")";
+    if (draft.emailStatusUpdate != null) fields[constants.STATUS_UPDATE_FIELDS.emailStatusUpdate] = Boolean(draft.emailStatusUpdate);
+    const blockers = [];
+    if (!entityLogicalName) blockers.push("Status Update entity logical name is missing.");
+    if (!projectLookupBinding) blockers.push("Project lookup binding field is missing.");
+    if (!projectGuid) blockers.push("Project GUID is missing.");
+    if (!fields[constants.STATUS_UPDATE_FIELDS.reportDate]) blockers.push("Report Date is missing.");
+    if (!fields[constants.STATUS_UPDATE_FIELDS.statusSummary]) blockers.push("Status Summary is missing.");
+    return { entityLogicalName: entityLogicalName || null, payload: fields, blockers, canCreate: blockers.length === 0 };
+  }
+
+  function buildStatusUpdateCreateRecordPlan(project = {}, draft = {}, metadata = {}, options = {}) {
+    const writebackPayload = buildStatusUpdateWritebackPayload(project, draft, metadata, options);
+    const reportMonth = normalizeReportMonth(options.reportMonth || draft.fields?.[constants.STATUS_UPDATE_FIELDS.reportDate] || options.today);
+    const idempotencyKey = buildStatusReportIdempotencyKey(project, draft, { reportMonth });
+    return {
+      operation: "Xrm.WebApi.createRecord",
+      version: constants.STATUS_API_FEATURE_VERSION,
+      projectId: project.projectId || project.id || null,
+      reportMonth,
+      idempotencyKey,
+      entityLogicalName: writebackPayload.entityLogicalName,
+      payload: writebackPayload.payload,
+      blockers: writebackPayload.blockers,
+      canCreateAfterConfirmation: writebackPayload.canCreate,
+      canAutoSave: false,
+      confirmationText: "CONFIRM DATAVERSE STATUS CREATE | Project: " + (project.name || project.projectId || project.id || "unknown project") + " | Month: " + reportMonth + " | Idempotency: " + idempotencyKey,
+    };
+  }
+
+  function mapDataverseError(error = {}) {
+    const message = String(error.message || error.error?.message || error.statusText || error);
+    const code = error.errorCode || error.status || error.code || null;
+    let category = "unknown";
+    if (/privilege|permission|access|401|403/i.test(message)) category = "permission";
+    else if (/required|missing|null/i.test(message)) category = "required_field";
+    else if (/duplicate|alternate key|idempot/i.test(message)) category = "duplicate";
+    else if (/lookup|bind|navigation/i.test(message)) category = "lookup_binding";
+    else if (/plugin|business process|validation/i.test(message)) category = "business_rule";
+    return { category, code, message };
+  }
+
+  async function retrieveAllRecords(entityLogicalName, query, options = {}) {
     const xrm = getXrm();
+    const entities = [];
+    let response = await xrm.WebApi.retrieveMultipleRecords(entityLogicalName, query, options.maxPageSize);
+    entities.push(...(response.entities || []));
+    while (response.nextLink) {
+      response = await xrm.WebApi.retrieveMultipleRecords(entityLogicalName, response.nextLink, options.maxPageSize);
+      entities.push(...(response.entities || []));
+    }
+    return entities;
+  }
+
+  async function retrieveActiveProjects(options = {}) {
     const query = buildQuery(
       options.selectColumns || constants.PROJECT_DEFAULT_SELECT_COLUMNS,
       options.filter || constants.PROJECT_ACTIVE_STATE_FILTER,
       options.top,
       options.orderBy || "modifiedon desc"
     );
-    const response = await xrm.WebApi.retrieveMultipleRecords(constants.PROJECT_ENTITY_LOGICAL_NAME, query);
-    return response.entities.map(mapProject);
+    const entities = await retrieveAllRecords(constants.PROJECT_ENTITY_LOGICAL_NAME, query, options);
+    return entities.map(mapProject);
+  }
+
+  async function retrieveProjectDelta(options = {}) {
+    if (!options.modifiedSince && !options.since) {
+      throw new Error("modifiedSince is required for retrieveProjectDelta.");
+    }
+    const filter = constants.PROJECT_ACTIVE_STATE_FILTER + " and modifiedon gt " + (options.modifiedSince || options.since);
+    return retrieveActiveProjects({ ...options, filter, orderBy: options.orderBy || "modifiedon desc" });
   }
 
   async function retrievePmoProjectPortfolio(options = {}) {
@@ -1000,6 +1536,113 @@ function getDataverseBrowserSnippet() {
   async function exportActiveProjectsForPmoReports(options = {}) {
     const projects = await retrievePmoProjectPortfolio(options);
     return buildPmoProjectExport(projects, options);
+  }
+
+  async function retrieveStatusUpdates(project = {}, options = {}) {
+    const entityLogicalName = options.entityLogicalName;
+    if (!entityLogicalName) throw new Error("Status Update entity logical name is required.");
+    const projectGuid = normalizeGuid(options.projectGuid || project.id || "");
+    const month = options.reportMonth ? getMonthBounds(options.reportMonth) : null;
+    const filters = [];
+    if (projectGuid) filters.push("_" + constants.STATUS_UPDATE_FIELDS.project + "_value eq " + projectGuid);
+    if (month) filters.push(constants.STATUS_UPDATE_FIELDS.reportDate + " ge " + month.periodStart + " and " + constants.STATUS_UPDATE_FIELDS.reportDate + " le " + month.periodEnd);
+    const query = buildQuery(
+      options.selectColumns || [
+        constants.STATUS_UPDATE_FIELDS.reportDate,
+        constants.STATUS_UPDATE_FIELDS.statusSummary,
+        constants.STATUS_UPDATE_FIELDS.accomplishedActivities,
+        constants.STATUS_UPDATE_FIELDS.plannedActivities,
+        constants.STATUS_UPDATE_FIELDS.obstaclesAndMeasures,
+        constants.STATUS_UPDATE_FIELDS.decisions,
+        constants.STATUS_UPDATE_FIELDS.emailStatusUpdate,
+      ],
+      filters.join(" and "),
+      options.top || 50,
+      options.orderBy || constants.STATUS_UPDATE_FIELDS.reportDate + " desc"
+    );
+    return retrieveAllRecords(entityLogicalName, query, options);
+  }
+
+  async function discoverStatusUpdateMetadata(options = {}) {
+    const xrm = getXrm();
+    const candidates = options.entityLogicalName
+      ? [options.entityLogicalName]
+      : (options.candidates || constants.STATUS_UPDATE_ENTITY_LOGICAL_NAME_CANDIDATES);
+    const attempts = [];
+    for (const candidate of candidates) {
+      try {
+        const metadata = await xrm.Utility.getEntityMetadata(candidate, Object.values(constants.STATUS_UPDATE_FIELDS));
+        return {
+          found: true,
+          entityLogicalName: candidate,
+          entitySetName: metadata.EntitySetName || metadata.entitySetName || null,
+          primaryIdAttribute: metadata.PrimaryIdAttribute || metadata.primaryIdAttribute || null,
+          attributes: metadata.Attributes || metadata.attributes || null,
+          privileges: metadata.Privileges || metadata.privileges || null,
+          projectLookupBinding: options.projectLookupBinding || constants.STATUS_UPDATE_FIELDS.project,
+          raw: metadata,
+        };
+      } catch (error) {
+        attempts.push({ candidate, error: mapDataverseError(error) });
+      }
+    }
+    return { found: false, attempts, projectLookupBinding: options.projectLookupBinding || constants.STATUS_UPDATE_FIELDS.project };
+  }
+
+  async function probeDataversePermissions(options = {}) {
+    const result = {
+      projectRead: { ok: false, error: null },
+      statusMetadata: { ok: false, metadata: null, error: null },
+      writeProbeMode: "metadata_only_no_create",
+    };
+    try {
+      await retrieveAllRecords(constants.PROJECT_ENTITY_LOGICAL_NAME, buildQuery([constants.PROJECT_PRIMARY_ID_ATTRIBUTE], constants.PROJECT_ACTIVE_STATE_FILTER, 1), { maxPageSize: 1 });
+      result.projectRead.ok = true;
+    } catch (error) {
+      result.projectRead.error = mapDataverseError(error);
+    }
+    try {
+      const metadata = await discoverStatusUpdateMetadata(options);
+      result.statusMetadata.ok = Boolean(metadata.found);
+      result.statusMetadata.metadata = metadata;
+    } catch (error) {
+      result.statusMetadata.error = mapDataverseError(error);
+    }
+    result.canAttemptCreateAfterConfirmation = result.projectRead.ok && result.statusMetadata.ok;
+    return result;
+  }
+
+  async function createStatusUpdateWithConfirmation(project = {}, draft = {}, options = {}) {
+    const xrm = getXrm();
+    const metadata = options.metadata || await discoverStatusUpdateMetadata(options);
+    const plan = buildStatusUpdateCreateRecordPlan(project, draft, metadata, options);
+    if (plan.blockers.length) {
+      return { saved: false, plan, blockers: plan.blockers };
+    }
+    if (options.confirmationText !== plan.confirmationText) {
+      return { saved: false, plan, blockers: ["Confirmation text does not match exactly."] };
+    }
+    try {
+      const response = await xrm.WebApi.createRecord(plan.entityLogicalName, plan.payload);
+      return {
+        saved: true,
+        id: normalizeGuid(response.id),
+        entityType: response.entityType || plan.entityLogicalName,
+        plan,
+        auditEvent: {
+          eventType: "status_writeback_audit",
+          at: new Date().toISOString(),
+          action: "dataverse_createRecord",
+          outcome: "saved",
+          projectId: plan.projectId,
+          reportMonth: plan.reportMonth,
+          idempotencyKey: plan.idempotencyKey,
+          confirmationText: plan.confirmationText,
+        },
+      };
+    } catch (error) {
+      return { saved: false, plan, error: mapDataverseError(error) };
+    }
   }
 
   async function copyPmoProjectExportToClipboard(options = {}) {
@@ -1099,13 +1742,27 @@ function getDataverseBrowserSnippet() {
     buildPmoProjectExport,
     buildMonthlyStatusReportDraft,
     buildMonthlyStatusReportRun,
+    buildStatusReportIdempotencyKey,
     buildStatusUpdateDraft,
+    buildStatusUpdateCreateRecordPlan,
+    buildStatusUpdateDuplicateCheck,
+    buildStatusUpdateWritebackPayload,
+    buildStatusWritebackQueue,
+    buildStructuredStatusUpdateDraft,
+    createStatusUpdateWithConfirmation,
     copyPmoProjectExportToClipboard,
+    discoverStatusUpdateMetadata,
     downloadPmoProjectExport,
     exportActiveProjectsForPmoReports,
+    mapDataverseError,
+    probeDataversePermissions,
+    retrieveAllRecords,
     retrievePmoProjectPortfolio,
     retrieveActiveProjects,
+    retrieveProjectDelta,
     retrieveProject,
+    retrieveStatusUpdates,
+    validateMonthlyStatusDraft,
     buildBatchProjectPreview,
     buildExecutiveOnePager,
     buildPortfolioRiskList,
@@ -2050,6 +2707,8 @@ module.exports = {
   PROJECT_PRIMARY_NAME_ATTRIBUTE,
   PMO_PROJECT_EXPORT_TYPE,
   PMO_PROJECT_EXPORT_VERSION,
+  STATUS_API_FEATURE_VERSION,
+  STATUS_UPDATE_ENTITY_LOGICAL_NAME_CANDIDATES,
   PROJECT_ACTIVE_STATE_FILTER,
   PROJECT_MANAGER_NAME,
   PROJECT_DEFAULT_SELECT_COLUMNS,
@@ -2063,13 +2722,25 @@ module.exports = {
   buildActiveProjectsApiUrl,
   buildBatchProjectPreview,
   buildDataverseQuery,
+  buildDataversePermissionProbePlan,
   buildDataverseUrl,
+  buildDeltaProjectsApiUrl,
   buildDynamicsProjectRecordUrl,
   buildMonthlyStatusReportDraft,
   buildMonthlyStatusReportRun,
   buildPmoProjectExport,
   buildProjectRecordApiUrl,
+  buildStatusApiEnvelope,
+  buildStatusReportIdempotencyKey,
+  buildStatusUpdateAttachmentPlan,
+  buildStatusUpdateCreateRecordPlan,
+  buildStatusUpdateDuplicateCheck,
+  buildStatusUpdateHistoryQuery,
+  buildStatusUpdateWritebackPayload,
   buildStatusUpdateDraft,
+  buildStatusWritebackAuditEvent,
+  buildStatusWritebackQueue,
+  buildStructuredStatusUpdateDraft,
   buildPmoStatusReportDocxBuffer,
   buildPmoStatusReportXlsxBuffer,
   formatProjectIntelligenceMarkdown,
@@ -2145,6 +2816,7 @@ module.exports = {
   isSampleInputPath,
   isActiveProjectCandidate,
   mapProjectDataverseRow,
+  mapDataverseError,
   normalizeStatusInput,
   normalizeGuid,
 };

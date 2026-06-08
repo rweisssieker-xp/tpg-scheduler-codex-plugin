@@ -18,6 +18,8 @@ const {
   buildCalibrationReport,
   buildDataCompletenessScore,
   buildDataverseQuery,
+  buildDataversePermissionProbePlan,
+  buildDeltaProjectsApiUrl,
   buildDecisionClosureItems,
   buildDynamicsProjectRecordUrl,
   buildMonthlyStatusReportDraft,
@@ -47,12 +49,22 @@ const {
   buildPmoStatusReportDocxBuffer,
   buildPmoStatusReportXlsxBuffer,
   PMO_REPORT_TYPES,
+  buildStatusApiEnvelope,
+  buildStatusReportIdempotencyKey,
+  buildStatusUpdateAttachmentPlan,
+  buildStatusUpdateCreateRecordPlan,
+  buildStatusUpdateDuplicateCheck,
+  buildStatusUpdateHistoryQuery,
+  buildStatusUpdateWritebackPayload,
   buildRiskLedgerEntries,
   buildRiskTrendIntelligence,
   buildSafeWritebackSimulation,
   buildSteeringAgenda,
   buildWhatIfRecoveryPlan,
   buildStatusUpdateDraft,
+  buildStatusWritebackAuditEvent,
+  buildStatusWritebackQueue,
+  buildStructuredStatusUpdateDraft,
   detectStatusDelta,
   evaluateProjectStatusQuality,
   evaluateStatusQuality,
@@ -61,6 +73,7 @@ const {
   isSampleInputPath,
   isActiveProjectCandidate,
   mapProjectDataverseRow,
+  mapDataverseError,
   normalizeGuid,
   normalizeStatusInput,
   readProjectsInput,
@@ -139,6 +152,61 @@ assert.equal(monthlyRun.reportType, "monthly_status_writeback");
 assert.equal(monthlyRun.summary.projectsReviewed, 1);
 assert.equal(monthlyRun.summary.statusInputsMissing, 1);
 assert.equal(monthlyRun.summary.canAutoSave, false);
+const structuredDraft = buildStructuredStatusUpdateDraft({
+  currentStatus: "Milestone finished.",
+  nextSteps: "Prepare rollout.",
+  risks: "Vendor delay risk.",
+  decisions: "Approve rollout.",
+  submittedTo: "PMO",
+});
+assert.equal(structuredDraft.fields.tpg_title, "Milestone finished.");
+assert.equal(structuredDraft.fields.tpg_plannedactivities, "Prepare rollout.");
+assert.equal(structuredDraft.fields.gbl_obstaclesandmeasures, "Vendor delay risk.");
+const idempotencyKey = buildStatusReportIdempotencyKey(
+  { id: "84966c5d-996d-4d19-88de-97a4300a6a62", projectId: "2024-1058" },
+  monthlyDraft.draft,
+  { reportMonth: "2026-06" }
+);
+assert.match(idempotencyKey, /^status:2024-1058:2026-06:/);
+assert.equal(
+  buildStatusUpdateDuplicateCheck(
+    [{ _tpg_project_value: "84966c5d-996d-4d19-88de-97a4300a6a62", tpg_reportdate: "2026-06-15" }],
+    monthlyDraft,
+    { projectId: "84966c5d-996d-4d19-88DE-97A4300A6A62", reportMonth: "2026-06" }
+  ).duplicateFound,
+  true
+);
+const validatedMonthlyDraft = buildStatusWritebackQueue({
+  reportMonth: "2026-06",
+  reports: [monthlyDraft],
+});
+assert.equal(validatedMonthlyDraft.queueType, "monthly_status_writeback");
+assert.equal(validatedMonthlyDraft.summary.canAutoSave, false);
+assert.equal(validatedMonthlyDraft.items[0].canAutoSave, false);
+const historyQuery = buildStatusUpdateHistoryQuery({ id: "84966c5d-996d-4d19-88de-97a4300a6a62" }, { reportMonth: "2026-06", entityLogicalName: "tpg_statusupdate" });
+assert.match(historyQuery.filter, /tpg_reportdate ge 2026-06-01/);
+assert.match(buildDeltaProjectsApiUrl({ modifiedSince: "2026-06-01T00:00:00Z" }), /modifiedon gt 2026-06-01T00:00:00Z/);
+const writebackPayload = buildStatusUpdateWritebackPayload(
+  { id: "84966c5d-996d-4d19-88de-97a4300a6a62" },
+  monthlyDraft.draft,
+  { entityLogicalName: "tpg_statusupdate", projectLookupBinding: "tpg_project" }
+);
+assert.equal(writebackPayload.canCreate, true);
+assert.equal(writebackPayload.payload["tpg_project@odata.bind"], "/tpg_projects(84966c5d-996d-4d19-88de-97a4300a6a62)");
+const createPlan = buildStatusUpdateCreateRecordPlan(
+  { id: "84966c5d-996d-4d19-88de-97a4300a6a62", projectId: "2024-1058", name: "Monthly Project" },
+  monthlyDraft.draft,
+  { entityLogicalName: "tpg_statusupdate", projectLookupBinding: "tpg_project" },
+  { reportMonth: "2026-06" }
+);
+assert.equal(createPlan.operation, "Xrm.WebApi.createRecord");
+assert.equal(createPlan.canAutoSave, false);
+assert.match(createPlan.confirmationText, /CONFIRM DATAVERSE STATUS CREATE/);
+assert.equal(buildStatusUpdateAttachmentPlan({ projectId: "2024-1058" }, { path: "reports/pmo.docx" }, { confirmed: true }).blockers.length, 0);
+assert.equal(mapDataverseError({ message: "Missing required field tpg_title" }).category, "required_field");
+assert.equal(buildDataversePermissionProbePlan({ statusUpdateEntityLogicalName: "tpg_statusupdate" }).writeProbe.safeMode, "metadata_only_no_create");
+assert.equal(buildStatusApiEnvelope({ ok: true }).api, "tpg_status_api");
+assert.equal(buildStatusWritebackAuditEvent("proposed", { projectId: "2024-1058", reportMonth: "2026-06" }).outcome, "not_saved");
 assert.equal(isActiveProjectCandidate({ projectStatusLabel: "In Progress" }), true);
 assert.equal(isActiveProjectCandidate({ projectStatusLabel: "Closed" }), false);
 assert.equal(isActiveProjectCandidate({ projectStatusLabel: null }), true);
@@ -250,6 +318,12 @@ assert.match(getDataverseBrowserSnippet(), /copyPmoProjectExportToClipboard/);
 assert.match(getDataverseBrowserSnippet(), /source: "dataverse_web_api"/);
 assert.match(getDataverseBrowserSnippet(), /buildMonthlyStatusReportDraft/);
 assert.match(getDataverseBrowserSnippet(), /buildMonthlyStatusReportRun/);
+assert.match(getDataverseBrowserSnippet(), /retrieveAllRecords/);
+assert.match(getDataverseBrowserSnippet(), /retrieveProjectDelta/);
+assert.match(getDataverseBrowserSnippet(), /retrieveStatusUpdates/);
+assert.match(getDataverseBrowserSnippet(), /discoverStatusUpdateMetadata/);
+assert.match(getDataverseBrowserSnippet(), /probeDataversePermissions/);
+assert.match(getDataverseBrowserSnippet(), /createStatusUpdateWithConfirmation/);
 assert.equal(isSampleInputPath("./scripts/fixtures/projects.sample.json"), true);
 assert.equal(isSampleInputPath("./real-project-export.json"), false);
 const dataverseExport = buildPmoProjectExport([
@@ -272,6 +346,8 @@ assert.equal(typeof buildAuditEntry, "function");
 assert.equal(typeof buildAudienceReport, "function");
 assert.equal(typeof buildCalibrationReport, "function");
 assert.equal(typeof buildDataCompletenessScore, "function");
+assert.equal(typeof buildDataversePermissionProbePlan, "function");
+assert.equal(typeof buildDeltaProjectsApiUrl, "function");
 assert.equal(typeof buildExecutiveOnePager, "function");
 assert.equal(typeof buildExportBundle, "function");
 assert.equal(typeof buildGovernanceExceptions, "function");
@@ -294,6 +370,16 @@ assert.equal(typeof buildPmoReportSuite, "function");
 assert.equal(typeof buildPmoStatusReport, "function");
 assert.equal(typeof buildPmoStatusReportDocxBuffer, "function");
 assert.equal(typeof buildPmoStatusReportXlsxBuffer, "function");
+assert.equal(typeof buildStatusApiEnvelope, "function");
+assert.equal(typeof buildStatusReportIdempotencyKey, "function");
+assert.equal(typeof buildStatusUpdateAttachmentPlan, "function");
+assert.equal(typeof buildStatusUpdateCreateRecordPlan, "function");
+assert.equal(typeof buildStatusUpdateDuplicateCheck, "function");
+assert.equal(typeof buildStatusUpdateHistoryQuery, "function");
+assert.equal(typeof buildStatusUpdateWritebackPayload, "function");
+assert.equal(typeof buildStatusWritebackAuditEvent, "function");
+assert.equal(typeof buildStatusWritebackQueue, "function");
+assert.equal(typeof buildStructuredStatusUpdateDraft, "function");
 assert.equal(PMO_REPORT_TYPES.length, 12);
 assert.equal(typeof buildRiskLedgerEntries, "function");
 assert.equal(typeof buildRiskTrendIntelligence, "function");
@@ -304,5 +390,6 @@ assert.equal(typeof buildDecisionClosureItems, "function");
 assert.equal(typeof detectStatusDelta, "function");
 assert.equal(typeof evaluateStatusQuality, "function");
 assert.equal(typeof extractDecisionRadar, "function");
+assert.equal(typeof mapDataverseError, "function");
 
 console.log("statusbericht tests passed");

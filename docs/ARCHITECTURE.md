@@ -79,6 +79,16 @@ The plugin does not directly automate CRM writes from Node.js. Browser-based CRM
 
 The CLI command `--monthly-status-plan <real-project-export.json> --month YYYY-MM` serializes this plan for project leaders. Browser save behavior remains manual and confirmation-gated through `Quick Create: Status Update`.
 
+## Status API Max Layer
+
+The API layer adds production-oriented integration helpers around the monthly status workflow:
+
+- Read APIs: paginated `retrieveAllRecords`, delta project reads, and status-update history by project/month.
+- Safety APIs: duplicate checks, idempotency keys, monthly draft validation, permission probes, metadata discovery, and Dataverse error mapping.
+- Writeback APIs: structured status drafts, bulk writeback queues, `Xrm.WebApi.createRecord` plans, audit events, and attachment plans.
+
+The only direct Dataverse write helper is `createStatusUpdateWithConfirmation` in the authenticated browser snippet. It requires discovered metadata, a valid payload, and an exact confirmation string before calling `Xrm.WebApi.createRecord`; Node.js never writes CRM data.
+
 ## Project Safety Gates
 
 `buildProjectSafetyGate(project, options)` returns a per-project advisory safety profile with `safetyScore`, `safetyLevel`, `managementAttention`, `writebackRisk`, gate evidence, required evidence, and recommended actions.

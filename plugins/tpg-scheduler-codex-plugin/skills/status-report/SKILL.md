@@ -88,6 +88,14 @@ If Dynamics asks for login, pause and let the user complete Microsoft login manu
   - `buildStatusUpdateDraft(statusText, options)`
   - `buildMonthlyStatusReportDraft(project, statusText, options)`
   - `buildMonthlyStatusReportRun(projects, options)`
+  - `buildStructuredStatusUpdateDraft(input, options)`
+  - `buildStatusUpdateDuplicateCheck(existingUpdates, draft, options)`
+  - `buildStatusReportIdempotencyKey(project, draft, options)`
+  - `validateMonthlyStatusDraft(project, monthlyDraft, options)`
+  - `buildStatusWritebackQueue(monthlyRun, options)`
+  - `buildStatusUpdateCreateRecordPlan(project, draft, metadata, options)`
+  - `buildStatusWritebackAuditEvent(action, payload, options)`
+  - `mapDataverseError(error)`
   - `getDataverseBrowserSnippet()`
 - When PMO report data is needed, load the Dataverse snippet and use:
   - `await TPGProjectAssist.downloadPmoProjectExport()`
@@ -128,6 +136,12 @@ If Dynamics asks for login, pause and let the user complete Microsoft login manu
   - `TPGProjectAssist.readCurrentProjectForm()`
   - `TPGProjectAssist.verifyCurrentProjectManager("Reiner Weisssieker")`
   - `TPGProjectAssist.readQuickCreateStatusUpdateFields()`
+  - `TPGProjectAssist.retrieveAllRecords(entityLogicalName, query, options)`
+  - `TPGProjectAssist.retrieveProjectDelta({ modifiedSince })`
+  - `TPGProjectAssist.retrieveStatusUpdates(project, { entityLogicalName, reportMonth })`
+  - `TPGProjectAssist.discoverStatusUpdateMetadata(options)`
+  - `TPGProjectAssist.probeDataversePermissions(options)`
+  - `TPGProjectAssist.createStatusUpdateWithConfirmation(project, draft, options)`
 
 ## Offline Intelligence CLI
 
@@ -174,7 +188,9 @@ If Dynamics asks for login, pause and let the user complete Microsoft login manu
   - project form tab: `tab_status`
   - status updates subgrid/control: `status_grid`
   - command label: `Add New Status Update`
-- Do not call `Xrm.WebApi.createRecord` for Status Update until the status-update entity set and required lookup binding targets are confirmed in the current environment. Use Quick Create staging as the safe write path.
+- Do not call `Xrm.WebApi.createRecord` for Status Update until the status-update entity set and required lookup binding targets are confirmed in the current environment.
+- If API writeback is explicitly requested, use only `TPGProjectAssist.createStatusUpdateWithConfirmation(project, draft, options)` after metadata discovery, duplicate check, validation, project-manager verification, and exact confirmation-text match.
+- Quick Create staging remains the default safe write path when metadata or binding confidence is incomplete.
 
 ## Expected Workflow
 
