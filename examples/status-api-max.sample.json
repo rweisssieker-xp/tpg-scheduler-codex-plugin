@@ -1,0 +1,112 @@
+{
+  "apiEnvelope": {
+    "api": "tpg_status_api",
+    "version": "1.0",
+    "generatedAt": "2026-06-08T10:00:00.000Z",
+    "schemaVersion": "2026-06",
+    "payload": {
+      "reportMonth": "2026-06",
+      "source": "documentation_only_synthetic"
+    }
+  },
+  "monthlyWritebackQueue": {
+    "queueType": "monthly_status_writeback",
+    "version": "1.0",
+    "reportMonth": "2026-06",
+    "generatedAt": "2026-06-08T10:00:00.000Z",
+    "summary": {
+      "total": 1,
+      "proposed": 1,
+      "blocked": 0,
+      "canAutoSave": false
+    },
+    "items": [
+      {
+        "queueId": "monthly-status:2026-06:PRJ-001",
+        "status": "proposed",
+        "projectId": "PRJ-001",
+        "reportMonth": "2026-06",
+        "idempotencyKey": "status:PRJ-001:2026-06:example000000001",
+        "validation": {
+          "valid": true,
+          "blockers": [],
+          "duplicateCheck": {
+            "reportMonth": "2026-06",
+            "duplicateFound": false,
+            "duplicateCount": 0,
+            "matches": [],
+            "recommendedAction": "safe_to_stage_new_status_update"
+          }
+        },
+        "draft": {
+          "entityLabel": "Status Update",
+          "fields": {
+            "tpg_reportdate": "2026-06-30",
+            "tpg_title": "Status remains on track after milestone review.",
+            "tpg_accomplishedactivities": "Milestone review completed.",
+            "tpg_missedactivities": "",
+            "tpg_plannedactivities": "Prepare rollout.",
+            "tpg_sponsoractions": "",
+            "gbl_obstaclesandmeasures": "",
+            "gbl_decisions": ""
+          },
+          "submittedTo": "PMO",
+          "emailStatusUpdate": false,
+          "requiresExplicitSaveConfirmation": true
+        },
+        "confirmationText": "CONFIRM MONTHLY STATUS WRITEBACK | Project: Example Project | Month: 2026-06 | Report Date: 2026-06-30 | Email Status Update: No",
+        "canAutoSave": false
+      }
+    ]
+  },
+  "duplicateFound": {
+    "projectId": "PRJ-001",
+    "projectGuid": "00000000-0000-0000-0000-000000000001",
+    "reportMonth": "2026-06",
+    "duplicateFound": true,
+    "duplicateCount": 1,
+    "matches": [
+      {
+        "tpg_reportdate": "2026-06-15",
+        "tpg_title": "Existing synthetic monthly report."
+      }
+    ],
+    "recommendedAction": "review_existing_status_update_before_writeback"
+  },
+  "createPlan": {
+    "operation": "Xrm.WebApi.createRecord",
+    "version": "1.0",
+    "projectId": "PRJ-001",
+    "reportMonth": "2026-06",
+    "idempotencyKey": "status:PRJ-001:2026-06:example000000001",
+    "entityLogicalName": "tpg_statusupdate",
+    "payload": {
+      "tpg_reportdate": "2026-06-30",
+      "tpg_title": "Status remains on track after milestone review.",
+      "tpg_project@odata.bind": "/tpg_projects(00000000-0000-0000-0000-000000000001)",
+      "tpg_emailstatusupdate": false
+    },
+    "blockers": [],
+    "canCreateAfterConfirmation": true,
+    "canAutoSave": false,
+    "confirmationText": "CONFIRM DATAVERSE STATUS CREATE | Project: Example Project | Month: 2026-06 | Idempotency: status:PRJ-001:2026-06:example000000001"
+  },
+  "auditEvent": {
+    "eventType": "status_writeback_audit",
+    "version": "1.0",
+    "at": "2026-06-08T10:05:00.000Z",
+    "actor": "Codex",
+    "action": "dataverse_createRecord",
+    "projectId": "PRJ-001",
+    "reportMonth": "2026-06",
+    "idempotencyKey": "status:PRJ-001:2026-06:example000000001",
+    "outcome": "saved",
+    "confirmationText": "CONFIRM DATAVERSE STATUS CREATE | Project: Example Project | Month: 2026-06 | Idempotency: status:PRJ-001:2026-06:example000000001",
+    "evidence": [
+      {
+        "code": "confirmation_match",
+        "message": "The confirmation text matched exactly."
+      }
+    ]
+  }
+}

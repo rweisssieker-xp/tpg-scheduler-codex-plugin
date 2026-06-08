@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TPG Status Update Duplicate Check",
+  "type": "object",
+  "required": ["reportMonth", "duplicateFound", "duplicateCount", "matches", "recommendedAction"],
+  "properties": {
+    "projectId": { "type": ["string", "null"] },
+    "projectGuid": { "type": ["string", "null"] },
+    "reportMonth": { "type": "string" },
+    "duplicateFound": { "type": "boolean" },
+    "duplicateCount": { "type": "integer" },
+    "matches": { "type": "array" },
+    "recommendedAction": {
+      "enum": ["review_existing_status_update_before_writeback", "safe_to_stage_new_status_update"]
+    }
+  },
+  "additionalProperties": true
+}

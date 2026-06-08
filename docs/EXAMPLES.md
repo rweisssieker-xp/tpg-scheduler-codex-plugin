@@ -107,5 +107,22 @@ Consumer tools should start with:
 - `schemas/project-intelligence.schema.json`
 - `schemas/project-safety-gates.schema.json`
 - `schemas/pmo-control-tower.schema.json`
+- `schemas/status-api-envelope.schema.json`
+- `schemas/status-writeback-queue.schema.json`
+- `schemas/status-update-create-plan.schema.json`
+- `schemas/status-writeback-audit-event.schema.json`
+- `schemas/status-update-duplicate-check.schema.json`
 
 The schemas are stable enough for dashboards, PMO review queues, release checks, and executive reporting, while allowing future advisory fields.
+
+## Status API Max Layer
+
+The documentation-only sample at `examples/status-api-max.sample.json` shows:
+
+- versioned Status API envelope
+- monthly writeback queue
+- duplicate-found result
+- confirmation-gated Dataverse create plan
+- writeback audit event
+
+Productive Status API runs must use real Dataverse exports or authenticated browser data. The sample contains synthetic identifiers and must not be used for CRM writes.

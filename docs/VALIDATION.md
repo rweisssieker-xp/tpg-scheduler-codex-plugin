@@ -18,6 +18,7 @@ This runs:
 - PMO DOCX and XLSX file export tests.
 - PMO report suite tests for all 12 report types.
 - Dataverse-first PMO export envelope tests for API helpers, browser snippet markers, and CLI input handling.
+- Status API Max Layer tests for duplicate checks, idempotency keys, queues, create plans, audit events, attachment plans, error mapping, and browser helper markers.
 - `pmo-report-suite` skill presence and report-type documentation.
 - CLI behavior tests.
 - Plugin metadata and documentation validation.
@@ -41,11 +42,13 @@ The validation script checks:
 - Critical CRM write-safety language remains present.
 - Public docs use en-US wording, except for the fixed German CRM `kv` phrase where explicitly documented.
 - JSON schemas parse and expose the required project safety and PMO contract anchors.
+- Status API schemas parse and expose queue, create-plan, duplicate-check, audit-event, and envelope contracts.
 - The synthetic sample output includes `projectSafetyGates` and `pmoControlTower`.
 - Productive npm intelligence scripts do not point at sample or fixture data.
 - No npm script exposes demo, mock, sample, or fixture data as an active command.
 - DOCX and XLSX export dependencies are validated, and the vulnerable `exceljs` dependency tree is disallowed.
 - Dataverse export helpers remain read-only and expose the PMO export contract expected by report commands.
+- GitHub Actions opt into the Node 24 JavaScript action runtime to avoid Node 20 runner deprecation warnings.
 
 ## GitHub Actions
 

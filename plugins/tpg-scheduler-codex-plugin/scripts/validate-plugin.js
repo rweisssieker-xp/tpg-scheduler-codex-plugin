@@ -20,6 +20,8 @@ function assertFile(relativePath) {
 const plugin = readJson(".codex-plugin/plugin.json");
 const pkg = readJson("package.json");
 const rootPlugin = JSON.parse(fs.readFileSync(path.join(repoRoot, ".codex-plugin", "plugin.json"), "utf8"));
+const ciWorkflow = fs.readFileSync(path.join(repoRoot, ".github", "workflows", "ci.yml"), "utf8");
+const releaseWorkflow = fs.readFileSync(path.join(repoRoot, ".github", "workflows", "release.yml"), "utf8");
 
 assert.equal(plugin.name, "tpg-scheduler-codex-plugin");
 assert.equal(rootPlugin.name, plugin.name);
@@ -36,6 +38,8 @@ assert.equal(Boolean(pkg.dependencies?.exceljs), false, "Excel export must not d
 assert.equal(/sample|fixture/.test(pkg.scripts["status-report:intelligence"]), false, "production intelligence script must not use sample data");
 assert.equal(/sample|fixture/.test(pkg.scripts["statusbericht:intelligence"]), false, "legacy production intelligence script must not use sample data");
 assert.equal(Object.keys(pkg.scripts).some((scriptName) => scriptName.includes("demo")), false, "npm scripts must not expose demo or mock data as active commands");
+assert.match(ciWorkflow, /FORCE_JAVASCRIPT_ACTIONS_TO_NODE24:\s*true/, "CI must opt into Node 24 JavaScript action runtime");
+assert.match(releaseWorkflow, /FORCE_JAVASCRIPT_ACTIONS_TO_NODE24:\s*true/, "release workflow must opt into Node 24 JavaScript action runtime");
 assert.equal(fs.existsSync(path.join(root, plugin.skills)), true, "skills path must exist");
 assert.equal(fs.existsSync(path.join(root, plugin.mcpServers)), true, "mcpServers path must exist");
 assert.equal(fs.existsSync(path.join(root, plugin.apps)), true, "apps path must exist");
@@ -82,6 +86,7 @@ const requiredDocs = [
   "docs/EXAMPLES.md",
   "docs/SCHEMA.md",
   "docs/RELEASE.md",
+  "docs/PUBLICATION.md",
   "docs/PRIVACY.md",
   "docs/DYNAMICS_E2E_RUNBOOK.md",
   "CONTRIBUTING.md",
@@ -99,7 +104,13 @@ const requiredDocs = [
   "schemas/project-intelligence.schema.json",
   "schemas/project-safety-gates.schema.json",
   "schemas/pmo-control-tower.schema.json",
+  "schemas/status-api-envelope.schema.json",
+  "schemas/status-writeback-queue.schema.json",
+  "schemas/status-update-create-plan.schema.json",
+  "schemas/status-writeback-audit-event.schema.json",
+  "schemas/status-update-duplicate-check.schema.json",
   "examples/project-intelligence.sample.json",
+  "examples/status-api-max.sample.json",
   "plugins/tpg-scheduler-codex-plugin/README.md",
   "plugins/tpg-scheduler-codex-plugin/skills/pmo-report-suite/SKILL.md",
   "plugins/tpg-scheduler-codex-plugin/assets/icon.svg",
@@ -117,6 +128,7 @@ const publicDocs = [
   "docs/EXAMPLES.md",
   "docs/SCHEMA.md",
   "docs/RELEASE.md",
+  "docs/PUBLICATION.md",
   "docs/PRIVACY.md",
   "docs/DYNAMICS_E2E_RUNBOOK.md",
   "CONTRIBUTING.md",
@@ -131,6 +143,11 @@ for (const schemaPath of [
   "schemas/project-intelligence.schema.json",
   "schemas/project-safety-gates.schema.json",
   "schemas/pmo-control-tower.schema.json",
+  "schemas/status-api-envelope.schema.json",
+  "schemas/status-writeback-queue.schema.json",
+  "schemas/status-update-create-plan.schema.json",
+  "schemas/status-writeback-audit-event.schema.json",
+  "schemas/status-update-duplicate-check.schema.json",
 ]) {
   const schema = JSON.parse(assertFile(schemaPath));
   assert.equal(schema.$schema, "https://json-schema.org/draft/2020-12/schema", `${schemaPath} must use JSON Schema 2020-12`);
@@ -166,5 +183,13 @@ assert.equal(Boolean(sample.projectSafetyGates?.summary), true, "sample output m
 assert.equal(Boolean(sample.pmoControlTower?.summary), true, "sample output must include pmoControlTower.summary");
 assert.equal(sample.pmoControlTower.summary.checksPerProject, 25, "sample output must show 25 PMO checks");
 assert.equal(sample.pmoControlTower.projects[0].checks.length, 25, "sample output must include 25 PMO checks for the example project");
+
+const statusApiSample = JSON.parse(assertFile("examples/status-api-max.sample.json"));
+assert.equal(statusApiSample.apiEnvelope.api, "tpg_status_api", "status API sample must include API envelope");
+assert.equal(statusApiSample.monthlyWritebackQueue.summary.canAutoSave, false, "status writeback queue must not allow auto-save");
+assert.equal(statusApiSample.createPlan.operation, "Xrm.WebApi.createRecord", "status API sample must include create plan");
+assert.equal(statusApiSample.createPlan.canAutoSave, false, "create plan must remain confirmation-gated");
+assert.equal(statusApiSample.duplicateFound.duplicateFound, true, "status API sample must include duplicate-found example");
+assert.equal(statusApiSample.auditEvent.eventType, "status_writeback_audit", "status API sample must include audit event");
 
 console.log("plugin validation passed");

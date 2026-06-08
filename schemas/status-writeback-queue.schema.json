@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TPG Status Writeback Queue",
+  "type": "object",
+  "required": ["queueType", "version", "reportMonth", "generatedAt", "summary", "items"],
+  "properties": {
+    "queueType": { "const": "monthly_status_writeback" },
+    "version": { "type": "string" },
+    "reportMonth": { "type": ["string", "null"] },
+    "generatedAt": { "type": "string" },
+    "summary": {
+      "type": "object",
+      "required": ["total", "proposed", "blocked", "canAutoSave"],
+      "properties": {
+        "total": { "type": "integer" },
+        "proposed": { "type": "integer" },
+        "blocked": { "type": "integer" },
+        "canAutoSave": { "const": false }
+      }
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["queueId", "status", "projectId", "reportMonth", "idempotencyKey", "validation", "draft", "confirmationText", "canAutoSave"],
+        "properties": {
+          "queueId": { "type": "string" },
+          "status": { "enum": ["proposed", "blocked", "staged", "confirmed", "saved", "skipped", "failed"] },
+          "projectId": { "type": ["string", "null"] },
+          "reportMonth": { "type": ["string", "null"] },
+          "idempotencyKey": { "type": "string" },
+          "validation": { "type": "object" },
+          "draft": { "type": "object" },
+          "confirmationText": { "type": ["string", "null"] },
+          "canAutoSave": { "const": false }
+        }
+      }
+    }
+  },
+  "additionalProperties": true
+}

@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- Added Status API JSON schemas for envelope, writeback queue, create plan, audit event, and duplicate check contracts.
+- Added synthetic Status API Max Layer example payloads for queue, duplicate, create plan, and audit event consumers.
+- Expanded live Dynamics runbook with metadata discovery, permission probe, status history, duplicate check, create-plan confirmation, and audit validation.
+- Added public repository readiness documentation and a compact README USP section.
+- Hardened GitHub Actions with the Node 24 JavaScript action runtime environment setting.
+- Expanded security and release guidance for Status API writeback review.
+
 ## 0.1.0
 
 - Initial public release.

@@ -14,10 +14,12 @@ npm run validate
 ```
 
 2. Run the Dynamics end-to-end smoke test from `docs/DYNAMICS_E2E_RUNBOOK.md`.
-3. Confirm GitHub Actions is green on `main`.
-4. Review `CHANGELOG.md`.
-5. Create a signed tag, for example `v0.1.0`.
-6. Push the tag to GitHub.
+3. Run the security review checklist from `SECURITY.md`.
+4. Confirm GitHub Actions is green on `main` and no Node.js runtime deprecation warning is present.
+5. Review `CHANGELOG.md`.
+6. Confirm the Status API schemas and examples are included in the release package.
+7. Create a signed tag, for example `v0.1.0`.
+8. Push the tag to GitHub.
 
 ## GitHub Release
 
@@ -37,4 +39,5 @@ Attach or link:
 - Plugin validation output.
 - Offline output generated from a real or anonymized project export.
 - Dynamics smoke-test notes with no customer data.
+- Status API live metadata notes with no customer data.
 - Known limitations.

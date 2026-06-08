@@ -53,9 +53,31 @@ node ./scripts/statusbericht.js --monthly-status-plan <real-dataverse-export.jso
 ```
 
 11. Verify that the plan contains one draft per active project, the month-end report date, writeback blockers, and the exact confirmation text.
-12. Confirm that no save occurs unless the user explicitly confirms project, month, status text, and email setting.
-13. Turn on Email Status Update only in a safe test context and verify the workflow reports high writeback risk before any save.
-14. Record pass/fail notes without real project data.
+12. Validate the API writeback readiness path in the authenticated browser context:
+
+```javascript
+await TPGProjectAssist.probeDataversePermissions()
+await TPGProjectAssist.discoverStatusUpdateMetadata()
+```
+
+13. Verify the returned Status Update logical name, entity set, project lookup binding, required fields, and privileges. Do not continue to API writeback if any field is ambiguous.
+14. Read the target project's status history for the test month:
+
+```javascript
+await TPGProjectAssist.retrieveStatusUpdates(project, {
+  entityLogicalName: "<confirmed-status-update-logical-name>",
+  reportMonth: "YYYY-MM"
+})
+```
+
+15. Run the duplicate check and monthly draft validation against that history. A duplicate must stop create and switch to manual review.
+16. Build a create plan with `TPGProjectAssist.buildStatusUpdateCreateRecordPlan(project, draft, metadata, { reportMonth: "YYYY-MM" })`.
+17. Confirm the plan has `canAutoSave: false`, no blockers, the expected `@odata.bind` project lookup, and a non-empty `confirmationText`.
+18. In a non-production or low-risk test project only, call `TPGProjectAssist.createStatusUpdateWithConfirmation(project, draft, { metadata, confirmationText: plan.confirmationText })`.
+19. Verify the saved response and `status_writeback_audit` event. If the confirmation text is edited, the call must return `saved: false`.
+20. Confirm that no save occurs unless the user explicitly confirms project, month, status text, and email setting.
+21. Turn on Email Status Update only in a safe test context and verify the workflow reports high writeback risk before any save.
+22. Record pass/fail notes without real project data.
 
 ## Pass Criteria
 
@@ -65,6 +87,7 @@ node ./scripts/statusbericht.js --monthly-status-plan <real-dataverse-export.jso
 - Safety gates and PMO controls appear before staging.
 - `kv` expands to the configured unchanged-status phrase.
 - Monthly status writeback plans are generated per active verified project and require Quick Create confirmation before saving.
+- API writeback readiness verifies metadata, permissions, history, duplicates, idempotency, confirmation text, and audit output before any `Xrm.WebApi.createRecord` call.
 - Email Status Update is surfaced as high risk.
 - No CRM write happens without explicit confirmation.
 

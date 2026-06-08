@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TPG Status Writeback Audit Event",
+  "type": "object",
+  "required": ["eventType", "version", "at", "actor", "action", "projectId", "reportMonth", "idempotencyKey", "outcome", "confirmationText", "evidence"],
+  "properties": {
+    "eventType": { "const": "status_writeback_audit" },
+    "version": { "type": "string" },
+    "at": { "type": "string" },
+    "actor": { "type": "string" },
+    "action": { "type": "string" },
+    "projectId": { "type": ["string", "null"] },
+    "reportMonth": { "type": ["string", "null"] },
+    "idempotencyKey": { "type": ["string", "null"] },
+    "outcome": { "enum": ["not_saved", "proposed", "staged", "confirmed", "saved", "skipped", "failed"] },
+    "confirmationText": { "type": ["string", "null"] },
+    "evidence": { "type": "array" }
+  },
+  "additionalProperties": true
+}

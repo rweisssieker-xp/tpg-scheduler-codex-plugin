@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TPG Status Update Create Plan",
+  "type": "object",
+  "required": ["operation", "version", "projectId", "reportMonth", "idempotencyKey", "entityLogicalName", "payload", "blockers", "canCreateAfterConfirmation", "canAutoSave", "confirmationText"],
+  "properties": {
+    "operation": { "const": "Xrm.WebApi.createRecord" },
+    "version": { "type": "string" },
+    "projectId": { "type": ["string", "null"] },
+    "reportMonth": { "type": "string" },
+    "idempotencyKey": { "type": "string" },
+    "entityLogicalName": { "type": ["string", "null"] },
+    "payload": { "type": "object" },
+    "blockers": { "type": "array", "items": { "type": "string" } },
+    "canCreateAfterConfirmation": { "type": "boolean" },
+    "canAutoSave": { "const": false },
+    "confirmationText": { "type": "string" }
+  },
+  "additionalProperties": true
+}

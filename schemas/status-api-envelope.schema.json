@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TPG Status API Envelope",
+  "type": "object",
+  "required": ["api", "version", "generatedAt", "schemaVersion", "payload"],
+  "properties": {
+    "api": { "const": "tpg_status_api" },
+    "version": { "type": "string" },
+    "generatedAt": { "type": "string" },
+    "schemaVersion": { "type": "string" },
+    "payload": { "type": "object" }
+  },
+  "additionalProperties": true
+}

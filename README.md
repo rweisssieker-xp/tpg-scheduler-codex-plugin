@@ -11,6 +11,15 @@ TPG-Scheduler-Codex-Plugin is a Codex plugin for confirmation-gated Dynamics 365
 - Builds project intelligence packs with evidence-backed risk, decision, PMO, and executive views.
 - Stages status update drafts only after review and never saves, submits, sends, deletes, or changes CRM state without explicit confirmation.
 
+## Core USPs
+
+- Dataverse-first, browser-authenticated project data access without separate service-principal setup.
+- Confirmation-gated monthly Status Update creation for project leaders, including duplicate checks, idempotency, audit events, and exact confirmation text.
+- PMO-ready DOCX/XLSX/JSON reporting with filters, management styling, and 12 dedicated report types.
+- Maximum Project Safety Gates across data integrity, status truth, delivery, governance, finance/resources, escalation, report quality, and writeback safety.
+- Status API Max Layer for metadata discovery, permission probes, status history, delta reads, writeback queues, schemas, and Dataverse error mapping.
+- Public-repo safety posture: no mock data in productive commands, no automatic CRM writes, no secrets, and synthetic examples only.
+
 ## AI/KI Differentiators
 
 - Maximum Project Safety Gates: evaluates every project across data integrity, status truth, delivery risk, governance, financial/resource risk, escalation readiness, report quality, and CRM writeback safety.
@@ -78,6 +87,7 @@ node ./scripts/statusbericht.js --intelligence <real-project-export.json>
 - [JSON Schemas](docs/SCHEMA.md)
 - [Dynamics End-to-End Runbook](docs/DYNAMICS_E2E_RUNBOOK.md)
 - [Release Process](docs/RELEASE.md)
+- [Public Repository Readiness](docs/PUBLICATION.md)
 - [Privacy](docs/PRIVACY.md)
 - [Architecture](docs/ARCHITECTURE.md)
 - [Contributing](CONTRIBUTING.md)
