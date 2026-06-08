@@ -10,6 +10,8 @@ The plugin exposes stable JSON contracts for offline reports and downstream PMO 
 
 The top-level project intelligence schema also includes the filtered `pmoStatusReport` contract.
 
+DOCX and XLSX exports serialize the same `pmoStatusReport` object; the schema therefore remains the source contract for file-generation consumers.
+
 ## Contract Principles
 
 - Outputs are advisory and evidence-backed.

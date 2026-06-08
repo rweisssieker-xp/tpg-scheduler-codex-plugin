@@ -2,6 +2,19 @@
 "use strict";
 
 const fs = require("node:fs");
+const path = require("node:path");
+const JSZip = require("jszip");
+const {
+  Document,
+  HeadingLevel,
+  Packer,
+  Paragraph,
+  Table,
+  TableCell,
+  TableRow,
+  TextRun,
+  WidthType,
+} = require("docx");
 const projectIntelligence = require("./lib/project-intelligence");
 
 const PROJECT_LIST_URL =
@@ -755,6 +768,7 @@ Offline intelligence:
 PMO report with filters:
   node ./scripts/statusbericht.js --pmo-report <real-project-export.json> --project-status "In Progress" --last-status-before YYYY-MM-DD
   node ./scripts/statusbericht.js --pmo-report <real-project-export.json> --project-status "In Progress,Planning" --last-status-contains "vendor" --json
+  node ./scripts/statusbericht.js --pmo-report <real-project-export.json> --project-status "In Progress" --docx reports/pmo-status.docx --xlsx reports/pmo-status.xlsx
 
 Sample and fixture inputs are rejected by default. They are reserved for automated tests and documentation fixtures.
 `);
@@ -916,6 +930,208 @@ function formatPmoStatusReportMarkdown(report) {
   return `${lines.join("\n")}\n`;
 }
 
+function ensureParentDirectory(outputPath) {
+  const directory = path.dirname(path.resolve(outputPath));
+  fs.mkdirSync(directory, { recursive: true });
+}
+
+function textCell(value) {
+  return new TableCell({
+    children: [new Paragraph(String(value ?? ""))],
+  });
+}
+
+function buildDocxTable(headers, rows) {
+  return new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    rows: [
+      new TableRow({
+        children: headers.map((header) => new TableCell({
+          children: [new Paragraph({ children: [new TextRun({ text: header, bold: true })] })],
+        })),
+      }),
+      ...rows.map((row) => new TableRow({
+        children: headers.map((header) => textCell(row[header])),
+      })),
+    ],
+  });
+}
+
+async function buildPmoStatusReportDocxBuffer(report) {
+  const filterRows = [
+    { Filter: "Project status", Value: report.filters.projectStatusLabels.join(", ") || "All" },
+    { Filter: "Last status before", Value: report.filters.lastStatusBefore || "" },
+    { Filter: "Last status after", Value: report.filters.lastStatusAfter || "" },
+    { Filter: "Last status on", Value: report.filters.lastStatusOn || "" },
+    { Filter: "Last status contains", Value: report.filters.lastStatusContains || "" },
+    { Filter: "Last status missing", Value: report.filters.lastStatusMissing ? "Yes" : "No" },
+  ];
+  const summaryRows = Object.entries(report.summary).map(([key, value]) => ({
+    Metric: key,
+    Value: typeof value === "object" ? JSON.stringify(value) : value,
+  }));
+  const projectRows = report.projects.map((project) => ({
+    "Project ID": project.projectId || "",
+    Name: project.name || "",
+    Status: project.projectStatusLabel || "",
+    "Last Status Report": project.lastStatusReportDate || "",
+    "PMO Level": project.pmoLevel || "",
+    "PMO Score": project.pmoScore ?? "",
+    Intervention: project.intervention || "",
+    "Safety Level": project.safetyLevel || "",
+    "Management Attention": project.managementAttention || "",
+  }));
+
+  const document = new Document({
+    sections: [{
+      children: [
+        new Paragraph({ text: "PMO Status Report", heading: HeadingLevel.TITLE }),
+        new Paragraph({ text: `Generated: ${report.generatedAt}` }),
+        new Paragraph({ text: "Filters", heading: HeadingLevel.HEADING_1 }),
+        buildDocxTable(["Filter", "Value"], filterRows),
+        new Paragraph({ text: "Summary", heading: HeadingLevel.HEADING_1 }),
+        buildDocxTable(["Metric", "Value"], summaryRows),
+        new Paragraph({ text: "Projects", heading: HeadingLevel.HEADING_1 }),
+        buildDocxTable(["Project ID", "Name", "Status", "Last Status Report", "PMO Level", "PMO Score", "Intervention", "Safety Level", "Management Attention"], projectRows),
+      ],
+    }],
+  });
+  return Packer.toBuffer(document);
+}
+
+function xmlEscape(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function xlsxColumnName(index) {
+  let value = index + 1;
+  let name = "";
+  while (value > 0) {
+    const remainder = (value - 1) % 26;
+    name = String.fromCharCode(65 + remainder) + name;
+    value = Math.floor((value - 1) / 26);
+  }
+  return name;
+}
+
+function buildWorksheetXml(rows) {
+  const rowXml = rows.map((row, rowIndex) => {
+    const cellXml = row.map((cell, cellIndex) => {
+      const ref = `${xlsxColumnName(cellIndex)}${rowIndex + 1}`;
+      return `<c r="${ref}" t="inlineStr"><is><t>${xmlEscape(cell)}</t></is></c>`;
+    }).join("");
+    return `<row r="${rowIndex + 1}">${cellXml}</row>`;
+  }).join("");
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>${rowXml}</sheetData></worksheet>`;
+}
+
+function objectRows(headers, rows) {
+  return [headers, ...rows.map((row) => headers.map((header) => row[header] ?? ""))];
+}
+
+async function buildPmoStatusReportXlsxBuffer(report) {
+  const zip = new JSZip();
+  const summaryRows = [
+    ["Metric", "Value"],
+    ["Generated", report.generatedAt],
+    ["Projects total", report.summary.projectsTotal],
+    ["Projects matched", report.summary.projectsMatched],
+    ["Projects filtered out", report.summary.projectsFilteredOut],
+    ["Missing last status reports", report.summary.missingLastStatusReports],
+    ["Unparsable last status reports", report.summary.unparsableLastStatusReports],
+    ["Oldest last status report", report.summary.oldestLastStatusReport || ""],
+    ["Newest last status report", report.summary.newestLastStatusReport || ""],
+    ["Status counts", JSON.stringify(report.summary.statusCounts)],
+  ];
+  const filtersRows = [
+    ["Filter", "Value"],
+    ["Project status", report.filters.projectStatusLabels.join(", ") || "All"],
+    ["Last status before", report.filters.lastStatusBefore || ""],
+    ["Last status after", report.filters.lastStatusAfter || ""],
+    ["Last status on", report.filters.lastStatusOn || ""],
+    ["Last status contains", report.filters.lastStatusContains || ""],
+    ["Last status missing", report.filters.lastStatusMissing ? "Yes" : "No"],
+  ];
+  const projectHeaders = ["Project ID", "Name", "Status", "Last Status Report", "PMO Level", "PMO Score", "Intervention", "Safety Level", "Management Attention", "Record URL"];
+  const projectRows = objectRows(projectHeaders, report.projects.map((project) => ({
+    "Project ID": project.projectId || "",
+    Name: project.name || "",
+    Status: project.projectStatusLabel || "",
+    "Last Status Report": project.lastStatusReportDate || "",
+    "PMO Level": project.pmoLevel || "",
+    "PMO Score": project.pmoScore ?? "",
+    Intervention: project.intervention || "",
+    "Safety Level": project.safetyLevel || "",
+    "Management Attention": project.managementAttention || "",
+    "Record URL": project.recordUrl || "",
+  })));
+  const findingHeaders = ["Project ID", "Name", "Check ID", "Severity", "Recommendation"];
+  const findingRows = objectRows(findingHeaders, report.pmoControlTower.portfolioFindings.map((finding) => ({
+    "Project ID": finding.projectId || "",
+    Name: finding.name || "",
+    "Check ID": finding.checkId || "",
+    Severity: finding.severity || "",
+    Recommendation: finding.recommendation || "",
+  })));
+
+  zip.file("[Content_Types].xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+<Default Extension="xml" ContentType="application/xml"/>
+<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>
+<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
+<Override PartName="/xl/worksheets/sheet2.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
+<Override PartName="/xl/worksheets/sheet3.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
+<Override PartName="/xl/worksheets/sheet4.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
+</Types>`);
+  zip.folder("_rels").file(".rels", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>
+</Relationships>`);
+  zip.folder("xl").file("workbook.xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+<sheets>
+<sheet name="Summary" sheetId="1" r:id="rId1"/>
+<sheet name="Filters" sheetId="2" r:id="rId2"/>
+<sheet name="Projects" sheetId="3" r:id="rId3"/>
+<sheet name="PMO Findings" sheetId="4" r:id="rId4"/>
+</sheets>
+</workbook>`);
+  zip.folder("xl").folder("_rels").file("workbook.xml.rels", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>
+<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet2.xml"/>
+<Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet3.xml"/>
+<Relationship Id="rId4" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet4.xml"/>
+</Relationships>`);
+  const worksheets = zip.folder("xl").folder("worksheets");
+  worksheets.file("sheet1.xml", buildWorksheetXml(summaryRows));
+  worksheets.file("sheet2.xml", buildWorksheetXml(filtersRows));
+  worksheets.file("sheet3.xml", buildWorksheetXml(projectRows));
+  worksheets.file("sheet4.xml", buildWorksheetXml(findingRows));
+  return zip.generateAsync({ type: "nodebuffer", compression: "DEFLATE" });
+}
+
+async function writePmoStatusReportFiles(report, options = {}) {
+  const writtenFiles = {};
+  if (options.docxPath) {
+    ensureParentDirectory(options.docxPath);
+    fs.writeFileSync(options.docxPath, await buildPmoStatusReportDocxBuffer(report));
+    writtenFiles.docx = path.resolve(options.docxPath);
+  }
+  if (options.xlsxPath) {
+    ensureParentDirectory(options.xlsxPath);
+    fs.writeFileSync(options.xlsxPath, await buildPmoStatusReportXlsxBuffer(report));
+    writtenFiles.xlsx = path.resolve(options.xlsxPath);
+  }
+  return writtenFiles;
+}
+
 function printProjectIntelligence() {
   const inputPath = getArgValue("--intelligence");
   if (!inputPath) {
@@ -938,28 +1154,35 @@ function printProjectIntelligence() {
   console.log(formatProjectIntelligenceMarkdown(intelligence));
 }
 
-function printPmoStatusReport() {
+async function printPmoStatusReport() {
   const inputPath = getArgValue("--pmo-report");
   if (!inputPath) {
     throw new Error("--pmo-report requires a JSON file path or '-' for stdin.");
   }
   const projects = readProjectsInput(inputPath);
   const report = projectIntelligence.buildPmoStatusReport(projects, buildPmoReportOptions());
+  const writtenFiles = await writePmoStatusReportFiles(report, {
+    docxPath: getArgValue("--docx"),
+    xlsxPath: getArgValue("--xlsx"),
+  });
   if (process.argv.includes("--json")) {
-    console.log(JSON.stringify(report, null, 2));
+    console.log(JSON.stringify({ ...report, writtenFiles }, null, 2));
     return;
   }
-  console.log(formatPmoStatusReportMarkdown(report));
+  const fileLines = Object.keys(writtenFiles).length
+    ? `\nFiles written:\n${Object.entries(writtenFiles).map(([type, outputPath]) => `- ${type}: ${outputPath}`).join("\n")}\n`
+    : "";
+  console.log(`${formatPmoStatusReportMarkdown(report)}${fileLines}`);
 }
 
-if (require.main === module) {
+async function main() {
   try {
     if (process.argv.includes("--help") || process.argv.includes("-h")) {
       printHelp();
     } else if (process.argv.includes("--dataverse")) {
       printDataverseSnippet();
     } else if (process.argv.includes("--pmo-report")) {
-      printPmoStatusReport();
+      await printPmoStatusReport();
     } else if (process.argv.includes("--intelligence")) {
       printProjectIntelligence();
     } else {
@@ -969,6 +1192,10 @@ if (require.main === module) {
     console.error(error.message);
     process.exitCode = 1;
   }
+}
+
+if (require.main === module) {
+  main();
 }
 
 module.exports = {
@@ -995,8 +1222,11 @@ module.exports = {
   buildDynamicsProjectRecordUrl,
   buildProjectRecordApiUrl,
   buildStatusUpdateDraft,
+  buildPmoStatusReportDocxBuffer,
+  buildPmoStatusReportXlsxBuffer,
   formatProjectIntelligenceMarkdown,
   formatPmoStatusReportMarkdown,
+  writePmoStatusReportFiles,
   buildAuditEntry: projectIntelligence.buildAuditEntry,
   buildAiEscalationPack: projectIntelligence.buildAiEscalationPack,
   buildAudienceReport: projectIntelligence.buildAudienceReport,

@@ -66,6 +66,14 @@ Emit the filtered PMO report as JSON:
 node ./scripts/statusbericht.js --pmo-report <real-project-export.json> --project-status "In Progress" --json
 ```
 
+Write the PMO report as Word and Excel files:
+
+```powershell
+node ./scripts/statusbericht.js --pmo-report <real-project-export.json> --project-status "In Progress" --docx reports/pmo-status.docx --xlsx reports/pmo-status.xlsx
+```
+
+The DOCX contains filter, summary, and project tables. The XLSX workbook contains separate worksheets for summary, filters, filtered projects, and PMO findings.
+
 ## Dynamics Browser Workflow
 
 1. Start the `status-report` skill in Codex.
@@ -112,6 +120,7 @@ Offline intelligence expects a JSON array of mapped project objects. Common fiel
 - Project Safety Gates with safety level, management attention, writeback risk, required evidence, and recommended actions.
 - PMO Control Tower output with 25 governance and portfolio-control checks per project.
 - PMO Status Report output with filters for project status and last status report date/text.
+- DOCX and XLSX PMO report files.
 - Risk ledger rows.
 - PMO nudges and manual review drafts.
 - JSON intelligence pack.

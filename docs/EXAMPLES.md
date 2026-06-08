@@ -80,6 +80,12 @@ Use JSON for dashboard or PMO queue consumers:
 node ./scripts/statusbericht.js --pmo-report <real-project-export.json> --project-status "In Progress,Planning" --last-status-missing --json
 ```
 
+Generate PMO Word and Excel files:
+
+```powershell
+node ./scripts/statusbericht.js --pmo-report <real-project-export.json> --project-status "In Progress" --docx reports/pmo-status.docx --xlsx reports/pmo-status.xlsx
+```
+
 ## Schema-Aware Consumers
 
 Consumer tools should start with:

@@ -1,5 +1,7 @@
 const assert = require("node:assert/strict");
 const { execFileSync } = require("node:child_process");
+const fs = require("node:fs");
+const os = require("node:os");
 const path = require("node:path");
 
 const scriptPath = path.join(__dirname, "statusbericht.js");
@@ -78,5 +80,33 @@ const pmoJsonOutput = execFileSync(
 const pmoJson = JSON.parse(pmoJsonOutput);
 assert.equal(pmoJson.filters.projectStatusLabels[0], "In Progress");
 assert.equal(pmoJson.pmoControlTower.summary.projectsReviewed, 2);
+
+const outputDir = fs.mkdtempSync(path.join(os.tmpdir(), "tpg-pmo-report-"));
+const docxPath = path.join(outputDir, "pmo-status.docx");
+const xlsxPath = path.join(outputDir, "pmo-status.xlsx");
+const pmoFileOutput = execFileSync(
+  process.execPath,
+  [
+    scriptPath,
+    "--pmo-report",
+    fixturePath,
+    "--project-status",
+    "In Progress",
+    "--docx",
+    docxPath,
+    "--xlsx",
+    xlsxPath,
+    "--json",
+    "--allow-sample",
+  ],
+  { encoding: "utf8" }
+);
+const pmoFileJson = JSON.parse(pmoFileOutput);
+assert.equal(fs.existsSync(docxPath), true);
+assert.equal(fs.existsSync(xlsxPath), true);
+assert.deepEqual([...fs.readFileSync(docxPath).subarray(0, 2)].map((byte) => String.fromCharCode(byte)).join(""), "PK");
+assert.deepEqual([...fs.readFileSync(xlsxPath).subarray(0, 2)].map((byte) => String.fromCharCode(byte)).join(""), "PK");
+assert.equal(pmoFileJson.writtenFiles.docx, path.resolve(docxPath));
+assert.equal(pmoFileJson.writtenFiles.xlsx, path.resolve(xlsxPath));
 
 console.log("statusbericht cli tests passed");

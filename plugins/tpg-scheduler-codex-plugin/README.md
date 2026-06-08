@@ -10,6 +10,7 @@ npm test
 npm run status-report:help
 node ./scripts/statusbericht.js --intelligence <real-project-export.json>
 node ./scripts/statusbericht.js --pmo-report <real-project-export.json> --project-status "In Progress"
+node ./scripts/statusbericht.js --pmo-report <real-project-export.json> --docx reports/pmo-status.docx --xlsx reports/pmo-status.xlsx
 ```
 
 The legacy `statusbericht:*` npm script names are kept as compatibility aliases.

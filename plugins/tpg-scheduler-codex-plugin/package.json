@@ -19,5 +19,9 @@
     "statusbericht:intelligence": "node ./scripts/statusbericht.js --intelligence",
     "statusbericht:pmo": "node ./scripts/statusbericht.js --pmo-report",
     "test": "node --check ./scripts/statusbericht.js && node --check ./scripts/validate-plugin.js && node ./scripts/statusbericht.test.js && node ./scripts/project-intelligence.test.js && node ./scripts/statusbericht.cli.test.js && node ./scripts/validate-plugin.js"
+  },
+  "dependencies": {
+    "docx": "^9.7.1",
+    "jszip": "^3.10.1"
   }
 }

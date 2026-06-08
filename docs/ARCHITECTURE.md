@@ -75,6 +75,8 @@ The eight safety domains are data integrity, status truth, delivery risk, decisi
 
 `buildPmoStatusReport(projects, options)` applies PMO report filters before control-tower calculation. Supported filters include project status labels, last status report date ranges, exact last status report date, missing last status report, and text matching against the last status report narrative.
 
+The CLI can serialize the filtered PMO status report to DOCX and XLSX. DOCX generation uses the `docx` package. XLSX generation writes a minimal Office Open XML workbook through `jszip` so the plugin avoids heavier spreadsheet dependency trees.
+
 ## Schema Layer
 
 The schema layer documents output contracts without adding runtime dependencies. Validation checks parse each schema and assert critical contract anchors:

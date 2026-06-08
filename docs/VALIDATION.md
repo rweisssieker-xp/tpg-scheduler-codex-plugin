@@ -15,6 +15,7 @@ This runs:
 - Maximum project safety gate tests.
 - PMO control tower tests.
 - PMO status report filter tests.
+- PMO DOCX and XLSX file export tests.
 - CLI behavior tests.
 - Plugin metadata and documentation validation.
 - The same validation flow used by GitHub Actions CI.
@@ -40,6 +41,7 @@ The validation script checks:
 - The synthetic sample output includes `projectSafetyGates` and `pmoControlTower`.
 - Productive npm intelligence scripts do not point at sample or fixture data.
 - No npm script exposes demo, mock, sample, or fixture data as an active command.
+- DOCX and XLSX export dependencies are validated, and the vulnerable `exceljs` dependency tree is disallowed.
 
 ## GitHub Actions
 
