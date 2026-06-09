@@ -19,6 +19,7 @@ For PMO reporting, portfolio management packs, the 12-report PMO suite, or DOCX/
 - Use the Status API Max Layer for status history, duplicate checks, idempotency, writeback queues, metadata discovery, permission probes, audit events, and confirmation-gated Dataverse create plans.
 - Show project safety level and PMO control findings before collecting or staging a status update.
 - When generating intelligence JSON, include and explain `maximumUsps` if the user asks for USPs, differentiation, PMO/CIO/CEO value, or product positioning.
+- When the user asks for PMO-specific value, operational PMO workflows, steering, audit, or CIO/CEO PMO outcomes, include and explain `pmoUsps`.
 - Treat `kv` as the configured unchanged-status shortcut.
 - Never save, submit, send, delete, change ownership, or change CRM state without explicit user confirmation.
 - Treat Email Status Update as a separate high-risk setting that must be reviewed before any save.
@@ -44,5 +45,6 @@ Before staging any CRM draft, show:
 - safety level and writeback risk
 - PMO intervention recommendation
 - maximum USP signals when relevant
+- PMO USP command queue, evidence ledger, and data gaps when relevant
 - required evidence gaps
 - exact status text and email setting that would be staged

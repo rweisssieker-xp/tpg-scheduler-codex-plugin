@@ -56,6 +56,23 @@ const MAXIMUM_USP_IDS = Object.freeze([
   "portfolio_work_queue",
   "crm_writeback_simulation",
 ]);
+const PMO_USP_IDS = Object.freeze([
+  "pmo_command_queue",
+  "steering_committee_auto_pack",
+  "decision_sla_enforcement",
+  "risk_aging_memory",
+  "pm_quality_coaching",
+  "portfolio_bottleneck_detector",
+  "governance_exception_radar",
+  "pmo_data_quality_score",
+  "executive_attention_routing",
+  "baseline_drift_watch",
+  "writeback_audit_shield",
+  "pmo_evidence_ledger",
+  "no_surprise_portfolio_forecast",
+  "dependency_blast_radius",
+  "pmo_board_pack_diff",
+]);
 
 function buildPmoConfig(overrides = {}) {
   return { ...DEFAULT_PMO_CONFIG, ...overrides };
@@ -1973,6 +1990,441 @@ function uspReadiness(statuses) {
   return "ready";
 }
 
+function pmoUspDataGap(uspId, field, message, project = null) {
+  return {
+    uspId,
+    projectId: project?.projectId || project?.id || null,
+    name: project?.name || null,
+    field,
+    message,
+  };
+}
+
+function pmoUspObject(input) {
+  return {
+    id: input.id,
+    title: input.title,
+    targetUser: input.targetUser,
+    painSolved: input.painSolved,
+    concreteBenefit: input.concreteBenefit,
+    technicalMechanism: input.technicalMechanism,
+    requiredData: input.requiredData || [],
+    runtimeSignals: input.runtimeSignals || {},
+    recommendedActions: input.recommendedActions || [],
+    dataGaps: input.dataGaps || [],
+    proofMetric: input.proofMetric,
+    risksAndTrustControls: input.risksAndTrustControls || ["advisory_only", "human_review_required", "no_automatic_crm_write"],
+    feasibility: input.feasibility || "high",
+    implementationStatus: "implemented",
+    advisoryOnly: true,
+  };
+}
+
+function buildPmoCommandQueueFromSignals(projects, signals, options = {}) {
+  const today = options.today || new Date().toISOString().slice(0, 10);
+  const items = [];
+  for (const row of signals.workQueue.rows || []) {
+    items.push({
+      id: `${row.projectId || "portfolio"}::pmo_work_queue`,
+      projectId: row.projectId || null,
+      name: row.name || null,
+      action: row.nextAction || "PMO review",
+      owner: "PMO",
+      dueDate: today,
+      priority: row.pmoLevel === "critical" ? "critical" : "high",
+      source: "pmo_work_queue",
+      evidenceCodes: ["pmo_work_queue"],
+    });
+  }
+  for (const item of signals.decisionDebt.items || []) {
+    if (["overdue", "due_today"].includes(item.sla?.status)) {
+      items.push({
+        id: `${item.id}::decision_sla`,
+        projectId: item.projectId || null,
+        name: item.name || null,
+        action: `Close decision: ${item.decision}`,
+        owner: item.owner || "PMO",
+        dueDate: item.dueDate || today,
+        priority: item.sla.status === "overdue" ? "critical" : "high",
+        source: "decision_sla_enforcement",
+        evidenceCodes: ["decision_sla"],
+      });
+    }
+  }
+  for (const finding of signals.safetySuite.topFindings || []) {
+    items.push({
+      id: `${finding.projectId || "portfolio"}::${finding.checkId}`,
+      projectId: finding.projectId || null,
+      name: finding.name || null,
+      action: finding.message || "Review safety finding",
+      owner: finding.severity === "critical" ? "CIO" : "PMO",
+      dueDate: today,
+      priority: finding.severity === "critical" ? "critical" : "high",
+      source: "project_safety_gate",
+      evidenceCodes: [finding.checkId],
+    });
+  }
+  const rank = { critical: 0, high: 1, medium: 2, low: 3 };
+  return items
+    .sort((left, right) => (rank[left.priority] ?? 9) - (rank[right.priority] ?? 9))
+    .slice(0, 50);
+}
+
+function buildPmoEvidenceLedgerFromSignals(projects, signals, options = {}) {
+  const today = options.today || new Date().toISOString().slice(0, 10);
+  return (signals.safetySuite.projects || []).flatMap((project) =>
+    (project.gates || [])
+      .filter((gate) => gate.status !== "pass" || gate.evidenceCodes?.length || gate.missingFields?.length)
+      .map((gate) => ({
+        projectId: project.projectId,
+        name: project.name,
+        source: "project_safety_gate",
+        code: gate.checkId,
+        severity: gate.severity,
+        status: gate.status,
+        message: gate.message,
+        evidenceCodes: gate.evidenceCodes || [],
+        missingFields: gate.missingFields || [],
+        recordUrl: (projects || []).find((candidate) => (candidate.projectId || candidate.id) === project.projectId)?.recordUrl || null,
+        observedAt: today,
+      }))
+  ).slice(0, 100);
+}
+
+function buildRiskAgingMemorySignals(projects, options = {}) {
+  const currentRisks = buildRiskLedgerEntries(projects, options).reduce((rows, item) => {
+    let row = rows.find((candidate) => candidate.projectId === item.projectId);
+    if (!row) {
+      row = { projectId: item.projectId, risks: [], detectedAt: item.detectedAt };
+      rows.push(row);
+    }
+    row.risks.push(item.message || item.evidenceCode);
+    return rows;
+  }, []);
+  const previousRisks = (options.previousSnapshots || []).flatMap((snapshot) => {
+    if (Array.isArray(snapshot.riskLedger)) {
+      return snapshot.riskLedger.reduce((rows, item) => {
+        let row = rows.find((candidate) => candidate.projectId === item.projectId);
+        if (!row) {
+          row = { projectId: item.projectId, risks: [], detectedAt: item.detectedAt };
+          rows.push(row);
+        }
+        row.risks.push(item.message || item.evidenceCode || item.risk || "");
+        return rows;
+      }, []);
+    }
+    if (Array.isArray(snapshot.risks)) return snapshot.risks;
+    return [];
+  });
+  const drift = buildRiskNarrativeDrift(previousRisks, currentRisks);
+  const recurring = currentRisks.filter((current) => previousRisks.some((previous) => previous.projectId === current.projectId)).length;
+  return {
+    summary: {
+      currentRiskProjects: currentRisks.length,
+      previousRiskProjects: previousRisks.length,
+      recurringRiskProjects: recurring,
+      driftItems: drift.summary.driftItems,
+    },
+    currentRisks,
+    driftItems: drift.items,
+  };
+}
+
+function buildBaselineDriftSignals(projects, options = {}) {
+  const previousProjects = (options.previousSnapshots || []).flatMap((snapshot) => snapshot.projects || snapshot.preview || []);
+  const items = (projects || []).map((project) => {
+    const projectId = project.projectId || project.id || null;
+    const previous = previousProjects.find((candidate) => (candidate.projectId || candidate.id) === projectId) || null;
+    const previousProgress = Number(previous?.progress);
+    const currentProgress = Number(project.progress);
+    return {
+      projectId,
+      name: project.name || null,
+      baselineAvailable: Boolean(previous),
+      previousFinish: previous?.finish || null,
+      currentFinish: project.finish || null,
+      finishChanged: Boolean(previous?.finish && project.finish && previous.finish !== project.finish),
+      progressDelta: Number.isFinite(previousProgress) && Number.isFinite(currentProgress) ? currentProgress - previousProgress : null,
+    };
+  });
+  return {
+    summary: {
+      projectsReviewed: items.length,
+      baselineProjects: items.filter((item) => item.baselineAvailable).length,
+      finishDrifts: items.filter((item) => item.finishChanged).length,
+      missingBaselines: items.filter((item) => !item.baselineAvailable).length,
+    },
+    items,
+  };
+}
+
+function buildPmoBoardPackDiffSignals(currentPack, options = {}) {
+  const previousPack = options.previousPack || null;
+  if (!previousPack) {
+    return {
+      summary: { previousPackAvailable: false, newRisks: 0, resolvedRisks: 0, newDecisions: 0, resolvedDecisions: 0 },
+      diff: null,
+    };
+  }
+  const diff = buildPortfolioNarrativeDiff(previousPack, currentPack);
+  return {
+    summary: { previousPackAvailable: true, ...diff.summary },
+    diff,
+  };
+}
+
+function buildPmoUspLayer(projects = [], options = {}) {
+  const activeProjects = (projects || []).filter(isActiveProjectCandidate);
+  const safetySuite = buildProjectSafetyGateSuite(activeProjects, options);
+  const pmoTower = buildPmoControlTower(activeProjects, options);
+  const decisionDebt = buildDecisionDebtAnalysis(activeProjects, options);
+  const decisionSla = buildDecisionSlaCockpit(activeProjects, options);
+  const dependencyIntel = buildCrossProjectDependencyIntelligence(activeProjects, options);
+  const noSurprise = buildNoSurpriseForecast(activeProjects, options);
+  const pmCoach = buildProjectManagerQualityCoach(activeProjects, options);
+  const governanceExceptions = buildGovernanceExceptions(activeProjects, options);
+  const dataCompleteness = activeProjects.map(buildDataCompletenessScore);
+  const evidenceGaps = buildEvidenceGapDetector(activeProjects, options);
+  const pmoSuite = buildPmoReportSuite(activeProjects, options);
+  const workQueue = buildPmoReport("pmo_work_queue", activeProjects, options);
+  const budgetReport = buildPmoReport("budget_financial_risk", activeProjects, options);
+  const milestoneReport = buildPmoReport("milestone_baseline_drift", activeProjects, options);
+  const writebackReport = buildPmoReport("audit_writeback_safety", activeProjects, options);
+  const executiveQuestions = buildExecutiveQuestionGenerator(activeProjects, options);
+  const portfolioRisks = buildPortfolioRiskList(activeProjects, options);
+  const steeringAgenda = buildSteeringAgenda(activeProjects, options);
+  const riskAging = buildRiskAgingMemorySignals(activeProjects, options);
+  const baselineDrift = buildBaselineDriftSignals(activeProjects, options);
+  const currentPack = {
+    portfolioRisks,
+    decisionClosureItems: buildDecisionClosureItems(activeProjects, options),
+    riskLedger: buildRiskLedgerEntries(activeProjects, options),
+  };
+  const boardDiff = buildPmoBoardPackDiffSignals(currentPack, options);
+  const signals = { safetySuite, pmoTower, decisionDebt, decisionSla, dependencyIntel, noSurprise, pmCoach, governanceExceptions, dataCompleteness, evidenceGaps, pmoSuite, workQueue, budgetReport, milestoneReport, writebackReport, executiveQuestions, portfolioRisks, steeringAgenda, riskAging, baselineDrift, boardDiff };
+  const commandQueue = buildPmoCommandQueueFromSignals(activeProjects, signals, options);
+  const evidenceLedger = buildPmoEvidenceLedgerFromSignals(activeProjects, signals, options);
+  const dataGaps = [
+    ...pmoSuite.reports.flatMap((report) => (report.dataGaps || []).map((gap) => ({ ...gap, uspId: "evidence_backed_reports", reportType: report.reportType }))),
+    ...(!options.previousSnapshots?.length ? [
+      pmoUspDataGap("risk_aging_memory", "previousSnapshots", "Risk aging memory needs previousSnapshots for recurring/stale risk detection."),
+      pmoUspDataGap("baseline_drift_watch", "previousSnapshots", "Baseline drift watch needs previousSnapshots for finish/progress drift."),
+    ] : []),
+    ...(!options.previousPack ? [pmoUspDataGap("pmo_board_pack_diff", "previousPack", "PMO board pack diff needs previousPack.")] : []),
+  ];
+  const executiveAttentionItems = safetySuite.summary.cioAttention + safetySuite.summary.ceoAttention;
+  const criticalWorkItems = commandQueue.filter((item) => item.priority === "critical").length;
+  const definitions = [
+    pmoUspObject({
+      id: "pmo_command_queue",
+      title: "PMO Command Queue",
+      targetUser: "PMO operator",
+      painSolved: "PMO work is hidden across reports, findings, decisions, and nudges.",
+      concreteBenefit: "Creates one prioritized queue with action, owner, due date, source, and evidence.",
+      technicalMechanism: "Combines PMO Work Queue rows, overdue decision SLAs, and critical safety findings.",
+      requiredData: ["PMO checks", "Safety Gates", "decisions", "ownerName"],
+      runtimeSignals: { workItems: commandQueue.length, criticalWorkItems },
+      recommendedActions: commandQueue.slice(0, 10).map((item) => item.action),
+      proofMetric: proofMetric("pmo_command_queue_items", commandQueue.length, "All PMO interventions become queued actions", commandQueue.length ? "watch" : "ready"),
+    }),
+    pmoUspObject({
+      id: "steering_committee_auto_pack",
+      title: "Steering Committee Auto-Pack",
+      targetUser: "PMO lead and steering committee",
+      painSolved: "Steering preparation requires manual consolidation of risks, agenda items, questions, and data gaps.",
+      concreteBenefit: "Builds an executive pack source with agenda, top risks, decisions, questions, and gaps.",
+      technicalMechanism: "Combines Steering Agenda, Portfolio Risk List, Executive Questions, Decision Debt, and Evidence Gaps.",
+      requiredData: ["overallKpiLabel", "lastStatusUpdate", "decisions", "sponsorActions", "obstaclesAndMeasures"],
+      runtimeSignals: { agendaItems: steeringAgenda.length, topRisks: portfolioRisks.length, executiveQuestions: executiveQuestions.items.length, dataGaps: evidenceGaps.summary.totalGaps },
+      recommendedActions: steeringAgenda.slice(0, 10).map((item) => item.agendaItem),
+      dataGaps: evidenceGaps.items.flatMap((item) => item.gaps.map((gap) => pmoUspDataGap("steering_committee_auto_pack", gap, "Evidence gap affects steering readiness.", item))),
+      proofMetric: proofMetric("steering_pack_inputs", steeringAgenda.length + portfolioRisks.length + executiveQuestions.items.length, "All steering inputs generated from project evidence", steeringAgenda.length || portfolioRisks.length ? "watch" : "ready"),
+    }),
+    pmoUspObject({
+      id: "decision_sla_enforcement",
+      title: "Decision SLA Enforcement",
+      targetUser: "PMO lead and CIO",
+      painSolved: "Decisions age without explicit SLA status and escalation level.",
+      concreteBenefit: "Shows overdue, due-today, and upcoming decisions with owner and project impact.",
+      technicalMechanism: "Uses Decision SLA Cockpit and Decision Debt Analysis.",
+      requiredData: ["decisions", "decisionOwner", "decisionDueDate"],
+      runtimeSignals: { ...decisionSla.summary, decisionDebtScore: decisionDebt.summary.decisionDebtScore },
+      recommendedActions: decisionDebt.items.slice(0, 10).map((item) => `Close decision for ${item.name}: ${item.decision}`),
+      proofMetric: proofMetric("overdue_decisions", decisionSla.summary.overdue, "No overdue decision without PMO action", decisionSla.summary.overdue ? "watch" : "ready"),
+    }),
+    pmoUspObject({
+      id: "risk_aging_memory",
+      title: "Risk Aging Memory",
+      targetUser: "PMO risk manager",
+      painSolved: "Recurring risks can be reworded and appear new.",
+      concreteBenefit: "Identifies recurring risk projects and narrative drift across snapshots.",
+      technicalMechanism: "Builds current risk ledger rows and compares them with previous snapshot risk ledgers.",
+      requiredData: ["riskLedger", "previousSnapshots", "obstaclesAndMeasures", "lastStatusUpdate"],
+      runtimeSignals: riskAging.summary,
+      dataGaps: !options.previousSnapshots?.length ? [pmoUspDataGap("risk_aging_memory", "previousSnapshots", "Previous snapshots are required for risk aging memory.")] : [],
+      recommendedActions: riskAging.driftItems.slice(0, 10).map((item) => `Review recurring risk wording for ${item.projectId}`),
+      proofMetric: proofMetric("recurring_risk_projects", riskAging.summary.recurringRiskProjects, "Recurring risks are visible instead of reset", options.previousSnapshots?.length ? (riskAging.summary.recurringRiskProjects ? "watch" : "ready") : "needs_data"),
+    }),
+    pmoUspObject({
+      id: "pm_quality_coaching",
+      title: "PM Quality Coaching",
+      targetUser: "PMO coach",
+      painSolved: "Status-quality weaknesses are not aggregated by project manager.",
+      concreteBenefit: "Creates PM coaching signals and recommended interventions by owner.",
+      technicalMechanism: "Uses Project Manager Quality Coach, Status Quality, and blocked kv signals.",
+      requiredData: ["ownerName", "projectManagerName", "overallKpiLabel", "lastStatusUpdate"],
+      runtimeSignals: pmCoach.summary,
+      recommendedActions: pmCoach.items.map((item) => item.recommendedIntervention),
+      dataGaps: activeProjects.filter((project) => !project.ownerName && !project.projectManagerName).map((project) => pmoUspDataGap("pm_quality_coaching", "ownerName", "Project manager or owner is missing.", project)),
+      proofMetric: proofMetric("owners_reviewed_for_coaching", pmCoach.summary.owners, "Every owner receives quality review", pmCoach.summary.owners ? "ready" : "needs_data"),
+    }),
+    pmoUspObject({
+      id: "portfolio_bottleneck_detector",
+      title: "Portfolio Bottleneck Detector",
+      targetUser: "PMO lead and program manager",
+      painSolved: "Shared bottlenecks are hidden inside individual project narratives.",
+      concreteBenefit: "Finds vendor, dependency, owner, resource, and decision bottlenecks across projects.",
+      technicalMechanism: "Combines Portfolio Constraint Radar and Cross-Project Dependency Intelligence.",
+      requiredData: ["dependencyName", "vendorName", "ownerName", "resourceStatusLabel", "decisions"],
+      runtimeSignals: { constraintSummary: buildPortfolioConstraintRadar(activeProjects, options).summary, dependencySummary: dependencyIntel.summary },
+      recommendedActions: dependencyIntel.items.filter((item) => item.hasRisk).map((item) => `Resolve shared dependency: ${item.dependency}`),
+      proofMetric: proofMetric("dependencies_with_risk", dependencyIntel.summary.dependenciesWithRisk, "Shared dependency risks have affected projects listed", dependencyIntel.summary.dependenciesWithRisk ? "watch" : "ready"),
+    }),
+    pmoUspObject({
+      id: "governance_exception_radar",
+      title: "Governance Exception Radar",
+      targetUser: "PMO governance owner",
+      painSolved: "Policy exceptions and missing governance evidence are found late.",
+      concreteBenefit: "Lists governance exceptions with severity, evidence, and PMO action.",
+      technicalMechanism: "Uses Governance Exceptions and PMO Policy Simulator.",
+      requiredData: ["overallKpiLabel", "decisions", "sponsorActions", "recordUrl"],
+      runtimeSignals: { exceptions: governanceExceptions.length, policyViolations: buildPmoPolicySimulator(activeProjects, { ...options, policies: options.policies || [{ id: "red_requires_sponsor_action", severity: "critical" }] }).summary.violations },
+      recommendedActions: governanceExceptions.map((item) => item.recommendedAction || "Review governance exception"),
+      proofMetric: proofMetric("governance_exceptions", governanceExceptions.length, "All governance exceptions visible to PMO", governanceExceptions.length ? "watch" : "ready"),
+    }),
+    pmoUspObject({
+      id: "pmo_data_quality_score",
+      title: "PMO Data Quality Score",
+      targetUser: "PMO analyst",
+      painSolved: "Poor project data reaches management packs without being marked.",
+      concreteBenefit: "Scores management readiness and exposes missing fields and trust levels.",
+      technicalMechanism: "Combines Data Completeness, Evidence Gap Detector, Project Truth Score, and Report Quality Benchmark.",
+      requiredData: ["recordUrl", "projectStatusLabel", "overallKpiLabel", "finish", "lastStatusUpdate"],
+      runtimeSignals: { averageScore: buildReportQualityBenchmark(activeProjects, options).summary.averageScore, projectsWithGaps: evidenceGaps.summary.projectsWithGaps, totalGaps: evidenceGaps.summary.totalGaps },
+      dataGaps: dataCompleteness.flatMap((item) => item.missingFields.map((field) => pmoUspDataGap("pmo_data_quality_score", field, "Required PMO data field is missing.", item))),
+      recommendedActions: evidenceGaps.items.map((item) => `Complete evidence for ${item.name || item.projectId}`),
+      proofMetric: proofMetric("pmo_data_gaps", evidenceGaps.summary.totalGaps, "All missing PMO data is visible", evidenceGaps.summary.totalGaps ? "watch" : "ready"),
+    }),
+    pmoUspObject({
+      id: "executive_attention_routing",
+      title: "Executive Attention Routing",
+      targetUser: "PMO lead, CIO, CFO, CEO",
+      painSolved: "Escalations are routed to the wrong management level.",
+      concreteBenefit: "Routes projects to PMO, CIO, CFO, or CEO with reason signals.",
+      technicalMechanism: "Uses Safety Gate management attention plus budget/resource/dependency report signals.",
+      requiredData: ["overallKpiLabel", "budgetStatusLabel", "resourceStatusLabel", "dependencyStatusLabel", "sponsorActions"],
+      runtimeSignals: { pmo: safetySuite.summary.pmoAttention, cio: safetySuite.summary.cioAttention, ceo: safetySuite.summary.ceoAttention, budgetRisks: budgetReport.summary.budgetRisks },
+      recommendedActions: safetySuite.projects.filter((item) => item.managementAttention !== "none").map((item) => `Route ${item.name || item.projectId} to ${item.managementAttention.toUpperCase()}`),
+      proofMetric: proofMetric("executive_attention_items", executiveAttentionItems, "All executive attention items routed", executiveAttentionItems ? "watch" : "ready"),
+    }),
+    pmoUspObject({
+      id: "baseline_drift_watch",
+      title: "Baseline Drift Watch",
+      targetUser: "PMO scheduler",
+      painSolved: "Finish and progress drift are invisible without comparing snapshots.",
+      concreteBenefit: "Flags finish drift, progress drift, and missing baseline data.",
+      technicalMechanism: "Compares current project finish/progress against previous snapshot project rows.",
+      requiredData: ["finish", "progress", "previousSnapshots"],
+      runtimeSignals: baselineDrift.summary,
+      dataGaps: baselineDrift.summary.missingBaselines ? [pmoUspDataGap("baseline_drift_watch", "previousSnapshots", "Previous project baselines are missing or incomplete.")] : [],
+      recommendedActions: baselineDrift.items.filter((item) => item.finishChanged).map((item) => `Review baseline drift for ${item.name || item.projectId}`),
+      proofMetric: proofMetric("finish_drifts", baselineDrift.summary.finishDrifts, "Every baseline drift is visible", options.previousSnapshots?.length ? (baselineDrift.summary.finishDrifts ? "watch" : "ready") : "needs_data"),
+    }),
+    pmoUspObject({
+      id: "writeback_audit_shield",
+      title: "Writeback Audit Shield",
+      targetUser: "Project leader and CRM process owner",
+      painSolved: "CRM writes can be staged without a clear blocker and audit preview.",
+      concreteBenefit: "Shows dry-run blockers, confirmation requirements, and audit previews before save.",
+      technicalMechanism: "Uses Safe Writeback Simulation Pro and audit writeback safety report.",
+      requiredData: ["draft.fields", "emailStatusUpdate", "submittedTo", "projectManagerVerified", "auditTrail"],
+      runtimeSignals: { ...writebackReport.summary, canAutoSave: false },
+      dataGaps: writebackReport.dataGaps.map((gap) => ({ ...gap, uspId: "writeback_audit_shield" })),
+      recommendedActions: ["Keep canAutoSave false.", "Require exact confirmation before CRM save."],
+      proofMetric: proofMetric("can_auto_save", false, "CRM writeback never auto-saves", "ready"),
+    }),
+    pmoUspObject({
+      id: "pmo_evidence_ledger",
+      title: "PMO Evidence Ledger",
+      targetUser: "PMO analyst and audit reviewer",
+      painSolved: "Evidence is scattered across reports, safety gates, and status fields.",
+      concreteBenefit: "Creates a ledger of evidence codes, source fields, URLs, gaps, and observed dates.",
+      technicalMechanism: "Collects non-pass Safety Gate evidence and missing fields into a portfolio ledger.",
+      requiredData: ["recordUrl", "Safety Gates", "evidenceCodes", "source fields"],
+      runtimeSignals: { ledgerItems: evidenceLedger.length, dataGaps: dataGaps.length },
+      dataGaps: evidenceLedger.filter((item) => !item.recordUrl).map((item) => pmoUspDataGap("pmo_evidence_ledger", "recordUrl", "Record URL is missing for evidence ledger.", item)),
+      recommendedActions: evidenceLedger.slice(0, 10).map((item) => item.message),
+      proofMetric: proofMetric("evidence_ledger_items", evidenceLedger.length, "All PMO findings have evidence ledger entries", evidenceLedger.length ? "ready" : "watch"),
+    }),
+    pmoUspObject({
+      id: "no_surprise_portfolio_forecast",
+      title: "No-Surprise Portfolio Forecast",
+      targetUser: "CIO, CEO, and PMO lead",
+      painSolved: "Likely escalations are detected after the reporting cycle.",
+      concreteBenefit: "Identifies likely escalations and silent risks before steering.",
+      technicalMechanism: "Uses No-Surprise Forecast, Safety Gates, and Escalation Readiness.",
+      requiredData: ["overallKpiLabel", "finish", "lastStatusUpdate", "obstaclesAndMeasures", "decisions"],
+      runtimeSignals: noSurprise.summary,
+      recommendedActions: noSurprise.items.filter((item) => item.forecast !== "stable").map((item) => `Review forecast for ${item.name || item.projectId}`),
+      proofMetric: proofMetric("likely_escalations", noSurprise.summary.likelyToEscalate, "No likely escalation hidden from PMO", noSurprise.summary.likelyToEscalate ? "watch" : "ready"),
+    }),
+    pmoUspObject({
+      id: "dependency_blast_radius",
+      title: "Dependency Blast Radius",
+      targetUser: "PMO lead and program manager",
+      painSolved: "The portfolio impact of a blocked dependency is not visible.",
+      concreteBenefit: "Shows shared dependencies, affected projects, and risk drivers.",
+      technicalMechanism: "Uses Cross-Project Dependency Intelligence and Safety Gate dependency findings.",
+      requiredData: ["dependencyName", "dependencyStatusLabel", "obstaclesAndMeasures"],
+      runtimeSignals: dependencyIntel.summary,
+      recommendedActions: dependencyIntel.items.filter((item) => item.hasRisk).map((item) => `Coordinate dependency resolution for ${item.dependency}`),
+      proofMetric: proofMetric("shared_dependency_risks", dependencyIntel.summary.dependenciesWithRisk, "Every shared dependency risk lists affected projects", dependencyIntel.summary.dependenciesWithRisk ? "watch" : "ready"),
+    }),
+    pmoUspObject({
+      id: "pmo_board_pack_diff",
+      title: "PMO Board Pack Diff",
+      targetUser: "PMO lead and steering committee",
+      painSolved: "Management packs do not clearly show what changed since the last board.",
+      concreteBenefit: "Highlights new, worsened, and resolved risks or decisions between packs.",
+      technicalMechanism: "Compares previousPack with the current risk and decision pack using portfolio narrative diff.",
+      requiredData: ["previousPack", "current portfolioRisks", "current decisionClosureItems"],
+      runtimeSignals: boardDiff.summary,
+      dataGaps: !options.previousPack ? [pmoUspDataGap("pmo_board_pack_diff", "previousPack", "Previous board pack is required for diff output.")] : [],
+      recommendedActions: boardDiff.diff ? ["Review new and resolved PMO board-pack deltas."] : ["Provide previousPack to enable board-pack diff."],
+      proofMetric: proofMetric("previous_pack_available", Boolean(options.previousPack), "Board pack diff has a previous pack", options.previousPack ? "ready" : "needs_data"),
+    }),
+  ];
+  const byId = new Map(definitions.map((item) => [item.id, item]));
+  const usps = PMO_USP_IDS.map((id) => byId.get(id));
+  return {
+    layerType: "pmo_usps",
+    generatedAt: options.generatedAt || new Date().toISOString(),
+    summary: {
+      uspCount: usps.length,
+      implemented: usps.filter((item) => item.implementationStatus === "implemented").length,
+      projectsReviewed: activeProjects.length,
+      criticalWorkItems,
+      dataGaps: dataGaps.length,
+      executiveAttentionItems,
+      safetyPosture: "advisory_only_confirmation_gated",
+    },
+    usps,
+    commandQueue,
+    evidenceLedger,
+    dataGaps,
+  };
+}
+
 function buildMaximumUspLayer(projects = [], options = {}) {
   const activeProjects = (projects || []).filter(isActiveProjectCandidate);
   const safetySuite = buildProjectSafetyGateSuite(activeProjects, options);
@@ -2309,6 +2761,7 @@ function buildProjectIntelligence(projects, options = {}) {
     pmoStatusReport: buildPmoStatusReport(projects, options),
     pmoReportSuite: buildPmoReportSuite(projects, options),
     maximumUsps: buildMaximumUspLayer(projects, options),
+    pmoUsps: buildPmoUspLayer(projects, options),
     executiveOnePager: buildExecutiveOnePager(projects, options),
     unchangedStatusText: UNCHANGED_STATUS_TEXT,
   };
@@ -2322,6 +2775,7 @@ module.exports = {
   ACTIVE_PROJECT_STATUS_LABELS,
   DEFAULT_PMO_CONFIG,
   MAXIMUM_USP_IDS,
+  PMO_USP_IDS,
   PMO_REPORT_TYPES,
   UNCHANGED_STATUS_TEXT,
   buildAiEscalationPack,
@@ -2349,6 +2803,7 @@ module.exports = {
   buildLiveDynamicsRunPlan,
   buildManagementActionExportRows,
   buildMaximumUspLayer,
+  buildPmoUspLayer,
   buildMeetingCaptureDrafts,
   buildMeetingToDynamicsPlan,
   buildNudgeDrafts,

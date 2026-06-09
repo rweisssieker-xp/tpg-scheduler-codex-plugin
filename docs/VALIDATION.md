@@ -18,6 +18,7 @@ This runs:
 - PMO DOCX and XLSX file export tests.
 - PMO report suite tests for all 12 report types.
 - Maximum USP Layer tests for all 12 implemented advisory differentiators.
+- PMO USP Layer tests for all 15 implemented operational PMO differentiators.
 - Dataverse-first PMO export envelope tests for API helpers, browser snippet markers, and CLI input handling.
 - Status API Max Layer tests for duplicate checks, idempotency keys, queues, create plans, audit events, attachment plans, error mapping, and browser helper markers.
 - `pmo-report-suite` skill presence and report-type documentation.
@@ -52,6 +53,7 @@ The validation script checks:
 - Status API schemas parse and expose queue, create-plan, duplicate-check, audit-event, and envelope contracts.
 - The synthetic sample output includes `projectSafetyGates` and `pmoControlTower`.
 - The synthetic sample output includes `maximumUsps` with 12 implemented USP entries.
+- The synthetic sample output includes `pmoUsps` with 15 implemented PMO USP entries.
 - Productive npm intelligence scripts do not point at sample or fixture data.
 - No npm script exposes demo, mock, sample, or fixture data as an active command.
 - DOCX and XLSX export dependencies are validated, and the vulnerable `exceljs` dependency tree is disallowed.

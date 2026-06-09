@@ -8,6 +8,7 @@ description: Run the TPG-Scheduler-Codex-Plugin PMO report suite from the reposi
 Use this root skill entry when the plugin is installed from the repository root and the user asks for PMO reports, portfolio management reports, Word reports, Excel reports, or the 12 PMO report suite.
 
 For USP or differentiation requests, also inspect `buildProjectIntelligence(...).maximumUsps` or `buildMaximumUspLayer(projects, options)`.
+For PMO-specific USP requests, also inspect `buildProjectIntelligence(...).pmoUsps` or `buildPmoUspLayer(projects, options)`.
 
 The implementation package, tests, and deeper documentation live in `plugins/tpg-scheduler-codex-plugin/`.
 
@@ -36,3 +37,4 @@ npm test
 - Treat missing optional fields as data gaps.
 - Keep CRM write actions out of PMO report generation.
 - Keep Maximum USP output advisory-only and evidence-backed.
+- Keep PMO USP output advisory-only and evidence-backed.

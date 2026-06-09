@@ -1937,6 +1937,19 @@ function formatProjectIntelligenceMarkdown(intelligence) {
     }
   }
 
+  lines.push("", "## PMO USPs", "");
+  if (!intelligence.pmoUsps?.usps?.length) {
+    lines.push("- No PMO USP layer available.");
+  } else {
+    lines.push(`- Implemented PMO USPs: ${intelligence.pmoUsps.summary.implemented}/${intelligence.pmoUsps.summary.uspCount}`);
+    lines.push(`- Critical work items: ${intelligence.pmoUsps.summary.criticalWorkItems}`);
+    lines.push(`- Executive attention items: ${intelligence.pmoUsps.summary.executiveAttentionItems}`);
+    lines.push(`- Data gaps: ${intelligence.pmoUsps.summary.dataGaps}`);
+    for (const usp of intelligence.pmoUsps.usps.slice(0, 15)) {
+      lines.push(`- ${usp.title}: ${usp.concreteBenefit}`);
+    }
+  }
+
   return `${lines.join("\n")}\n`;
 }
 
@@ -2720,6 +2733,7 @@ module.exports = {
   PMO_PROJECT_EXPORT_TYPE,
   PMO_PROJECT_EXPORT_VERSION,
   MAXIMUM_USP_IDS: projectIntelligence.MAXIMUM_USP_IDS,
+  PMO_USP_IDS: projectIntelligence.PMO_USP_IDS,
   STATUS_API_FEATURE_VERSION,
   STATUS_UPDATE_ENTITY_LOGICAL_NAME_CANDIDATES,
   PROJECT_ACTIVE_STATE_FILTER,
@@ -2785,6 +2799,7 @@ module.exports = {
   buildLiveDynamicsRunPlan: projectIntelligence.buildLiveDynamicsRunPlan,
   buildManagementActionExportRows: projectIntelligence.buildManagementActionExportRows,
   buildMaximumUspLayer: projectIntelligence.buildMaximumUspLayer,
+  buildPmoUspLayer: projectIntelligence.buildPmoUspLayer,
   buildMeetingCaptureDrafts: projectIntelligence.buildMeetingCaptureDrafts,
   buildMeetingToDynamicsPlan: projectIntelligence.buildMeetingToDynamicsPlan,
   buildNudgeDrafts: projectIntelligence.buildNudgeDrafts,

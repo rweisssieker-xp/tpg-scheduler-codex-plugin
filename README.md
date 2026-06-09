@@ -10,6 +10,7 @@ TPG-Scheduler-Codex-Plugin is a Codex plugin for confirmation-gated Dynamics 365
 - Normalizes short `kv` input to the configured unchanged-status phrase used in the target Dynamics environment.
 - Builds project intelligence packs with evidence-backed risk, decision, PMO, and executive views.
 - Exposes a Maximum USP Layer with 12 implemented, evidence-backed differentiators for PMO, CIO, CEO, project-leader, and audit workflows.
+- Exposes a 15 PMO USP Layer that turns PMO findings into command queues, steering packs, SLA enforcement, evidence ledgers, and board-pack diffs.
 - Stages status update drafts only after review and never saves, submits, sends, deletes, or changes CRM state without explicit confirmation.
 
 ## Core USPs
@@ -20,6 +21,7 @@ TPG-Scheduler-Codex-Plugin is a Codex plugin for confirmation-gated Dynamics 365
 - Maximum Project Safety Gates across data integrity, status truth, delivery, governance, finance/resources, escalation, report quality, and writeback safety.
 - Status API Max Layer for metadata discovery, permission probes, status history, delta reads, writeback queues, schemas, and Dataverse error mapping.
 - Maximum USP Layer with 12 concrete, technically implemented differentiators exposed as `maximumUsps` in the project intelligence JSON.
+- 15 PMO USP Layer exposed as `pmoUsps` for operational PMO steering, escalation, audit, quality, and evidence workflows.
 - Public-repo safety posture: no mock data in productive commands, no automatic CRM writes, no secrets, and synthetic examples only.
 
 ## AI/KI Differentiators
@@ -67,6 +69,12 @@ TPG-Scheduler-Codex-Plugin is a Codex plugin for confirmation-gated Dynamics 365
 - Audit-Safe AI Recommendation
 - Portfolio Work Queue
 - CRM Writeback Simulation
+
+## 15 PMO USP Layer
+
+`buildPmoUspLayer(projects, options)` and `buildProjectIntelligence(projects, options).pmoUsps` expose 15 PMO-operational USPs as implemented, advisory-only JSON objects. The layer includes `summary`, `usps`, `commandQueue`, `evidenceLedger`, and `dataGaps`.
+
+The 15 PMO USPs are PMO Command Queue, Steering Committee Auto-Pack, Decision SLA Enforcement, Risk Aging Memory, PM Quality Coaching, Portfolio Bottleneck Detector, Governance Exception Radar, PMO Data Quality Score, Executive Attention Routing, Baseline Drift Watch, Writeback Audit Shield, PMO Evidence Ledger, No-Surprise Portfolio Forecast, Dependency Blast Radius, and PMO Board Pack Diff.
 
 ## Repository Layout
 

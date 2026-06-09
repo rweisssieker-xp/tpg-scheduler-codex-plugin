@@ -45,10 +45,12 @@ const {
   buildPmoProjectControls,
   buildPmoReport,
   buildPmoReportSuite,
+  buildPmoUspLayer,
   buildPmoStatusReport,
   buildPmoStatusReportDocxBuffer,
   buildPmoStatusReportXlsxBuffer,
   PMO_REPORT_TYPES,
+  PMO_USP_IDS,
   buildStatusApiEnvelope,
   buildStatusReportIdempotencyKey,
   buildStatusUpdateAttachmentPlan,
@@ -367,6 +369,7 @@ assert.equal(typeof buildPmoControlTower, "function");
 assert.equal(typeof buildPmoProjectControls, "function");
 assert.equal(typeof buildPmoReport, "function");
 assert.equal(typeof buildPmoReportSuite, "function");
+assert.equal(typeof buildPmoUspLayer, "function");
 assert.equal(typeof buildPmoStatusReport, "function");
 assert.equal(typeof buildPmoStatusReportDocxBuffer, "function");
 assert.equal(typeof buildPmoStatusReportXlsxBuffer, "function");
@@ -381,6 +384,7 @@ assert.equal(typeof buildStatusWritebackAuditEvent, "function");
 assert.equal(typeof buildStatusWritebackQueue, "function");
 assert.equal(typeof buildStructuredStatusUpdateDraft, "function");
 assert.equal(PMO_REPORT_TYPES.length, 12);
+assert.equal(PMO_USP_IDS.length, 15);
 assert.equal(typeof buildRiskLedgerEntries, "function");
 assert.equal(typeof buildRiskTrendIntelligence, "function");
 assert.equal(typeof buildSafeWritebackSimulation, "function");

@@ -44,7 +44,9 @@ const {
   buildPmoReport,
   buildPmoReportSuite,
   buildPmoStatusReport,
+  buildPmoUspLayer,
   PMO_REPORT_TYPES,
+  PMO_USP_IDS,
   buildPortfolioConstraintRadar,
   buildNoSurpriseForecast,
   buildReportQualityBenchmark,
@@ -637,6 +639,32 @@ assert.equal(maximumUsps.usps.find((usp) => usp.id === "evidence_backed_pmo_repo
 assert.equal(maximumUsps.usps.find((usp) => usp.id === "crm_writeback_simulation").runtimeSignals.simulationsWithAuditPreview, 2);
 const intelligenceWithUsps = buildProjectIntelligence(projects, { today: "2026-05-13" });
 assert.equal(intelligenceWithUsps.maximumUsps.summary.uspCount, 12);
+
+const pmoUsps = buildPmoUspLayer(projects, { today: "2026-05-13" });
+assert.equal(PMO_USP_IDS.length, 15);
+assert.equal(pmoUsps.layerType, "pmo_usps");
+assert.equal(pmoUsps.summary.uspCount, 15);
+assert.equal(pmoUsps.summary.implemented, 15);
+assert.equal(pmoUsps.summary.projectsReviewed, 2);
+assert.equal(pmoUsps.summary.criticalWorkItems >= 1, true);
+assert.equal(pmoUsps.summary.executiveAttentionItems >= 1, true);
+assert.equal(pmoUsps.summary.dataGaps >= 1, true);
+assert.equal(pmoUsps.summary.safetyPosture, "advisory_only_confirmation_gated");
+assert.deepEqual(pmoUsps.usps.map((usp) => usp.id), PMO_USP_IDS);
+assert.equal(pmoUsps.usps.every((usp) => usp.technicalMechanism && usp.proofMetric?.name && usp.runtimeSignals && usp.risksAndTrustControls.length), true);
+assert.equal(pmoUsps.usps.every((usp) => usp.requiredData.length && usp.implementationStatus === "implemented" && usp.advisoryOnly === true), true);
+assert.equal(pmoUsps.commandQueue.length >= 1, true);
+assert.equal(pmoUsps.evidenceLedger.length >= 1, true);
+assert.equal(pmoUsps.usps.find((usp) => usp.id === "decision_sla_enforcement").runtimeSignals.total, 1);
+assert.equal(pmoUsps.usps.find((usp) => usp.id === "risk_aging_memory").dataGaps.some((gap) => gap.field === "previousSnapshots"), true);
+assert.equal(pmoUsps.usps.find((usp) => usp.id === "baseline_drift_watch").proofMetric.status, "needs_data");
+assert.equal(pmoUsps.usps.find((usp) => usp.id === "pmo_board_pack_diff").proofMetric.status, "needs_data");
+assert.equal(pmoUsps.usps.find((usp) => usp.id === "writeback_audit_shield").runtimeSignals.canAutoSave, false);
+assert.equal(buildProjectIntelligence(projects, { today: "2026-05-13" }).pmoUsps.summary.uspCount, 15);
+
+const healthyPmoUsps = buildPmoUspLayer([projects[1]], { today: "2026-05-13" });
+assert.equal(healthyPmoUsps.summary.criticalWorkItems <= pmoUsps.summary.criticalWorkItems, true);
+assert.equal(healthyPmoUsps.summary.executiveAttentionItems, 0);
 
 const expectedPmoCheckIds = [
   "steering_readiness",

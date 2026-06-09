@@ -8,6 +8,7 @@ description: Use when creating PMO management reports, PMO report suites, filter
 Use this skill when the user asks for PMO reports, portfolio steering packs, management reports, Word reports, Excel reports, or any of the 12 PMO report types.
 
 If the user asks for USPs, differentiation, CIO/CEO value, or maximum product value, use `buildProjectIntelligence(...).maximumUsps` or `buildMaximumUspLayer(projects, options)` alongside the PMO reports.
+If the user asks for PMO-specific USPs, operational PMO value, steering committee preparation, audit readiness, or PMO work queues, use `buildProjectIntelligence(...).pmoUsps` or `buildPmoUspLayer(projects, options)`.
 
 ## Ground Rules
 
@@ -51,6 +52,26 @@ The PMO report suite can be paired with the 12 Maximum USPs:
 - Audit-Safe AI Recommendation
 - Portfolio Work Queue
 - CRM Writeback Simulation
+
+## 15 PMO USPs
+
+The PMO report suite can also be paired with `pmoUsps`:
+
+- PMO Command Queue
+- Steering Committee Auto-Pack
+- Decision SLA Enforcement
+- Risk Aging Memory
+- PM Quality Coaching
+- Portfolio Bottleneck Detector
+- Governance Exception Radar
+- PMO Data Quality Score
+- Executive Attention Routing
+- Baseline Drift Watch
+- Writeback Audit Shield
+- PMO Evidence Ledger
+- No-Surprise Portfolio Forecast
+- Dependency Blast Radius
+- PMO Board Pack Diff
 
 ## Commands
 

@@ -171,6 +171,7 @@ const intelligenceSchema = JSON.parse(assertFile("schemas/project-intelligence.s
 assert.equal(Boolean(intelligenceSchema.properties.projectSafetyGates), true, "project intelligence schema must include projectSafetyGates");
 assert.equal(Boolean(intelligenceSchema.properties.pmoControlTower), true, "project intelligence schema must include pmoControlTower");
 assert.equal(Boolean(intelligenceSchema.properties.maximumUsps), true, "project intelligence schema must include maximumUsps");
+assert.equal(Boolean(intelligenceSchema.properties.pmoUsps), true, "project intelligence schema must include pmoUsps");
 assert.equal(Boolean(intelligenceSchema.properties.pmoStatusReport), true, "project intelligence schema must include pmoStatusReport");
 assert.equal(Boolean(intelligenceSchema.properties.pmoReportSuite), true, "project intelligence schema must include pmoReportSuite");
 
@@ -195,6 +196,8 @@ assert.equal(Boolean(sample.projectSafetyGates?.summary), true, "sample output m
 assert.equal(Boolean(sample.pmoControlTower?.summary), true, "sample output must include pmoControlTower.summary");
 assert.equal(sample.maximumUsps?.summary?.uspCount, 12, "sample output must include the 12 maximum USPs");
 assert.equal(sample.maximumUsps?.usps?.length, 12, "sample output must include 12 maximum USP entries");
+assert.equal(sample.pmoUsps?.summary?.uspCount, 15, "sample output must include the 15 PMO USPs");
+assert.equal(sample.pmoUsps?.usps?.length, 15, "sample output must include 15 PMO USP entries");
 assert.equal(sample.pmoControlTower.summary.checksPerProject, 25, "sample output must show 25 PMO checks");
 assert.equal(sample.pmoControlTower.projects[0].checks.length, 25, "sample output must include 25 PMO checks for the example project");
 
