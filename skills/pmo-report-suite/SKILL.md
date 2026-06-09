@@ -12,7 +12,7 @@ For PMO-specific USP requests, also inspect `buildProjectIntelligence(...).pmoUs
 
 The implementation package, tests, and deeper documentation live in `plugins/tpg-scheduler-codex-plugin/`.
 
-Prefer real D365 API input from the authenticated Dynamics browser. Generate the helper with `npm run status-report:dataverse`, then run `TPGProjectAssist.retrieveProjectIntelligenceFromD365()` or `TPGProjectAssist.retrieveBatchProjectPreviewFromD365()` in Dynamics.
+Prefer real D365 API input from the authenticated Dynamics browser. Generate the helper with `npm run status-report:dataverse`, then run `TPGProjectAssist.retrieveProjectIntelligenceFromD365()`, `TPGProjectAssist.buildLivePmoControlCenterFromD365()`, `TPGProjectAssist.retrieveExecutiveSteeringPackFromD365()`, or `TPGProjectAssist.retrievePowerBiReadyPortfolioFromD365()` in Dynamics.
 
 ## Local Commands
 
@@ -33,6 +33,7 @@ npm test
 
 - Use real project data only.
 - Prefer live D365 API helper output from the authenticated Dynamics browser.
+- Use D365 API Max helpers for live control center, executive steering packs, PMO data-gap worklists, CIO/CFO routing, audit evidence packs, and Power BI-ready output.
 - Do not use sample, fixture, synthetic, or mock data for PMO work.
 - Use local JSON only as an explicit offline fallback with `--allow-offline-input`.
 - Treat missing optional fields as data gaps.

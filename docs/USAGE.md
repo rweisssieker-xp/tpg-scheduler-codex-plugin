@@ -164,6 +164,26 @@ The status API layer exposes these integration helpers for real Dynamics workflo
 - `buildStatusUpdateAttachmentPlan`: explicit-confirmation plan for linking DOCX/XLSX/JSON artifacts.
 - `mapDataverseError`: translates Dataverse errors into actionable categories.
 
+## D365 API Max Features
+
+The browser snippet also exposes 15 API-first helpers for PMO and monthly status operations. They all run inside the authenticated Dynamics browser context and use `Xrm.WebApi` or Dataverse metadata APIs:
+
+- `discoverProjectFieldMetadataFromD365`: live project field discovery.
+- `buildLivePmoControlCenterFromD365`: PMO control center with safety levels, risks, command queue, agenda, and gaps.
+- `resolveStatusUpdateEntityFromD365`: Status Update entity resolver.
+- `retrieveMonthlyPmSelfServiceFlowFromD365`: monthly project-leader self-service flow with duplicate checks and writeback queue.
+- `simulateStatusWritebackFromD365`: dry-run create plan with metadata and duplicate validation.
+- `resolveSubmittedToCandidatesFromD365`: real `systemuser` lookup candidates for `Submitted To`.
+- `retrieveStatusHistoryTimelineFromD365`: status history timeline by project.
+- `checkDuplicateStatusUpdateFromD365`: duplicate prevention for project/month.
+- `retrieveExecutiveSteeringPackFromD365`: executive pack from live portfolio data.
+- `retrievePmoDataGapWorklistFromD365`: PMO worklist for missing evidence.
+- `routeCioCfoRiskFromD365`: CIO/CFO/CEO/PMO risk routing.
+- `retrievePowerBiReadyPortfolioFromD365`: table-shaped JSON for Power BI/Fabric ingestion.
+- `probeD365PermissionsDetailed`: project, status, user lookup, and current-user permission probe.
+- `buildAuditEvidencePackFromD365`: audit evidence pack from live intelligence.
+- `pilotStatusWritebackFromD365`: safe pilot mode; dry-run by default and create only with exact confirmation.
+
 ## Important Commands
 
 ```powershell

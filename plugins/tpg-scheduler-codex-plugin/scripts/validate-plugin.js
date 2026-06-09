@@ -61,12 +61,18 @@ assert.match(skill, /buildMonthlyStatusReportDraft/);
 assert.match(skill, /--monthly-status-plan/);
 assert.match(skill, /createStatusUpdateWithConfirmation/);
 assert.match(skill, /buildStatusWritebackQueue/);
+assert.match(skill, /buildLivePmoControlCenterFromD365/);
+assert.match(skill, /retrieveMonthlyPmSelfServiceFlowFromD365/);
 const pmoSkill = assertFile("plugins/tpg-scheduler-codex-plugin/skills/pmo-report-suite/SKILL.md");
 const rootPmoSkill = assertFile("skills/pmo-report-suite/SKILL.md");
 assert.match(pmoSkill, /^---\nname: pmo-report-suite\n/m);
 assert.match(rootPmoSkill, /^---\nname: pmo-report-suite\n/m);
 assert.match(pmoSkill, /retrieveProjectIntelligenceFromD365|D365 API|Dataverse Web API/);
 assert.match(rootPmoSkill, /retrieveProjectIntelligenceFromD365|D365 API|Dataverse Web API/);
+assert.match(pmoSkill, /buildLivePmoControlCenterFromD365/);
+assert.match(rootPmoSkill, /buildLivePmoControlCenterFromD365/);
+assert.match(pmoSkill, /retrievePowerBiReadyPortfolioFromD365/);
+assert.match(rootPmoSkill, /retrievePowerBiReadyPortfolioFromD365/);
 for (const reportType of [
   "portfolio_steering",
   "decision_action_aging",
@@ -149,6 +155,25 @@ const publicDocs = [
 ].map(assertFile).join("\n");
 
 assert.equal(/Erstelle|Starte|Bereite|Statusbericht|Projektleiter/.test(publicDocs), false, "public docs should use en-US wording");
+for (const d365ApiFeature of [
+  "discoverProjectFieldMetadataFromD365",
+  "buildLivePmoControlCenterFromD365",
+  "resolveStatusUpdateEntityFromD365",
+  "retrieveMonthlyPmSelfServiceFlowFromD365",
+  "simulateStatusWritebackFromD365",
+  "resolveSubmittedToCandidatesFromD365",
+  "retrieveStatusHistoryTimelineFromD365",
+  "checkDuplicateStatusUpdateFromD365",
+  "retrieveExecutiveSteeringPackFromD365",
+  "retrievePmoDataGapWorklistFromD365",
+  "routeCioCfoRiskFromD365",
+  "retrievePowerBiReadyPortfolioFromD365",
+  "probeD365PermissionsDetailed",
+  "buildAuditEvidencePackFromD365",
+  "pilotStatusWritebackFromD365",
+]) {
+  assert.match(publicDocs, new RegExp(d365ApiFeature), `public docs must document ${d365ApiFeature}`);
+}
 
 for (const schemaPath of [
   "schemas/project-intelligence.schema.json",

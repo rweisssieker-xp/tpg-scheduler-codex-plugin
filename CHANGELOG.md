@@ -2,6 +2,7 @@
 
 ## 0.1.0 - 2026-06-08
 
+- Added D365 API Max Features with 15 authenticated browser-context helpers for field discovery, PMO live control center, status entity resolution, monthly PM self-service, dry-run writeback, Submitted-To resolution, status timelines, duplicate prevention, executive steering packs, data-gap worklists, executive risk routing, Power BI-ready output, detailed permission probes, audit evidence packs, and pilot writeback.
 - Added Maximum USP Layer with 12 implemented advisory differentiators exposed in project intelligence JSON.
 - Added schema, sample, CLI markdown, tests, docs, and skill guidance for `maximumUsps`.
 - Added 15 PMO USP Layer with command queue, evidence ledger, data gaps, proof metrics, and `pmoUsps` project intelligence output.

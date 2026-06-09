@@ -1664,6 +1664,462 @@ function getDataverseBrowserSnippet() {
     }
   }
 
+  function escapeODataString(value) {
+    return String(value || "").replace(/'/g, "''");
+  }
+
+  function compactEvidenceLedger(intelligence = {}) {
+    const ledger = [];
+    for (const item of intelligence.riskLedger || []) {
+      ledger.push({
+        evidenceType: "risk",
+        projectId: item.projectId || null,
+        name: item.name || null,
+        code: item.evidenceCode || null,
+        field: item.field || null,
+        value: item.value ?? null,
+        message: item.message || null,
+        recordUrl: item.recordUrl || null,
+      });
+    }
+    for (const item of intelligence.pmoUsps?.evidenceLedger || []) {
+      ledger.push({
+        evidenceType: "pmo_usp",
+        projectId: item.projectId || null,
+        name: item.name || null,
+        code: item.evidenceCode || item.code || null,
+        field: item.field || null,
+        value: item.value ?? null,
+        message: item.message || null,
+        recordUrl: item.recordUrl || null,
+      });
+    }
+    return ledger;
+  }
+
+  async function discoverProjectFieldMetadataFromD365(options = {}) {
+    const xrm = getXrm();
+    const attributes = options.attributes || constants.PROJECT_DEFAULT_SELECT_COLUMNS;
+    const metadata = await xrm.Utility.getEntityMetadata(constants.PROJECT_ENTITY_LOGICAL_NAME, attributes);
+    const rawAttributes = metadata.Attributes || metadata.attributes || [];
+    const fields = Array.isArray(rawAttributes)
+      ? rawAttributes.map((attribute) => ({
+        logicalName: attribute.LogicalName || attribute.logicalName || attribute.Name || attribute.name || null,
+        displayName: attribute.DisplayName?.UserLocalizedLabel?.Label || attribute.displayName || null,
+        attributeType: attribute.AttributeType || attribute.attributeType || null,
+        requiredLevel: attribute.RequiredLevel?.Value || attribute.requiredLevel || null,
+        isValidForRead: attribute.IsValidForRead ?? attribute.isValidForRead ?? null,
+        isValidForUpdate: attribute.IsValidForUpdate ?? attribute.isValidForUpdate ?? null,
+      }))
+      : [];
+    return {
+      feature: "live_d365_field_discovery",
+      source: "dataverse_metadata_api",
+      entityLogicalName: constants.PROJECT_ENTITY_LOGICAL_NAME,
+      entitySetName: metadata.EntitySetName || metadata.entitySetName || constants.PROJECT_ENTITY_SET_NAME,
+      primaryIdAttribute: metadata.PrimaryIdAttribute || metadata.primaryIdAttribute || constants.PROJECT_PRIMARY_ID_ATTRIBUTE,
+      primaryNameAttribute: metadata.PrimaryNameAttribute || metadata.primaryNameAttribute || constants.PROJECT_PRIMARY_NAME_ATTRIBUTE,
+      fields,
+      requestedAttributes: attributes,
+      generatedAt: options.generatedAt || new Date().toISOString(),
+    };
+  }
+
+  async function resolveStatusUpdateEntityFromD365(options = {}) {
+    const metadata = await discoverStatusUpdateMetadata(options);
+    return {
+      feature: "status_update_entity_resolver",
+      source: "dataverse_metadata_api",
+      resolved: Boolean(metadata.found),
+      metadata,
+      blockers: metadata.found ? [] : ["Status Update entity metadata could not be resolved from configured candidates."],
+    };
+  }
+
+  async function buildLivePmoControlCenterFromD365(options = {}) {
+    const projects = await retrievePmoProjectPortfolio(options);
+    const intelligence = buildProjectIntelligence(projects, options);
+    return {
+      feature: "pmo_live_control_center",
+      source: "dataverse_web_api",
+      generatedAt: options.generatedAt || new Date().toISOString(),
+      summary: {
+        projectsReviewed: projects.length,
+        criticalProjects: intelligence.calibrationReport?.summary?.criticalProjects || 0,
+        warningProjects: intelligence.calibrationReport?.summary?.warningProjects || 0,
+        safetyLevels: intelligence.projectSafetyGates?.summary?.bySafetyLevel || {},
+        managementAttention: intelligence.projectSafetyGates?.summary?.byManagementAttention || {},
+        pmoCommandItems: intelligence.pmoUsps?.commandQueue?.length || 0,
+      },
+      topRisks: (intelligence.riskLedger || []).slice(0, options.topRisks || 15),
+      commandQueue: intelligence.pmoUsps?.commandQueue || [],
+      steeringAgenda: intelligence.steeringAgenda || [],
+      dataGaps: [
+        ...(intelligence.evidenceGapDetector?.gaps || []),
+        ...(intelligence.pmoUsps?.dataGaps || []),
+      ],
+      intelligence,
+    };
+  }
+
+  async function retrieveMonthlyPmSelfServiceFlowFromD365(options = {}) {
+    const metadata = await discoverStatusUpdateMetadata(options);
+    const projects = await retrievePmoProjectPortfolio(options);
+    const projectByBusinessId = new Map(projects.map((project) => [project.projectId, project]));
+    const run = buildMonthlyStatusReportRun(projects, {
+      ...options,
+      reportMonth: options.reportMonth || options.month,
+      defaultStatusText: options.defaultStatusText || options.statusText || "",
+    });
+    const reports = [];
+    for (const report of run.reports || []) {
+      let existingUpdates = [];
+      const sourceProject = projectByBusinessId.get(report.projectId) || { id: report.projectId, projectId: report.projectId };
+      if (metadata.found && report.projectId) {
+        try {
+          existingUpdates = await retrieveStatusUpdates(sourceProject, {
+            ...options,
+            entityLogicalName: metadata.entityLogicalName,
+            reportMonth: run.reportMonth,
+          });
+        } catch (error) {
+          existingUpdates = [{ retrievalError: mapDataverseError(error) }];
+        }
+      }
+      reports.push({
+        ...report,
+        duplicateCheck: buildStatusUpdateDuplicateCheck(existingUpdates.filter((item) => !item.retrievalError), report, {
+          projectId: sourceProject.id,
+          projectBusinessId: sourceProject.projectId || report.projectId,
+          reportMonth: run.reportMonth,
+        }),
+        statusHistoryReadError: existingUpdates.find((item) => item.retrievalError)?.retrievalError || null,
+      });
+    }
+    return {
+      feature: "monthly_pm_self_service_flow",
+      source: "dataverse_web_api",
+      reportMonth: run.reportMonth,
+      metadata,
+      summary: {
+        total: reports.length,
+        statusInputsMissing: reports.filter((report) => report.statusRequired).length,
+        duplicatesFound: reports.filter((report) => report.duplicateCheck?.duplicateFound).length,
+        canAutoSave: false,
+      },
+      reports,
+      writebackQueue: buildStatusWritebackQueue({ ...run, reports }, options),
+    };
+  }
+
+  async function simulateStatusWritebackFromD365(project = {}, draft = {}, options = {}) {
+    const resolvedProject = typeof project === "string" ? await retrieveProject(project) : project;
+    const metadata = options.metadata || await discoverStatusUpdateMetadata(options);
+    const plan = buildStatusUpdateCreateRecordPlan(resolvedProject, draft, metadata, options);
+    let duplicateCheck = null;
+    if (metadata.found && (options.checkDuplicate ?? true)) {
+      const existingUpdates = await retrieveStatusUpdates(resolvedProject, {
+        ...options,
+        entityLogicalName: metadata.entityLogicalName,
+        reportMonth: plan.reportMonth,
+      });
+      duplicateCheck = buildStatusUpdateDuplicateCheck(existingUpdates, draft, {
+        projectId: resolvedProject.id,
+        projectBusinessId: resolvedProject.projectId,
+        reportMonth: plan.reportMonth,
+      });
+      if (duplicateCheck.duplicateFound) {
+        plan.blockers.push("Monthly status update already exists for this project/month.");
+        plan.canCreateAfterConfirmation = false;
+      }
+    }
+    return {
+      feature: "d365_api_writeback_dry_run",
+      source: "dataverse_web_api",
+      mode: "dry_run_no_create",
+      canAutoSave: false,
+      project: resolvedProject,
+      metadata,
+      plan,
+      duplicateCheck,
+    };
+  }
+
+  async function resolveSubmittedToCandidatesFromD365(options = {}) {
+    const search = escapeODataString(options.search || options.name || "");
+    const filter = search ? "contains(fullname,'" + search + "') and isdisabled eq false" : "isdisabled eq false";
+    const users = await retrieveAllRecords("systemuser", buildQuery(
+      ["systemuserid", "fullname", "domainname", "internalemailaddress", "isdisabled"],
+      filter,
+      options.top || 10,
+      "fullname asc"
+    ), options);
+    return {
+      feature: "submitted_to_resolver",
+      source: "dataverse_web_api",
+      search: options.search || options.name || "",
+      candidates: users.map((user) => ({
+        id: normalizeGuid(user.systemuserid),
+        name: user.fullname || null,
+        domainName: user.domainname || null,
+        emailPresent: Boolean(user.internalemailaddress),
+        disabled: Boolean(user.isdisabled),
+        bind: user.systemuserid ? "/systemusers(" + normalizeGuid(user.systemuserid) + ")" : null,
+      })),
+    };
+  }
+
+  async function retrieveStatusHistoryTimelineFromD365(project = {}, options = {}) {
+    const resolvedProject = typeof project === "string" ? await retrieveProject(project) : project;
+    const metadata = options.metadata || await discoverStatusUpdateMetadata(options);
+    if (!metadata.found) {
+      return {
+        feature: "status_history_timeline",
+        source: "dataverse_web_api",
+        project: resolvedProject,
+        timeline: [],
+        blockers: ["Status Update entity metadata could not be resolved."],
+      };
+    }
+    const updates = await retrieveStatusUpdates(resolvedProject, {
+      ...options,
+      entityLogicalName: metadata.entityLogicalName,
+      top: options.top || 24,
+    });
+    return {
+      feature: "status_history_timeline",
+      source: "dataverse_web_api",
+      project: resolvedProject,
+      timeline: updates.map((update) => ({
+        reportDate: update[constants.STATUS_UPDATE_FIELDS.reportDate] || update.createdon || null,
+        summary: update[constants.STATUS_UPDATE_FIELDS.statusSummary] || null,
+        accomplishedActivities: update[constants.STATUS_UPDATE_FIELDS.accomplishedActivities] || null,
+        plannedActivities: update[constants.STATUS_UPDATE_FIELDS.plannedActivities] || null,
+        obstaclesAndMeasures: update[constants.STATUS_UPDATE_FIELDS.obstaclesAndMeasures] || null,
+        decisions: update[constants.STATUS_UPDATE_FIELDS.decisions] || null,
+        emailStatusUpdate: update[constants.STATUS_UPDATE_FIELDS.emailStatusUpdate] ?? null,
+        raw: update,
+      })),
+      blockers: [],
+    };
+  }
+
+  async function checkDuplicateStatusUpdateFromD365(project = {}, draft = {}, options = {}) {
+    const timeline = await retrieveStatusHistoryTimelineFromD365(project, {
+      ...options,
+      reportMonth: options.reportMonth || draft.reportMonth,
+    });
+    const updates = (timeline.timeline || []).map((item) => item.raw || item);
+    return {
+      feature: "duplicate_status_prevention",
+      source: "dataverse_web_api",
+      project: timeline.project,
+      duplicateCheck: buildStatusUpdateDuplicateCheck(updates, draft, {
+        projectId: timeline.project?.id,
+        projectBusinessId: timeline.project?.projectId,
+        reportMonth: options.reportMonth || draft.reportMonth,
+      }),
+      blockers: timeline.blockers || [],
+    };
+  }
+
+  async function retrieveExecutiveSteeringPackFromD365(options = {}) {
+    const projects = await retrievePmoProjectPortfolio(options);
+    const intelligence = buildProjectIntelligence(projects, options);
+    return {
+      feature: "executive_steering_pack_from_live_api",
+      source: "dataverse_web_api",
+      generatedAt: options.generatedAt || new Date().toISOString(),
+      onePagerMarkdown: buildExecutiveOnePager(projects, options),
+      agenda: intelligence.steeringAgenda || [],
+      executiveQuestions: intelligence.executiveQuestionGenerator?.items || [],
+      topRisks: (intelligence.riskLedger || []).slice(0, options.topRisks || 10),
+      openDecisions: intelligence.decisionClosureItems || [],
+      dataGaps: intelligence.evidenceGapDetector?.gaps || [],
+      pmoReport: intelligence.pmoReportSuite?.reports?.find((report) => report.reportType === "executive_exception") || null,
+    };
+  }
+
+  async function retrievePmoDataGapWorklistFromD365(options = {}) {
+    const projects = await retrievePmoProjectPortfolio(options);
+    const intelligence = buildProjectIntelligence(projects, options);
+    const gaps = [
+      ...(intelligence.evidenceGapDetector?.gaps || []),
+      ...(intelligence.pmoUsps?.dataGaps || []),
+      ...((intelligence.projectSafetyGates?.projects || []).flatMap((project) =>
+        (project.requiredEvidence || []).map((gap) => ({ ...gap, projectId: project.projectId, name: project.name }))
+      )),
+    ];
+    return {
+      feature: "pmo_data_gap_worklist",
+      source: "dataverse_web_api",
+      summary: {
+        projectsReviewed: projects.length,
+        totalGaps: gaps.length,
+        criticalGaps: gaps.filter((gap) => /critical|blocked|required/i.test(gap.severity || gap.message || gap.code || "")).length,
+      },
+      worklist: gaps.map((gap, index) => ({
+        id: "gap:" + index,
+        projectId: gap.projectId || null,
+        name: gap.name || null,
+        field: gap.field || gap.sourceField || null,
+        code: gap.code || gap.evidenceCode || "data_gap",
+        action: gap.recommendedAction || "Collect missing D365 evidence before management use.",
+        owner: gap.owner || "PMO",
+        recordUrl: gap.recordUrl || gap.source?.recordUrl || null,
+      })),
+    };
+  }
+
+  async function routeCioCfoRiskFromD365(options = {}) {
+    const projects = await retrievePmoProjectPortfolio(options);
+    const intelligence = buildProjectIntelligence(projects, options);
+    const items = (intelligence.projectSafetyGates?.projects || []).flatMap((project) => {
+      const text = JSON.stringify(project).toLowerCase();
+      const route = project.managementAttention === "ceo"
+        ? "CEO"
+        : /budget|funding|financial|cost/.test(text)
+          ? "CFO"
+          : project.managementAttention === "cio" || /dependency|resource|red|blocked|interface|vendor/.test(text)
+            ? "CIO"
+            : project.managementAttention === "pmo"
+              ? "PMO"
+              : "none";
+      return route === "none" ? [] : [{
+        projectId: project.projectId,
+        name: project.name,
+        route,
+        safetyLevel: project.safetyLevel,
+        reason: project.gates?.find((gate) => gate.severity === "critical" || gate.status === "fail")?.message || project.recommendedActions?.[0] || "Management attention required.",
+        recordUrl: project.recordUrl || null,
+      }];
+    });
+    return {
+      feature: "cio_cfo_risk_routing",
+      source: "dataverse_web_api",
+      summary: {
+        total: items.length,
+        cio: items.filter((item) => item.route === "CIO").length,
+        cfo: items.filter((item) => item.route === "CFO").length,
+        ceo: items.filter((item) => item.route === "CEO").length,
+        pmo: items.filter((item) => item.route === "PMO").length,
+      },
+      items,
+    };
+  }
+
+  async function retrievePowerBiReadyPortfolioFromD365(options = {}) {
+    const projects = await retrievePmoProjectPortfolio(options);
+    const intelligence = buildProjectIntelligence(projects, options);
+    return {
+      feature: "power_bi_ready_api_output",
+      source: "dataverse_web_api",
+      generatedAt: options.generatedAt || new Date().toISOString(),
+      tables: {
+        projects,
+        safetyGates: intelligence.projectSafetyGates?.projects || [],
+        pmoCommandQueue: intelligence.pmoUsps?.commandQueue || [],
+        riskLedger: intelligence.riskLedger || [],
+        decisions: intelligence.decisionClosureItems || [],
+        evidenceLedger: compactEvidenceLedger(intelligence),
+        dataGaps: [
+          ...(intelligence.evidenceGapDetector?.gaps || []),
+          ...(intelligence.pmoUsps?.dataGaps || []),
+        ],
+      },
+      measures: {
+        projectCount: projects.length,
+        criticalProjects: intelligence.calibrationReport?.summary?.criticalProjects || 0,
+        warningProjects: intelligence.calibrationReport?.summary?.warningProjects || 0,
+        pmoCommandItems: intelligence.pmoUsps?.commandQueue?.length || 0,
+      },
+    };
+  }
+
+  async function probeD365PermissionsDetailed(options = {}) {
+    const base = await probeDataversePermissions(options);
+    const result = {
+      feature: "d365_permission_probe",
+      source: "dataverse_web_api",
+      base,
+      projectMetadata: null,
+      submittedToLookupRead: { ok: false, error: null },
+      currentUser: null,
+    };
+    try {
+      result.projectMetadata = await discoverProjectFieldMetadataFromD365(options);
+    } catch (error) {
+      result.projectMetadata = { error: mapDataverseError(error) };
+    }
+    try {
+      await retrieveAllRecords("systemuser", buildQuery(["systemuserid", "fullname"], "isdisabled eq false", 1, "fullname asc"), { maxPageSize: 1 });
+      result.submittedToLookupRead.ok = true;
+    } catch (error) {
+      result.submittedToLookupRead.error = mapDataverseError(error);
+    }
+    try {
+      const settings = getXrm().Utility.getGlobalContext?.().userSettings;
+      result.currentUser = settings ? { userId: normalizeGuid(settings.userId), userName: settings.userName || null } : null;
+    } catch (error) {
+      result.currentUser = { error: mapDataverseError(error) };
+    }
+    result.summary = {
+      projectRead: Boolean(base.projectRead?.ok),
+      statusMetadataResolved: Boolean(base.statusMetadata?.ok),
+      projectMetadataResolved: Boolean(result.projectMetadata && !result.projectMetadata.error),
+      submittedToLookupRead: result.submittedToLookupRead.ok,
+      canAttemptCreateAfterConfirmation: Boolean(base.canAttemptCreateAfterConfirmation),
+      canAutoSave: false,
+    };
+    return result;
+  }
+
+  async function buildAuditEvidencePackFromD365(options = {}) {
+    const projects = await retrievePmoProjectPortfolio(options);
+    const intelligence = buildProjectIntelligence(projects, options);
+    return {
+      feature: "audit_evidence_pack",
+      source: "dataverse_web_api",
+      generatedAt: options.generatedAt || new Date().toISOString(),
+      safetyPosture: "advisory_only_confirmation_gated",
+      projectCount: projects.length,
+      evidenceLedger: compactEvidenceLedger(intelligence),
+      safetyGates: intelligence.projectSafetyGates || null,
+      writebackSimulations: intelligence.safeWritebackSimulationPro || intelligence.safeWritebackSimulation || null,
+      trustContract: intelligence.trustContract || null,
+      auditEvents: intelligence.auditTrail || [],
+      dataGaps: [
+        ...(intelligence.evidenceGapDetector?.gaps || []),
+        ...(intelligence.pmoUsps?.dataGaps || []),
+      ],
+    };
+  }
+
+  async function pilotStatusWritebackFromD365(project = {}, draft = {}, options = {}) {
+    const dryRun = await simulateStatusWritebackFromD365(project, draft, options);
+    if (!options.enableCreate) {
+      return {
+        feature: "safe_api_writeback_pilot_mode",
+        mode: "pilot_dry_run_only",
+        saved: false,
+        canAutoSave: false,
+        dryRun,
+        blockers: ["Pilot mode did not receive enableCreate=true; no Dataverse create was attempted."],
+      };
+    }
+    const saveResult = await createStatusUpdateWithConfirmation(dryRun.project, draft, {
+      ...options,
+      metadata: dryRun.metadata,
+    });
+    return {
+      feature: "safe_api_writeback_pilot_mode",
+      mode: "confirmation_gated_create",
+      canAutoSave: false,
+      dryRun,
+      saveResult,
+    };
+  }
+
   async function copyPmoProjectExportToClipboard(options = {}) {
     const payload = await exportActiveProjectsForPmoReports(options);
     await navigator.clipboard.writeText(JSON.stringify(payload, null, 2));
@@ -1759,9 +2215,12 @@ function getDataverseBrowserSnippet() {
   window.TPGProjectAssist = {
     constants,
     buildPmoProjectExport,
+    buildAuditEvidencePackFromD365,
     retrieveProjectIntelligenceFromD365,
     retrieveBatchProjectPreviewFromD365,
     retrieveMonthlyStatusPlanFromD365,
+    retrieveMonthlyPmSelfServiceFlowFromD365,
+    buildLivePmoControlCenterFromD365,
     buildMonthlyStatusReportDraft,
     buildMonthlyStatusReportRun,
     buildStatusReportIdempotencyKey,
@@ -1773,17 +2232,29 @@ function getDataverseBrowserSnippet() {
     buildStructuredStatusUpdateDraft,
     createStatusUpdateWithConfirmation,
     copyPmoProjectExportToClipboard,
+    checkDuplicateStatusUpdateFromD365,
+    discoverProjectFieldMetadataFromD365,
     discoverStatusUpdateMetadata,
     downloadPmoProjectExport,
     exportActiveProjectsForPmoReports,
     mapDataverseError,
+    pilotStatusWritebackFromD365,
     probeDataversePermissions,
+    probeD365PermissionsDetailed,
+    resolveStatusUpdateEntityFromD365,
+    resolveSubmittedToCandidatesFromD365,
     retrieveAllRecords,
+    retrieveExecutiveSteeringPackFromD365,
+    retrievePmoDataGapWorklistFromD365,
     retrievePmoProjectPortfolio,
+    retrievePowerBiReadyPortfolioFromD365,
     retrieveActiveProjects,
     retrieveProjectDelta,
     retrieveProject,
     retrieveStatusUpdates,
+    retrieveStatusHistoryTimelineFromD365,
+    routeCioCfoRiskFromD365,
+    simulateStatusWritebackFromD365,
     validateMonthlyStatusDraft,
     buildBatchProjectPreview,
     buildExecutiveOnePager,

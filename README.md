@@ -34,6 +34,7 @@ TPG-Scheduler-Codex-Plugin is a Codex plugin for confirmation-gated Dynamics 365
 - PMO Report Suite: generates 12 dedicated PMO management reports through the `pmo-report-suite` skill.
 - PMO Word/Excel Export: writes polished filtered PMO reports as `.docx` and `.xlsx` files with executive callouts, KPI cards, filter scope, status legend, project spotlight, highlighted project rows, and PMO findings from live D365 API data or explicit offline snapshots.
 - D365 API-First PMO Data: builds intelligence and monthly status plans directly from the logged-in Dynamics browser session through `Xrm.WebApi`; local JSON snapshots require explicit offline fallback mode.
+- D365 API Max Features: adds 15 live browser-context helpers for field discovery, PMO control center, status entity resolution, monthly PM self-service, writeback dry-runs, Submitted-To lookup resolution, status history, duplicate prevention, executive steering packs, PMO data-gap worklists, CIO/CFO/CEO risk routing, Power BI-ready output, detailed permission probes, audit evidence packs, and safe pilot writeback.
 - Decision Debt Analysis: measures open decisions, due dates, blocked projects, and decision-debt score.
 - Project Truth Score: detects status contradictions such as red KPI with weak narrative, overdue finish, or missing mitigation.
 - Sponsor Action Intelligence: turns steering agenda items into owner-specific sponsor actions.
@@ -107,6 +108,7 @@ npm run status-report:dataverse
 // In the authenticated Dynamics browser:
 await TPGProjectAssist.retrieveProjectIntelligenceFromD365({ today: "YYYY-MM-DD" })
 await TPGProjectAssist.retrieveMonthlyStatusPlanFromD365({ month: "YYYY-MM", statusText: "kv" })
+await TPGProjectAssist.buildLivePmoControlCenterFromD365({ today: "YYYY-MM-DD" })
 ```
 
 ## Documentation

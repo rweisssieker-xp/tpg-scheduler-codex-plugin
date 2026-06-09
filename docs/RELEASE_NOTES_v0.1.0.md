@@ -14,6 +14,7 @@ Initial public release for confirmation-gated Dynamics 365 TPG project status re
 - Anonymized live Dynamics evidence note for read-only Dataverse access and form detection.
 - Post-release `main` adds the Maximum USP Layer with 12 implemented advisory differentiators in `maximumUsps`.
 - Post-release `main` adds the 15 PMO USP Layer with command queue, evidence ledger, data gaps, and `pmoUsps`.
+- Post-release `main` adds 15 D365 API Max Features on `window.TPGProjectAssist`, including live PMO control center, status timeline, duplicate prevention, PM self-service flow, steering pack, data-gap worklist, Power BI-ready output, audit evidence pack, and confirmation-gated pilot writeback.
 
 ## Safety
 

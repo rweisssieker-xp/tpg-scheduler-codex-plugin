@@ -29,7 +29,7 @@ The primary project data path is the authenticated Dynamics browser context:
 
 1. Codex opens Dynamics and lets the user complete login.
 2. `npm run status-report:dataverse` prints a browser snippet that uses `Xrm.WebApi.retrieveMultipleRecords`.
-3. `TPGProjectAssist.retrieveProjectIntelligenceFromD365()`, `retrieveBatchProjectPreviewFromD365()`, and `retrieveMonthlyStatusPlanFromD365()` read `tpg_projects` directly in the authenticated Dynamics context.
+3. `TPGProjectAssist.retrieveProjectIntelligenceFromD365()`, `retrieveBatchProjectPreviewFromD365()`, `retrieveMonthlyStatusPlanFromD365()`, and the D365 API Max helpers read `tpg_projects` directly in the authenticated Dynamics context.
 4. CLI file commands are an explicit offline fallback for reviewed local snapshots and require `--allow-offline-input`.
 
 Visual UI scraping is only a fallback for navigation, field verification, and explicit save confirmation. The plugin does not add service-principal authentication or background CRM writes.
@@ -43,6 +43,7 @@ Visual UI scraping is only a fallback for navigation, field verification, and ex
 - Dynamics URL builders
 - status update draft helpers
 - monthly project-leader status writeback plans
+- 15 D365 API Max helpers for field discovery, live control center, status entity resolution, PM self-service, dry-runs, Submitted-To lookup, status history, duplicate prevention, steering packs, data-gap worklists, executive routing, Power BI output, permission probes, audit evidence, and pilot writeback
 - public exports for project intelligence functions
 - plugin validation checks
 
@@ -92,6 +93,12 @@ The API layer adds production-oriented integration helpers around the monthly st
 - Writeback APIs: structured status drafts, bulk writeback queues, `Xrm.WebApi.createRecord` plans, audit events, and attachment plans.
 
 The only direct Dataverse write helper is `createStatusUpdateWithConfirmation` in the authenticated browser snippet. It requires discovered metadata, a valid payload, and an exact confirmation string before calling `Xrm.WebApi.createRecord`; Node.js never writes CRM data.
+
+### D365 API Max Features
+
+The live browser helper layer exposes 15 production PMO/status functions on `window.TPGProjectAssist`: `discoverProjectFieldMetadataFromD365`, `buildLivePmoControlCenterFromD365`, `resolveStatusUpdateEntityFromD365`, `retrieveMonthlyPmSelfServiceFlowFromD365`, `simulateStatusWritebackFromD365`, `resolveSubmittedToCandidatesFromD365`, `retrieveStatusHistoryTimelineFromD365`, `checkDuplicateStatusUpdateFromD365`, `retrieveExecutiveSteeringPackFromD365`, `retrievePmoDataGapWorklistFromD365`, `routeCioCfoRiskFromD365`, `retrievePowerBiReadyPortfolioFromD365`, `probeD365PermissionsDetailed`, `buildAuditEvidencePackFromD365`, and `pilotStatusWritebackFromD365`.
+
+These helpers intentionally reuse the authenticated D365 page context instead of exports, service principals, mock data, or background jobs. Writeback helpers remain dry-run by default and can only call Dataverse create after metadata resolution, blocker checks, duplicate checks, and exact confirmation text.
 
 ## Project Safety Gates
 

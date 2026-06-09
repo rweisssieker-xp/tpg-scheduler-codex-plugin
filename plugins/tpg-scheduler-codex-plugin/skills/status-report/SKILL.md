@@ -101,6 +101,8 @@ If Dynamics asks for login, pause and let the user complete Microsoft login manu
   - `await TPGProjectAssist.retrieveProjectIntelligenceFromD365({ today: "YYYY-MM-DD" })`
   - `await TPGProjectAssist.retrieveBatchProjectPreviewFromD365({ today: "YYYY-MM-DD" })`
   - `await TPGProjectAssist.retrieveMonthlyStatusPlanFromD365({ month: "YYYY-MM", statusText: "kv" })`
+  - `await TPGProjectAssist.buildLivePmoControlCenterFromD365({ today: "YYYY-MM-DD" })`
+  - `await TPGProjectAssist.retrieveMonthlyPmSelfServiceFlowFromD365({ month: "YYYY-MM" })`
 - Do not use downloaded project exports as the normal production path. File-based snapshots are offline fallback only.
 - To install browser-context helpers into an authenticated Dynamics page, print the snippet with:
   `npm run statusbericht:dataverse`
@@ -148,6 +150,21 @@ If Dynamics asks for login, pause and let the user complete Microsoft login manu
   - `TPGProjectAssist.discoverStatusUpdateMetadata(options)`
   - `TPGProjectAssist.probeDataversePermissions(options)`
   - `TPGProjectAssist.createStatusUpdateWithConfirmation(project, draft, options)`
+  - `TPGProjectAssist.discoverProjectFieldMetadataFromD365(options)`
+  - `TPGProjectAssist.buildLivePmoControlCenterFromD365(options)`
+  - `TPGProjectAssist.resolveStatusUpdateEntityFromD365(options)`
+  - `TPGProjectAssist.retrieveMonthlyPmSelfServiceFlowFromD365(options)`
+  - `TPGProjectAssist.simulateStatusWritebackFromD365(project, draft, options)`
+  - `TPGProjectAssist.resolveSubmittedToCandidatesFromD365({ search })`
+  - `TPGProjectAssist.retrieveStatusHistoryTimelineFromD365(project, options)`
+  - `TPGProjectAssist.checkDuplicateStatusUpdateFromD365(project, draft, options)`
+  - `TPGProjectAssist.retrieveExecutiveSteeringPackFromD365(options)`
+  - `TPGProjectAssist.retrievePmoDataGapWorklistFromD365(options)`
+  - `TPGProjectAssist.routeCioCfoRiskFromD365(options)`
+  - `TPGProjectAssist.retrievePowerBiReadyPortfolioFromD365(options)`
+  - `TPGProjectAssist.probeD365PermissionsDetailed(options)`
+  - `TPGProjectAssist.buildAuditEvidencePackFromD365(options)`
+  - `TPGProjectAssist.pilotStatusWritebackFromD365(project, draft, options)`
 
 ## Offline Intelligence CLI
 
