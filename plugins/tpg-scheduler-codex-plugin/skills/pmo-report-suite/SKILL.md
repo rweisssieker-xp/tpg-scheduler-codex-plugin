@@ -14,6 +14,7 @@ If the user asks for PMO-specific USPs, operational PMO value, steering committe
 
 - Use real Dynamics 365 TPG project data from the authenticated D365 API context.
 - Prefer direct D365 API helpers from the authenticated Dynamics browser: `TPGProjectAssist.retrieveProjectIntelligenceFromD365()`, `retrieveBatchProjectPreviewFromD365()`, `retrieveMonthlyStatusPlanFromD365()`, `buildLivePmoControlCenterFromD365()`, `retrieveExecutiveSteeringPackFromD365()`, or `retrievePmoDataGapWorklistFromD365()`.
+- For automatic status wording, use `TPGProjectAssist.retrieveStatusSuggestionReportFromD365()` or offline fallback `--status-suggestion-report`.
 - Do not use sample, fixture, synthetic, or mock data for productive PMO reporting.
 - Keep outputs advisory and evidence-backed.
 - Do not save, submit, send, delete, change ownership, or change CRM state.
@@ -80,11 +81,13 @@ cd plugins/tpg-scheduler-codex-plugin
 npm run status-report:dataverse
 // In the authenticated Dynamics browser:
 await TPGProjectAssist.retrieveProjectIntelligenceFromD365({ today: "YYYY-MM-DD" })
+await TPGProjectAssist.retrieveStatusSuggestionReportFromD365({ today: "YYYY-MM-DD" })
 await TPGProjectAssist.buildLivePmoControlCenterFromD365({ today: "YYYY-MM-DD" })
 await TPGProjectAssist.retrieveExecutiveSteeringPackFromD365({ today: "YYYY-MM-DD" })
 await TPGProjectAssist.retrievePowerBiReadyPortfolioFromD365({ today: "YYYY-MM-DD" })
 node ./scripts/statusbericht.js --pmo-report <snapshot.json> --allow-offline-input --pmo-report-type executive_exception --json
 node ./scripts/statusbericht.js --pmo-suite <snapshot.json> --allow-offline-input --json
+node ./scripts/statusbericht.js --status-suggestion-report <snapshot.json> --allow-offline-input --docx reports/status-suggestions.docx --xlsx reports/status-suggestions.xlsx
 node ./scripts/statusbericht.js --pmo-suite <snapshot.json> --allow-offline-input --docx reports/pmo-suite.docx --xlsx reports/pmo-suite.xlsx
 ```
 

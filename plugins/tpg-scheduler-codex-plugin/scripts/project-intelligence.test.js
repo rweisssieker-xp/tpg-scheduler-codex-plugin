@@ -45,6 +45,8 @@ const {
   buildPmoReportSuite,
   buildPmoStatusReport,
   buildPmoUspLayer,
+  buildStatusReportSuggestion,
+  buildStatusSuggestionReport,
   PMO_REPORT_TYPES,
   PMO_USP_IDS,
   buildPortfolioConstraintRadar,
@@ -745,6 +747,14 @@ const missingStatusReport = buildPmoStatusReport([
   { projectId: "2024-2001", name: "Has Report", projectStatusLabel: "In Progress", lastStatusReportDate: "2026-05-15" },
 ], { lastStatusMissing: true });
 assert.deepEqual(missingStatusReport.projects.map((project) => project.projectId), ["2024-2000"]);
+const suggestionReport = buildStatusSuggestionReport(projects, { today: "2026-05-13" });
+assert.equal(suggestionReport.reportType, "status_suggestion");
+assert.equal(suggestionReport.summary.canAutoSave, false);
+assert.equal(suggestionReport.rows.length, projects.length);
+assert.equal(suggestionReport.rows.find((row) => row.projectId === "2024-9999").statusType, "critical_escalation");
+assert.match(suggestionReport.rows.find((row) => row.projectId === "2024-9999").proposedStatusText, /Benoetigte Entscheidung/);
+assert.equal(buildStatusReportSuggestion(projects[1], { today: "2026-05-13" }).requiresReview, true);
+assert.equal(Boolean(buildProjectIntelligence(projects, { today: "2026-05-13" }).statusSuggestionReport), true);
 assert.equal(PMO_REPORT_TYPES.length, 12);
 for (const reportType of PMO_REPORT_TYPES) {
   const report = buildPmoReport(reportType, projects, { today: "2026-05-13" });

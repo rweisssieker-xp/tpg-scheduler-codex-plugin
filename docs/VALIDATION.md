@@ -15,6 +15,7 @@ This runs:
 - Maximum project safety gate tests.
 - PMO control tower tests.
 - PMO status report filter tests.
+- Automatic status suggestion report tests for generated wording, `kv` eligibility, data gaps, and review-only writeback posture.
 - PMO DOCX and XLSX file export tests.
 - PMO report suite tests for all 12 report types.
 - Maximum USP Layer tests for all 12 implemented advisory differentiators.
@@ -54,6 +55,7 @@ The validation script checks:
 - The synthetic sample output includes `projectSafetyGates` and `pmoControlTower`.
 - The synthetic sample output includes `maximumUsps` with 12 implemented USP entries.
 - The synthetic sample output includes `pmoUsps` with 15 implemented PMO USP entries.
+- The project intelligence schema includes `statusSuggestionReport` for automatic status wording reports.
 - Productive npm intelligence scripts do not point at sample or fixture data.
 - No npm script exposes demo, mock, sample, or fixture data as an active command.
 - DOCX and XLSX export dependencies are validated, and the vulnerable `exceljs` dependency tree is disallowed.

@@ -100,6 +100,7 @@ If Dynamics asks for login, pause and let the user complete Microsoft login manu
 - When PMO or status-plan data is needed, load the Dataverse snippet and use direct D365 API helpers:
   - `await TPGProjectAssist.retrieveProjectIntelligenceFromD365({ today: "YYYY-MM-DD" })`
   - `await TPGProjectAssist.retrieveBatchProjectPreviewFromD365({ today: "YYYY-MM-DD" })`
+  - `await TPGProjectAssist.retrieveStatusSuggestionReportFromD365({ today: "YYYY-MM-DD" })`
   - `await TPGProjectAssist.retrieveMonthlyStatusPlanFromD365({ month: "YYYY-MM", statusText: "kv" })`
   - `await TPGProjectAssist.buildLivePmoControlCenterFromD365({ today: "YYYY-MM-DD" })`
   - `await TPGProjectAssist.retrieveMonthlyPmSelfServiceFlowFromD365({ month: "YYYY-MM" })`
@@ -123,12 +124,15 @@ If Dynamics asks for login, pause and let the user complete Microsoft login manu
 - Available browser helper methods after injection:
   - `TPGProjectAssist.retrieveActiveProjects({ top })`
   - `TPGProjectAssist.retrieveProjectIntelligenceFromD365({ today })`
+  - `TPGProjectAssist.retrieveStatusSuggestionReportFromD365({ today })`
   - `TPGProjectAssist.retrieveBatchProjectPreviewFromD365({ today })`
   - `TPGProjectAssist.retrieveMonthlyStatusPlanFromD365({ month, statusText })`
   - `TPGProjectAssist.retrieveProject(projectId)`
   - `TPGProjectAssist.buildBatchProjectPreview(projects, { today })`
   - `TPGProjectAssist.evaluateProjectStatusQuality(project, { today })`
   - `TPGProjectAssist.buildProjectIntelligence(projects, { today })`
+  - `TPGProjectAssist.buildStatusSuggestionReport(projects, { today })`
+  - `TPGProjectAssist.buildStatusReportSuggestion(project, { today })`
   - `TPGProjectAssist.buildPortfolioRiskList(projects, { today })`
   - `TPGProjectAssist.extractDecisionRadar(projects)`
   - `TPGProjectAssist.buildProjectNudges(projects, { today })`

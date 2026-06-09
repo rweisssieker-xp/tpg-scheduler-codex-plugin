@@ -1774,6 +1774,157 @@ function buildPmoStatusReport(projects, options = {}) {
   };
 }
 
+function plannedProgressPercent(project = {}, options = {}) {
+  const start = parseDateOnly(project.start);
+  const finish = parseDateOnly(project.finish);
+  const today = parseDateOnly(options.today || new Date().toISOString().slice(0, 10));
+  if (!start || !finish || !today || finish <= start) {
+    return null;
+  }
+  if (today <= start) return 0;
+  if (today >= finish) return 100;
+  return Math.round(((today.getTime() - start.getTime()) / (finish.getTime() - start.getTime())) * 100);
+}
+
+function buildStatusReportSuggestion(project = {}, options = {}) {
+  const today = options.today || new Date().toISOString().slice(0, 10);
+  const quality = evaluateStatusQuality(project, options);
+  const truth = buildProjectTruthScore(project, options);
+  const safety = buildProjectSafetyGate(project, options);
+  const progress = Number(project.progress);
+  const plannedProgress = plannedProgressPercent(project, options);
+  const finishDays = daysUntil(project.finish, today);
+  const statusText = normalizeText(project.currentStatusText || project.lastStatusUpdate);
+  const riskText = normalizeText(project.obstaclesAndMeasures || project.risks || "");
+  const decisionText = normalizeText(project.decisions || "");
+  const sponsorText = normalizeText(project.sponsorActions || "");
+  const plannedActivities = normalizeText(project.plannedActivities || project.nextSteps || "");
+  const reasonCodes = new Set(quality.evidence.map((item) => item.code));
+  const dataGaps = [];
+
+  if (!project.projectId && !project.id) dataGaps.push(reportDataGap(project, "projectId", "Project ID is missing."));
+  if (!project.name) dataGaps.push(reportDataGap(project, "name", "Project name is missing."));
+  if (!project.overallKpiLabel) dataGaps.push(reportDataGap(project, "overallKpiLabel", "Overall KPI is missing."));
+  if (!Number.isFinite(progress)) dataGaps.push(reportDataGap(project, "progress", "Progress is missing or invalid."));
+  if (!project.finish) dataGaps.push(reportDataGap(project, "finish", "Finish date is missing."));
+  if (!project.start) dataGaps.push(reportDataGap(project, "start", "Start date is missing; planned progress cannot be calculated."));
+  if (!statusText) dataGaps.push(reportDataGap(project, "lastStatusUpdate", "Last status text is missing."));
+
+  if (plannedProgress != null && Number.isFinite(progress) && progress + 15 < plannedProgress) {
+    reasonCodes.add("progress_behind_plan");
+  }
+  if (finishDays != null && finishDays <= 14 && finishDays >= 0) {
+    reasonCodes.add("finish_near");
+  }
+  if (riskText) reasonCodes.add("risk_or_blocker_present");
+  if (decisionText) reasonCodes.add("decision_required");
+  if (sponsorText) reasonCodes.add("sponsor_action_present");
+  if (plannedActivities) reasonCodes.add("next_step_present");
+  if (project.overallKpiLabel === "Red") reasonCodes.add("red_kpi");
+  if (project.overallKpiLabel === "Yellow") reasonCodes.add("yellow_kpi");
+
+  let statusType = "stable_plan";
+  let proposedStatusText = "Das Projekt laeuft planmaessig. Die geplanten Aktivitaeten werden fortgefuehrt; aktuell sind keine wesentlichen Abweichungen bei Termin, Umfang oder Qualitaet erkennbar. Naechster Schritt ist die weitere Umsetzung der geplanten Arbeitspakete bis zum naechsten Berichtstermin.";
+  let recommendedAction = "review_and_use";
+
+  if (dataGaps.length >= 4) {
+    statusType = "insufficient_data";
+    proposedStatusText = "Ein belastbarer Statusbericht kann auf Basis der vorhandenen Projektdaten noch nicht automatisch erstellt werden. Vor Managementnutzung muessen fehlende Pflichtinformationen, Planungsdaten und der aktuelle Projektstatus ergaenzt werden.";
+    recommendedAction = "collect_missing_data";
+  } else if (project.overallKpiLabel === "Red" || quality.severity === "critical") {
+    statusType = "critical_escalation";
+    proposedStatusText = `Das Projekt befindet sich in einem kritischen Zustand. Wesentliche Risiken oder Blocker gefaehrden Termin, Umfang oder Nutzen.${riskText ? ` Aktueller Risikohinweis: ${riskText}.` : ""}${decisionText ? ` Benoetigte Entscheidung: ${decisionText}.` : " Eine Managemententscheidung und ein Recovery-Plan sind erforderlich."} Naechster Schritt ist die kurzfristige Eskalation mit klarer Entscheidung zu Prioritaet, Ressourcen oder Scope.`;
+    recommendedAction = "escalate_management";
+  } else if (reasonCodes.has("overdue_finish")) {
+    statusType = "overdue_recovery";
+    proposedStatusText = `Das geplante Finish-Datum ist ueberschritten. Der aktuelle Fortschritt liegt bei ${Number.isFinite(progress) ? `${progress}%` : "unbekannt"}; dadurch besteht ein Termin- und Steuerungsrisiko.${riskText ? ` Ursache bzw. Blocker: ${riskText}.` : ""} Naechster Schritt ist die Aktualisierung des Recovery-Plans inklusive Owner, neuem Zieltermin und Managemententscheidung.`;
+    recommendedAction = "prepare_recovery_plan";
+  } else if (project.overallKpiLabel === "Yellow" || reasonCodes.has("progress_behind_plan") || reasonCodes.has("finish_near")) {
+    statusType = "watch_schedule_risk";
+    proposedStatusText = `Das Projekt ist weiterhin aktiv, weist jedoch Steuerungsbedarf auf.${Number.isFinite(progress) ? ` Der aktuelle Fortschritt liegt bei ${progress}%` : ""}${plannedProgress != null ? ` gegenueber einem erwarteten Planfortschritt von ca. ${plannedProgress}%` : ""}.${riskText ? ` Aktuelles Risiko bzw. Blocker: ${riskText}.` : ""} Naechster Schritt ist die Abstimmung konkreter Gegenmassnahmen und die Bewertung der Auswirkungen auf den Gesamttermin.`;
+    recommendedAction = "define_mitigation";
+  } else if (Number.isFinite(progress) && progress >= 90 && isActiveProjectCandidate(project)) {
+    statusType = "closure_preparation";
+    proposedStatusText = `Das Projekt befindet sich in der Abschlussphase. Der aktuelle Fortschritt liegt bei ${progress}%; die wesentlichen Arbeitspakete sind weitgehend abgeschlossen. Naechster Schritt ist die finale Validierung, Abnahmevorbereitung und Klaerung offener Restpunkte.`;
+    recommendedAction = "prepare_closure";
+  } else if (decisionText || sponsorText) {
+    statusType = "decision_or_sponsor_action";
+    proposedStatusText = `Das Projekt benoetigt eine verbindliche Klaerung fuer den naechsten Umsetzungsschritt.${decisionText ? ` Offene Entscheidung: ${decisionText}.` : ""}${sponsorText ? ` Sponsor Action: ${sponsorText}.` : ""} Ohne Klaerung besteht Risiko fuer Verzug, Nacharbeit oder Prioritaetskonflikte. Naechster Schritt ist die Entscheidung bzw. Nachverfolgung im Steering.`;
+    recommendedAction = "track_decision";
+  } else if (statusText && quality.severity === "ok" && ["credible", "trusted"].includes(truth.summary.level)) {
+    statusType = "stable_or_kv";
+    proposedStatusText = "Status unveraendert seit letztem Bericht. Es gab keine wesentlichen Aenderungen bei Fortschritt, Risiken oder Terminen. Die naechsten geplanten Aktivitaeten werden gemaess bestehender Planung fortgefuehrt.";
+    recommendedAction = "review_kv_allowed";
+  }
+
+  const canUseKv = statusType === "stable_or_kv" && !riskText && !decisionText && !sponsorText;
+  if (!canUseKv && statusType === "stable_or_kv") {
+    reasonCodes.add("kv_requires_review");
+  }
+  const qualityScore = Math.max(0, Math.min(100, Math.round((quality.score + truth.summary.score + safety.safetyScore) / 3)));
+
+  return {
+    projectId: project.projectId || project.id || null,
+    name: project.name || null,
+    statusType,
+    proposedStatusText,
+    canUseKv,
+    requiresReview: true,
+    canAutoSave: false,
+    recommendedAction,
+    qualityScore,
+    planning: {
+      start: project.start || null,
+      finish: project.finish || null,
+      progress: Number.isFinite(progress) ? progress : null,
+      plannedProgress,
+      finishDays,
+    },
+    sourceSignals: {
+      projectStatusLabel: project.projectStatusLabel || null,
+      overallKpiLabel: project.overallKpiLabel || null,
+      safetyLevel: safety.safetyLevel,
+      managementAttention: safety.managementAttention,
+      truthLevel: truth.summary.level,
+    },
+    reasonCodes: [...reasonCodes],
+    dataGaps,
+    evidence: quality.evidence.map((item) => ({ code: item.code, field: item.field, value: item.value, message: item.message })),
+    recordUrl: project.recordUrl || null,
+  };
+}
+
+function buildStatusSuggestionReport(projects, options = {}) {
+  const sourceProjects = projects || [];
+  const statusReport = buildPmoStatusReport(sourceProjects, options);
+  const filteredIds = new Set(statusReport.projects.map((project) => project.projectId || project.id));
+  const filteredProjects = sourceProjects.filter((project) => filteredIds.has(project.projectId || project.id));
+  const rows = filteredProjects.map((project) => buildStatusReportSuggestion(project, options));
+  return {
+    reportType: "status_suggestion",
+    title: "Automatic Status Suggestion Report",
+    generatedAt: options.generatedAt || new Date().toISOString(),
+    filters: statusReport.filters,
+    summary: {
+      projectsReviewed: sourceProjects.length,
+      projectsMatched: rows.length,
+      draftSuggestions: rows.length,
+      kvAllowed: rows.filter((row) => row.canUseKv).length,
+      needsReview: rows.filter((row) => row.requiresReview).length,
+      managementEscalations: rows.filter((row) => ["critical_escalation", "overdue_recovery"].includes(row.statusType)).length,
+      dataGaps: rows.reduce((sum, row) => sum + row.dataGaps.length, 0),
+      canAutoSave: false,
+    },
+    sections: [
+      { title: "Generation logic", text: "Creates review-only status suggestions from D365 project fields, planning dates, KPI, progress, risks, decisions, sponsor actions, and safety gates." },
+      { title: "Safety", text: "Suggestions are advisory only. Missing planning or evidence fields are reported as data gaps; CRM writeback remains confirmation-gated." },
+    ],
+    rows,
+    evidence: rows.flatMap((row) => row.evidence.map((item) => ({ ...item, projectId: row.projectId }))),
+    dataGaps: rows.flatMap((row) => row.dataGaps),
+  };
+}
+
 function reportDataGap(project, field, message) {
   return {
     projectId: project?.projectId || project?.id || null,
@@ -2759,6 +2910,7 @@ function buildProjectIntelligence(projects, options = {}) {
     projectSafetyGates: buildProjectSafetyGateSuite(projects, options),
     pmoControlTower: buildPmoControlTower(projects, options),
     pmoStatusReport: buildPmoStatusReport(projects, options),
+    statusSuggestionReport: buildStatusSuggestionReport(projects, options),
     pmoReportSuite: buildPmoReportSuite(projects, options),
     maximumUsps: buildMaximumUspLayer(projects, options),
     pmoUsps: buildPmoUspLayer(projects, options),
@@ -2824,6 +2976,8 @@ module.exports = {
   buildPmoReport,
   buildPmoReportSuite,
   buildPmoStatusReport,
+  buildStatusReportSuggestion,
+  buildStatusSuggestionReport,
   buildPortfolioConstraintRadar,
   buildNoSurpriseForecast,
   buildReportQualityBenchmark,

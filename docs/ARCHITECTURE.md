@@ -29,7 +29,7 @@ The primary project data path is the authenticated Dynamics browser context:
 
 1. Codex opens Dynamics and lets the user complete login.
 2. `npm run status-report:dataverse` prints a browser snippet that uses `Xrm.WebApi.retrieveMultipleRecords`.
-3. `TPGProjectAssist.retrieveProjectIntelligenceFromD365()`, `retrieveBatchProjectPreviewFromD365()`, `retrieveMonthlyStatusPlanFromD365()`, and the D365 API Max helpers read `tpg_projects` directly in the authenticated Dynamics context.
+3. `TPGProjectAssist.retrieveProjectIntelligenceFromD365()`, `retrieveBatchProjectPreviewFromD365()`, `retrieveMonthlyStatusPlanFromD365()`, `retrieveStatusSuggestionReportFromD365()`, and the D365 API Max helpers read `tpg_projects` directly in the authenticated Dynamics context.
 4. CLI file commands are an explicit offline fallback for reviewed local snapshots and require `--allow-offline-input`.
 
 Visual UI scraping is only a fallback for navigation, field verification, and explicit save confirmation. The plugin does not add service-principal authentication or background CRM writes.
@@ -43,6 +43,7 @@ Visual UI scraping is only a fallback for navigation, field verification, and ex
 - Dynamics URL builders
 - status update draft helpers
 - monthly project-leader status writeback plans
+- automatic status suggestion reports from D365 fields and planning data
 - 15 D365 API Max helpers for field discovery, live control center, status entity resolution, PM self-service, dry-runs, Submitted-To lookup, status history, duplicate prevention, steering packs, data-gap worklists, executive routing, Power BI output, permission probes, audit evidence, and pilot writeback
 - public exports for project intelligence functions
 - plugin validation checks
@@ -83,6 +84,14 @@ The plugin does not directly automate CRM writes from Node.js. Browser-based CRM
 `buildMonthlyStatusReportRun(projects, options)` prepares a portfolio run for one report month. It filters to active projects, tracks missing project-leader input, counts writeback risks, and declares `quick_create_confirmation_gated` as the only writeback mode.
 
 The production path calls `TPGProjectAssist.retrieveMonthlyStatusPlanFromD365({ month: "YYYY-MM" })` from the authenticated Dynamics browser context. The CLI command `--monthly-status-plan <snapshot.json> --allow-offline-input --month YYYY-MM` is only an offline fallback. Browser save behavior remains manual and confirmation-gated through `Quick Create: Status Update`.
+
+## Automatic Status Suggestion Report
+
+`buildStatusReportSuggestion(project, options)` evaluates one project and proposes review-only status text from KPI, progress, planned progress, start/finish dates, last status, risks, decisions, sponsor actions, and safety gates.
+
+`buildStatusSuggestionReport(projects, options)` returns a report envelope with `reportType: "status_suggestion"`, summary counts, rows, evidence, and data gaps. `buildProjectIntelligence(projects, options)` includes the same report as `statusSuggestionReport`.
+
+The live production path is `TPGProjectAssist.retrieveStatusSuggestionReportFromD365({ today: "YYYY-MM-DD" })`. File-based CLI generation is offline fallback only and requires `--allow-offline-input`.
 
 ## Status API Max Layer
 

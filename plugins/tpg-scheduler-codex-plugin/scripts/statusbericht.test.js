@@ -53,6 +53,8 @@ const {
   PMO_USP_IDS,
   buildStatusApiEnvelope,
   buildStatusReportIdempotencyKey,
+  buildStatusReportSuggestion,
+  buildStatusSuggestionReport,
   buildStatusUpdateAttachmentPlan,
   buildStatusUpdateCreateRecordPlan,
   buildStatusUpdateDuplicateCheck,
@@ -315,6 +317,8 @@ assert.match(getDataverseBrowserSnippet(), /buildSteeringAgenda/);
 assert.match(getDataverseBrowserSnippet(), /buildRiskLedgerEntries/);
 assert.match(getDataverseBrowserSnippet(), /buildCalibrationReport/);
 assert.match(getDataverseBrowserSnippet(), /retrieveProjectIntelligenceFromD365/);
+assert.match(getDataverseBrowserSnippet(), /retrieveStatusSuggestionReportFromD365/);
+assert.match(getDataverseBrowserSnippet(), /buildStatusSuggestionReport/);
 assert.match(getDataverseBrowserSnippet(), /retrieveMonthlyStatusPlanFromD365/);
 assert.match(getDataverseBrowserSnippet(), /retrieveBatchProjectPreviewFromD365/);
 assert.match(getDataverseBrowserSnippet(), /discoverProjectFieldMetadataFromD365/);
@@ -363,6 +367,38 @@ const exportPath = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "tpg-datavers
 fs.writeFileSync(exportPath, JSON.stringify(dataverseExport), "utf8");
 assert.throws(() => readProjectsInput(exportPath), /offline fallback only/);
 assert.equal(readProjectsInput(exportPath, { allowOfflineInput: true })[0].name, "Dataverse Export Project");
+const statusSuggestionReport = buildStatusSuggestionReport([
+  {
+    id: "84966c5d-996d-4d19-88de-97a4300a6a62",
+    projectId: "2024-1058",
+    name: "Healthy Status",
+    projectStatusLabel: "In Progress",
+    overallKpiLabel: "Green",
+    progress: 40,
+    start: "2026-01-01",
+    finish: "2026-12-31",
+    lastStatusUpdate: "Planmaessige Umsetzung laeuft.",
+  },
+  {
+    id: "11111111-1111-1111-1111-111111111111",
+    projectId: "2024-9999",
+    name: "Critical Status",
+    projectStatusLabel: "In Progress",
+    overallKpiLabel: "Red",
+    progress: 35,
+    start: "2026-01-01",
+    finish: "2026-05-01",
+    lastStatusUpdate: "Vendor delivery blocked.",
+    obstaclesAndMeasures: "Vendor delivery blocked.",
+    decisions: "Approve fallback interface.",
+  },
+], { today: "2026-05-13" });
+assert.equal(statusSuggestionReport.reportType, "status_suggestion");
+assert.equal(statusSuggestionReport.summary.draftSuggestions, 2);
+assert.equal(statusSuggestionReport.rows.find((row) => row.projectId === "2024-1058").canUseKv, true);
+assert.equal(statusSuggestionReport.rows.find((row) => row.projectId === "2024-9999").statusType, "critical_escalation");
+assert.match(statusSuggestionReport.rows.find((row) => row.projectId === "2024-9999").proposedStatusText, /kritischen Zustand/);
+assert.equal(buildStatusReportSuggestion(statusSuggestionReport.rows[0]).canAutoSave, false);
 assert.equal(typeof buildAuditEntry, "function");
 assert.equal(typeof buildAudienceReport, "function");
 assert.equal(typeof buildCalibrationReport, "function");
@@ -394,6 +430,8 @@ assert.equal(typeof buildPmoStatusReportDocxBuffer, "function");
 assert.equal(typeof buildPmoStatusReportXlsxBuffer, "function");
 assert.equal(typeof buildStatusApiEnvelope, "function");
 assert.equal(typeof buildStatusReportIdempotencyKey, "function");
+assert.equal(typeof buildStatusReportSuggestion, "function");
+assert.equal(typeof buildStatusSuggestionReport, "function");
 assert.equal(typeof buildStatusUpdateAttachmentPlan, "function");
 assert.equal(typeof buildStatusUpdateCreateRecordPlan, "function");
 assert.equal(typeof buildStatusUpdateDuplicateCheck, "function");

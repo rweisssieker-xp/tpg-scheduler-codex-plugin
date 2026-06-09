@@ -30,6 +30,7 @@ TPG-Scheduler-Codex-Plugin is a Codex plugin for confirmation-gated Dynamics 365
 - PMO Control Tower: runs 25 PMO governance, accountability, aging, portfolio concentration, audit, traceability, comparability, and intervention checks per project.
 - PMO Filtered Status Report: creates PMO reports filtered by project status and last status report date or narrative text.
 - Monthly Project-Leader Status Writeback: prepares one status update per active project and report month, with Quick Create staging, project-manager verification, safety gates, and explicit save confirmation.
+- Automatic Status Suggestion Report: proposes review-only German status text from live D365 project fields, planning dates, KPI, progress, risks, decisions, sponsor actions, and safety gates.
 - Status API Max Layer: adds status history reads, duplicate checks, idempotency keys, delta exports, pagination, metadata discovery, permission probes, structured status payloads, validation, writeback queues, audit events, attachment plans, Dataverse error mapping, schema envelopes, and confirmation-gated `Xrm.WebApi.createRecord` plans.
 - PMO Report Suite: generates 12 dedicated PMO management reports through the `pmo-report-suite` skill.
 - PMO Word/Excel Export: writes polished filtered PMO reports as `.docx` and `.xlsx` files with executive callouts, KPI cards, filter scope, status legend, project spotlight, highlighted project rows, and PMO findings from live D365 API data or explicit offline snapshots.
@@ -107,6 +108,7 @@ npm run status-report:help
 npm run status-report:dataverse
 // In the authenticated Dynamics browser:
 await TPGProjectAssist.retrieveProjectIntelligenceFromD365({ today: "YYYY-MM-DD" })
+await TPGProjectAssist.retrieveStatusSuggestionReportFromD365({ today: "YYYY-MM-DD" })
 await TPGProjectAssist.retrieveMonthlyStatusPlanFromD365({ month: "YYYY-MM", statusText: "kv" })
 await TPGProjectAssist.buildLivePmoControlCenterFromD365({ today: "YYYY-MM-DD" })
 ```

@@ -144,11 +144,29 @@ The output contains one monthly draft per project, the report period, prepared S
 4. Verify `Submitted To` and `Email Status Update`.
 5. Save only after explicit confirmation for the exact project, month, status text, and email setting.
 
+## Automatic Status Suggestion Report
+
+Use this report when project leaders need suggested status text from D365 fields and planning data:
+
+```powershell
+await TPGProjectAssist.retrieveStatusSuggestionReportFromD365({ today: "2026-06-09" })
+```
+
+The report reads live D365 project data and proposes one review-only German status text per active project. It uses KPI, progress, start/finish dates, planned progress, last status, risks, decisions, sponsor actions, and safety gates. Output rows include `statusType`, `proposedStatusText`, `reasonCodes`, `dataGaps`, `canUseKv`, `requiresReview`, and `canAutoSave: false`.
+
+Offline fallback for reviewed snapshots:
+
+```powershell
+node ./scripts/statusbericht.js --status-suggestion-report <snapshot.json> --allow-offline-input --json
+node ./scripts/statusbericht.js --status-suggestion-report <snapshot.json> --allow-offline-input --docx reports/status-suggestions.docx --xlsx reports/status-suggestions.xlsx
+```
+
 ## Status API Max Layer
 
 The status API layer exposes these integration helpers for real Dynamics workflows:
 
 - `retrieveAllRecords`: paginated Dataverse reads.
+- `retrieveStatusSuggestionReportFromD365`: automatic status suggestion report from live project fields and planning data.
 - `retrieveProjectDelta`: active project changes since `modifiedon`.
 - `retrieveStatusUpdates`: status history by project and month.
 - `discoverStatusUpdateMetadata`: entity metadata, entity set, attributes, and privileges.

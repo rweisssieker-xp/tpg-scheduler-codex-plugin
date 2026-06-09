@@ -450,6 +450,101 @@
       }
     ]
   },
+  "statusSuggestionReport": {
+    "reportType": "status_suggestion",
+    "title": "Automatic Status Suggestion Report",
+    "generatedAt": "2026-05-13T00:00:00.000Z",
+    "filters": {
+      "projectStatusLabels": [],
+      "lastStatusBefore": null,
+      "lastStatusAfter": null,
+      "lastStatusOn": null,
+      "lastStatusContains": null,
+      "lastStatusMissing": false
+    },
+    "summary": {
+      "projectsReviewed": 2,
+      "projectsMatched": 2,
+      "draftSuggestions": 2,
+      "kvAllowed": 1,
+      "needsReview": 2,
+      "managementEscalations": 1,
+      "dataGaps": 0,
+      "canAutoSave": false
+    },
+    "sections": [
+      {
+        "title": "Generation logic",
+        "text": "Creates review-only status suggestions from D365 project fields, planning dates, KPI, progress, risks, decisions, sponsor actions, and safety gates."
+      },
+      {
+        "title": "Safety",
+        "text": "Suggestions are advisory only. Missing planning or evidence fields are reported as data gaps; CRM writeback remains confirmation-gated."
+      }
+    ],
+    "rows": [
+      {
+        "projectId": "2024-1058",
+        "name": "ERP Cutover",
+        "statusType": "critical_escalation",
+        "proposedStatusText": "Das Projekt befindet sich in einem kritischen Zustand. Wesentliche Risiken oder Blocker gefaehrden Termin, Umfang oder Nutzen. Aktueller Risikohinweis: Vendor delivery blocked. Benoetigte Entscheidung: Approve fallback interface. Naechster Schritt ist die kurzfristige Eskalation mit klarer Entscheidung zu Prioritaet, Ressourcen oder Scope.",
+        "canUseKv": false,
+        "requiresReview": true,
+        "canAutoSave": false,
+        "recommendedAction": "escalate_management",
+        "qualityScore": 35,
+        "planning": {
+          "start": "2026-01-01",
+          "finish": "2026-05-01",
+          "progress": 60,
+          "plannedProgress": 100,
+          "finishDays": -12
+        },
+        "sourceSignals": {
+          "projectStatusLabel": "In Progress",
+          "overallKpiLabel": "Red",
+          "safetyLevel": "critical",
+          "managementAttention": "cio",
+          "truthLevel": "low_trust"
+        },
+        "reasonCodes": ["red_kpi", "overdue_finish", "risk_or_blocker_present", "decision_required"],
+        "dataGaps": [],
+        "evidence": [{ "code": "red_kpi", "field": "overallKpiLabel", "value": "Red", "message": "Overall KPI is Red." }],
+        "recordUrl": "https://posp365.crm4.dynamics.com/main.aspx?...id=2024-1058"
+      },
+      {
+        "projectId": "2024-2000",
+        "name": "CRM Rollout",
+        "statusType": "stable_or_kv",
+        "proposedStatusText": "Status unveraendert seit letztem Bericht. Es gab keine wesentlichen Aenderungen bei Fortschritt, Risiken oder Terminen. Die naechsten geplanten Aktivitaeten werden gemaess bestehender Planung fortgefuehrt.",
+        "canUseKv": true,
+        "requiresReview": true,
+        "canAutoSave": false,
+        "recommendedAction": "review_kv_allowed",
+        "qualityScore": 95,
+        "planning": {
+          "start": "2026-01-01",
+          "finish": "2026-12-31",
+          "progress": 30,
+          "plannedProgress": 36,
+          "finishDays": 232
+        },
+        "sourceSignals": {
+          "projectStatusLabel": "In Progress",
+          "overallKpiLabel": "Green",
+          "safetyLevel": "safe",
+          "managementAttention": "none",
+          "truthLevel": "credible"
+        },
+        "reasonCodes": [],
+        "dataGaps": [],
+        "evidence": [],
+        "recordUrl": "https://posp365.crm4.dynamics.com/main.aspx?...id=2024-2000"
+      }
+    ],
+    "evidence": [{ "projectId": "2024-1058", "code": "red_kpi", "field": "overallKpiLabel" }],
+    "dataGaps": []
+  },
   "pmoUsps": {
     "layerType": "pmo_usps",
     "summary": {

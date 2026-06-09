@@ -98,6 +98,16 @@ const executiveException = JSON.parse(executiveExceptionOutput);
 assert.equal(executiveException.reportType, "executive_exception");
 assert.equal(Array.isArray(executiveException.rows), true);
 assert.equal(Array.isArray(executiveException.dataGaps), true);
+const statusSuggestionOutput = execFileSync(
+  process.execPath,
+  [scriptPath, "--status-suggestion-report", fixturePath, "--today", "2026-05-13", "--json", "--allow-sample"],
+  { encoding: "utf8" }
+);
+const statusSuggestion = JSON.parse(statusSuggestionOutput);
+assert.equal(statusSuggestion.reportType, "status_suggestion");
+assert.equal(statusSuggestion.summary.canAutoSave, false);
+assert.equal(statusSuggestion.rows.some((row) => row.proposedStatusText && row.requiresReview), true);
+assert.equal(statusSuggestion.rows.some((row) => row.statusType === "critical_escalation"), true);
 
 const suiteJsonOutput = execFileSync(
   process.execPath,
@@ -160,6 +170,8 @@ const docxPath = path.join(outputDir, "pmo-status.docx");
 const xlsxPath = path.join(outputDir, "pmo-status.xlsx");
 const suiteDocxPath = path.join(outputDir, "pmo-suite.docx");
 const suiteXlsxPath = path.join(outputDir, "pmo-suite.xlsx");
+const suggestionDocxPath = path.join(outputDir, "status-suggestions.docx");
+const suggestionXlsxPath = path.join(outputDir, "status-suggestions.xlsx");
 const pmoFileOutput = execFileSync(
   process.execPath,
   [
@@ -200,6 +212,26 @@ assert.equal(fs.existsSync(suiteDocxPath), true);
 assert.equal(fs.existsSync(suiteXlsxPath), true);
 assert.equal(suiteFileJson.writtenFiles.docx, path.resolve(suiteDocxPath));
 assert.equal(suiteFileJson.writtenFiles.xlsx, path.resolve(suiteXlsxPath));
+const suggestionFileOutput = execFileSync(
+  process.execPath,
+  [
+    scriptPath,
+    "--status-suggestion-report",
+    fixturePath,
+    "--docx",
+    suggestionDocxPath,
+    "--xlsx",
+    suggestionXlsxPath,
+    "--json",
+    "--allow-sample",
+  ],
+  { encoding: "utf8" }
+);
+const suggestionFileJson = JSON.parse(suggestionFileOutput);
+assert.equal(fs.existsSync(suggestionDocxPath), true);
+assert.equal(fs.existsSync(suggestionXlsxPath), true);
+assert.equal(suggestionFileJson.writtenFiles.docx, path.resolve(suggestionDocxPath));
+assert.equal(suggestionFileJson.writtenFiles.xlsx, path.resolve(suggestionXlsxPath));
 assert.deepEqual([...fs.readFileSync(docxPath).subarray(0, 2)].map((byte) => String.fromCharCode(byte)).join(""), "PK");
 assert.deepEqual([...fs.readFileSync(xlsxPath).subarray(0, 2)].map((byte) => String.fromCharCode(byte)).join(""), "PK");
 assert.equal(pmoFileJson.writtenFiles.docx, path.resolve(docxPath));

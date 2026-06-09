@@ -63,6 +63,7 @@ assert.match(skill, /createStatusUpdateWithConfirmation/);
 assert.match(skill, /buildStatusWritebackQueue/);
 assert.match(skill, /buildLivePmoControlCenterFromD365/);
 assert.match(skill, /retrieveMonthlyPmSelfServiceFlowFromD365/);
+assert.match(skill, /retrieveStatusSuggestionReportFromD365/);
 const pmoSkill = assertFile("plugins/tpg-scheduler-codex-plugin/skills/pmo-report-suite/SKILL.md");
 const rootPmoSkill = assertFile("skills/pmo-report-suite/SKILL.md");
 assert.match(pmoSkill, /^---\nname: pmo-report-suite\n/m);
@@ -73,6 +74,8 @@ assert.match(pmoSkill, /buildLivePmoControlCenterFromD365/);
 assert.match(rootPmoSkill, /buildLivePmoControlCenterFromD365/);
 assert.match(pmoSkill, /retrievePowerBiReadyPortfolioFromD365/);
 assert.match(rootPmoSkill, /retrievePowerBiReadyPortfolioFromD365/);
+assert.match(pmoSkill, /status-suggestion-report/);
+assert.match(rootPmoSkill, /retrieveStatusSuggestionReportFromD365/);
 for (const reportType of [
   "portfolio_steering",
   "decision_action_aging",
@@ -171,6 +174,7 @@ for (const d365ApiFeature of [
   "probeD365PermissionsDetailed",
   "buildAuditEvidencePackFromD365",
   "pilotStatusWritebackFromD365",
+  "retrieveStatusSuggestionReportFromD365",
 ]) {
   assert.match(publicDocs, new RegExp(d365ApiFeature), `public docs must document ${d365ApiFeature}`);
 }
@@ -198,6 +202,7 @@ assert.equal(Boolean(intelligenceSchema.properties.pmoControlTower), true, "proj
 assert.equal(Boolean(intelligenceSchema.properties.maximumUsps), true, "project intelligence schema must include maximumUsps");
 assert.equal(Boolean(intelligenceSchema.properties.pmoUsps), true, "project intelligence schema must include pmoUsps");
 assert.equal(Boolean(intelligenceSchema.properties.pmoStatusReport), true, "project intelligence schema must include pmoStatusReport");
+assert.equal(Boolean(intelligenceSchema.properties.statusSuggestionReport), true, "project intelligence schema must include statusSuggestionReport");
 assert.equal(Boolean(intelligenceSchema.properties.pmoReportSuite), true, "project intelligence schema must include pmoReportSuite");
 
 const safetySchema = JSON.parse(assertFile("schemas/project-safety-gates.schema.json"));

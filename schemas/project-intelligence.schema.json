@@ -52,6 +52,27 @@
         "projects": { "type": "array" }
       }
     },
+    "statusSuggestionReport": {
+      "type": "object",
+      "required": ["reportType", "title", "generatedAt", "summary", "sections", "rows", "evidence", "dataGaps"],
+      "additionalProperties": true,
+      "properties": {
+        "reportType": { "const": "status_suggestion" },
+        "summary": {
+          "type": "object",
+          "required": ["projectsReviewed", "draftSuggestions", "kvAllowed", "needsReview", "canAutoSave"],
+          "additionalProperties": true
+        },
+        "rows": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["projectId", "statusType", "proposedStatusText", "canUseKv", "requiresReview", "canAutoSave", "reasonCodes", "dataGaps"],
+            "additionalProperties": true
+          }
+        }
+      }
+    },
     "pmoReportSuite": {
       "type": "object",
       "required": ["generatedAt", "filters", "summary", "reports"],

@@ -1557,6 +1557,133 @@ function getDataverseBrowserSnippet() {
     });
   }
 
+  function plannedProgressPercent(project = {}, options = {}) {
+    const start = parseDateOnly(project.start);
+    const finish = parseDateOnly(project.finish);
+    const today = parseDateOnly(options.today || new Date().toISOString().slice(0, 10));
+    if (!start || !finish || !today || finish <= start) return null;
+    if (today <= start) return 0;
+    if (today >= finish) return 100;
+    return Math.round(((today.getTime() - start.getTime()) / (finish.getTime() - start.getTime())) * 100);
+  }
+
+  function daysUntilDate(dateText, todayText) {
+    const target = parseDateOnly(dateText);
+    const today = parseDateOnly(todayText);
+    if (!target || !today) return null;
+    return Math.round((target.getTime() - today.getTime()) / 86400000);
+  }
+
+  function buildStatusReportSuggestion(project = {}, options = {}) {
+    const today = options.today || new Date().toISOString().slice(0, 10);
+    const quality = evaluateProjectStatusQuality(project, options);
+    const progress = Number(project.progress);
+    const plannedProgress = plannedProgressPercent(project, options);
+    const finishDays = daysUntilDate(project.finish, today);
+    const statusText = normalizeText(project.currentStatusText || project.lastStatusUpdate);
+    const riskText = normalizeText(project.obstaclesAndMeasures || project.risks || "");
+    const decisionText = normalizeText(project.decisions || "");
+    const sponsorText = normalizeText(project.sponsorActions || "");
+    const reasonCodes = new Set((quality.evidence || []).map((item) => item.code));
+    const dataGaps = [];
+    if (!project.projectId && !project.id) dataGaps.push({ field: "projectId", message: "Project ID is missing." });
+    if (!project.name) dataGaps.push({ field: "name", message: "Project name is missing." });
+    if (!project.overallKpiLabel) dataGaps.push({ field: "overallKpiLabel", message: "Overall KPI is missing." });
+    if (!Number.isFinite(progress)) dataGaps.push({ field: "progress", message: "Progress is missing or invalid." });
+    if (!project.finish) dataGaps.push({ field: "finish", message: "Finish date is missing." });
+    if (!project.start) dataGaps.push({ field: "start", message: "Start date is missing; planned progress cannot be calculated." });
+    if (!statusText) dataGaps.push({ field: "lastStatusUpdate", message: "Last status text is missing." });
+    if (plannedProgress != null && Number.isFinite(progress) && progress + 15 < plannedProgress) reasonCodes.add("progress_behind_plan");
+    if (finishDays != null && finishDays <= 14 && finishDays >= 0) reasonCodes.add("finish_near");
+    if (riskText) reasonCodes.add("risk_or_blocker_present");
+    if (decisionText) reasonCodes.add("decision_required");
+    if (sponsorText) reasonCodes.add("sponsor_action_present");
+
+    let statusType = "stable_plan";
+    let proposedStatusText = "Das Projekt laeuft planmaessig. Die geplanten Aktivitaeten werden fortgefuehrt; aktuell sind keine wesentlichen Abweichungen bei Termin, Umfang oder Qualitaet erkennbar. Naechster Schritt ist die weitere Umsetzung der geplanten Arbeitspakete bis zum naechsten Berichtstermin.";
+    let recommendedAction = "review_and_use";
+    if (dataGaps.length >= 4) {
+      statusType = "insufficient_data";
+      proposedStatusText = "Ein belastbarer Statusbericht kann auf Basis der vorhandenen Projektdaten noch nicht automatisch erstellt werden. Vor Managementnutzung muessen fehlende Pflichtinformationen, Planungsdaten und der aktuelle Projektstatus ergaenzt werden.";
+      recommendedAction = "collect_missing_data";
+    } else if (project.overallKpiLabel === "Red" || quality.severity === "critical") {
+      statusType = "critical_escalation";
+      proposedStatusText = "Das Projekt befindet sich in einem kritischen Zustand. Wesentliche Risiken oder Blocker gefaehrden Termin, Umfang oder Nutzen." + (riskText ? " Aktueller Risikohinweis: " + riskText + "." : "") + (decisionText ? " Benoetigte Entscheidung: " + decisionText + "." : " Eine Managemententscheidung und ein Recovery-Plan sind erforderlich.") + " Naechster Schritt ist die kurzfristige Eskalation mit klarer Entscheidung zu Prioritaet, Ressourcen oder Scope.";
+      recommendedAction = "escalate_management";
+    } else if (reasonCodes.has("overdue_finish")) {
+      statusType = "overdue_recovery";
+      proposedStatusText = "Das geplante Finish-Datum ist ueberschritten. Der aktuelle Fortschritt liegt bei " + (Number.isFinite(progress) ? progress + "%" : "unbekannt") + "; dadurch besteht ein Termin- und Steuerungsrisiko." + (riskText ? " Ursache bzw. Blocker: " + riskText + "." : "") + " Naechster Schritt ist die Aktualisierung des Recovery-Plans inklusive Owner, neuem Zieltermin und Managemententscheidung.";
+      recommendedAction = "prepare_recovery_plan";
+    } else if (project.overallKpiLabel === "Yellow" || reasonCodes.has("progress_behind_plan") || reasonCodes.has("finish_near")) {
+      statusType = "watch_schedule_risk";
+      proposedStatusText = "Das Projekt ist weiterhin aktiv, weist jedoch Steuerungsbedarf auf." + (Number.isFinite(progress) ? " Der aktuelle Fortschritt liegt bei " + progress + "%" : "") + (plannedProgress != null ? " gegenueber einem erwarteten Planfortschritt von ca. " + plannedProgress + "%" : "") + "." + (riskText ? " Aktuelles Risiko bzw. Blocker: " + riskText + "." : "") + " Naechster Schritt ist die Abstimmung konkreter Gegenmassnahmen und die Bewertung der Auswirkungen auf den Gesamttermin.";
+      recommendedAction = "define_mitigation";
+    } else if (Number.isFinite(progress) && progress >= 90 && isActiveProjectCandidate(project)) {
+      statusType = "closure_preparation";
+      proposedStatusText = "Das Projekt befindet sich in der Abschlussphase. Der aktuelle Fortschritt liegt bei " + progress + "%; die wesentlichen Arbeitspakete sind weitgehend abgeschlossen. Naechster Schritt ist die finale Validierung, Abnahmevorbereitung und Klaerung offener Restpunkte.";
+      recommendedAction = "prepare_closure";
+    } else if (decisionText || sponsorText) {
+      statusType = "decision_or_sponsor_action";
+      proposedStatusText = "Das Projekt benoetigt eine verbindliche Klaerung fuer den naechsten Umsetzungsschritt." + (decisionText ? " Offene Entscheidung: " + decisionText + "." : "") + (sponsorText ? " Sponsor Action: " + sponsorText + "." : "") + " Ohne Klaerung besteht Risiko fuer Verzug, Nacharbeit oder Prioritaetskonflikte. Naechster Schritt ist die Entscheidung bzw. Nachverfolgung im Steering.";
+      recommendedAction = "track_decision";
+    } else if (statusText && quality.severity === "ok") {
+      statusType = "stable_or_kv";
+      proposedStatusText = "Status unveraendert seit letztem Bericht. Es gab keine wesentlichen Aenderungen bei Fortschritt, Risiken oder Terminen. Die naechsten geplanten Aktivitaeten werden gemaess bestehender Planung fortgefuehrt.";
+      recommendedAction = "review_kv_allowed";
+    }
+
+    const canUseKv = statusType === "stable_or_kv" && !riskText && !decisionText && !sponsorText;
+    return {
+      projectId: project.projectId || project.id || null,
+      name: project.name || null,
+      statusType,
+      proposedStatusText,
+      canUseKv,
+      requiresReview: true,
+      canAutoSave: false,
+      recommendedAction,
+      qualityScore: quality.score,
+      planning: { start: project.start || null, finish: project.finish || null, progress: Number.isFinite(progress) ? progress : null, plannedProgress, finishDays },
+      sourceSignals: { projectStatusLabel: project.projectStatusLabel || null, overallKpiLabel: project.overallKpiLabel || null, qualitySeverity: quality.severity },
+      reasonCodes: [...reasonCodes],
+      dataGaps,
+      evidence: quality.evidence || [],
+      recordUrl: project.recordUrl || null,
+    };
+  }
+
+  function buildStatusSuggestionReport(projects, options = {}) {
+    const rows = (projects || []).filter(isActiveProjectCandidate).map((project) => buildStatusReportSuggestion(project, options));
+    return {
+      reportType: "status_suggestion",
+      title: "Automatic Status Suggestion Report",
+      generatedAt: options.generatedAt || new Date().toISOString(),
+      source: "dataverse_web_api",
+      summary: {
+        projectsReviewed: (projects || []).length,
+        projectsMatched: rows.length,
+        draftSuggestions: rows.length,
+        kvAllowed: rows.filter((row) => row.canUseKv).length,
+        needsReview: rows.filter((row) => row.requiresReview).length,
+        managementEscalations: rows.filter((row) => ["critical_escalation", "overdue_recovery"].includes(row.statusType)).length,
+        dataGaps: rows.reduce((sum, row) => sum + row.dataGaps.length, 0),
+        canAutoSave: false,
+      },
+      sections: [
+        { title: "Generation logic", text: "Creates review-only status suggestions from D365 project fields, planning dates, KPI, progress, risks, decisions, sponsor actions, and safety gates." },
+        { title: "Safety", text: "CRM writeback remains confirmation-gated." },
+      ],
+      rows,
+      evidence: rows.flatMap((row) => row.evidence.map((item) => ({ ...item, projectId: row.projectId }))),
+      dataGaps: rows.flatMap((row) => row.dataGaps.map((gap) => ({ ...gap, projectId: row.projectId, name: row.name }))),
+    };
+  }
+
+  async function retrieveStatusSuggestionReportFromD365(options = {}) {
+    const projects = await retrievePmoProjectPortfolio(options);
+    return buildStatusSuggestionReport(projects, options);
+  }
+
   async function retrieveStatusUpdates(project = {}, options = {}) {
     const entityLogicalName = options.entityLogicalName;
     if (!entityLogicalName) throw new Error("Status Update entity logical name is required.");
@@ -2217,12 +2344,15 @@ function getDataverseBrowserSnippet() {
     buildPmoProjectExport,
     buildAuditEvidencePackFromD365,
     retrieveProjectIntelligenceFromD365,
+    retrieveStatusSuggestionReportFromD365,
     retrieveBatchProjectPreviewFromD365,
     retrieveMonthlyStatusPlanFromD365,
     retrieveMonthlyPmSelfServiceFlowFromD365,
     buildLivePmoControlCenterFromD365,
     buildMonthlyStatusReportDraft,
     buildMonthlyStatusReportRun,
+    buildStatusReportSuggestion,
+    buildStatusSuggestionReport,
     buildStatusReportIdempotencyKey,
     buildStatusUpdateDraft,
     buildStatusUpdateCreateRecordPlan,
@@ -2313,6 +2443,7 @@ Dataverse browser snippet:
   npm run statusbericht:dataverse
   In the authenticated Dynamics browser console:
     await TPGProjectAssist.retrieveProjectIntelligenceFromD365({ today: "YYYY-MM-DD" })
+    await TPGProjectAssist.retrieveStatusSuggestionReportFromD365({ today: "YYYY-MM-DD" })
     await TPGProjectAssist.retrieveMonthlyStatusPlanFromD365({ month: "YYYY-MM", statusText: "kv" })
     await TPGProjectAssist.retrieveBatchProjectPreviewFromD365({ today: "YYYY-MM-DD" })
 
@@ -2323,6 +2454,8 @@ Offline fallback for tests or reviewed local snapshots only:
 PMO report with filters:
   Productive PMO report data should come from the D365 API helpers above.
   File-based report commands require --allow-offline-input.
+  Status suggestion report offline fallback:
+    node ./scripts/statusbericht.js --status-suggestion-report <snapshot.json> --allow-offline-input --json
 
 Monthly project-leader status writeback plan:
   Productive monthly status plans should use retrieveMonthlyStatusPlanFromD365().
@@ -2595,7 +2728,7 @@ function formatPmoStatusReportMarkdown(report) {
     filterLines.push("- Last status missing: yes");
   }
   const lines = [
-    "# PMO Status Report",
+    `# ${isPmoStatusReport(report) ? "PMO Status Report" : report.title || "PMO Status Report"}`,
     "",
     "## Filters",
     "",
@@ -3139,6 +3272,27 @@ async function printPmoReportSuite() {
   ].filter(Boolean).join("\n"));
 }
 
+async function printStatusSuggestionReport() {
+  const inputPath = getArgValue("--status-suggestion-report");
+  if (!inputPath) {
+    throw new Error("--status-suggestion-report requires a JSON file path or '-' for stdin.");
+  }
+  const projects = readProjectsInput(inputPath);
+  const report = projectIntelligence.buildStatusSuggestionReport(projects, buildPmoReportOptions());
+  const writtenFiles = await writePmoStatusReportFiles(report, {
+    docxPath: getArgValue("--docx"),
+    xlsxPath: getArgValue("--xlsx"),
+  });
+  if (process.argv.includes("--json")) {
+    console.log(JSON.stringify({ ...report, writtenFiles }, null, 2));
+    return;
+  }
+  const fileLines = Object.keys(writtenFiles).length
+    ? `\nFiles written:\n${Object.entries(writtenFiles).map(([type, outputPath]) => `- ${type}: ${outputPath}`).join("\n")}\n`
+    : "";
+  console.log(`${formatPmoStatusReportMarkdown(report)}${fileLines}`);
+}
+
 function formatMonthlyStatusReportRunMarkdown(run) {
   return [
     "# Monthly Project Status Writeback Plan",
@@ -3197,6 +3351,8 @@ async function main() {
       printDataverseSnippet();
     } else if (process.argv.includes("--pmo-suite")) {
       await printPmoReportSuite();
+    } else if (process.argv.includes("--status-suggestion-report")) {
+      await printStatusSuggestionReport();
     } else if (process.argv.includes("--monthly-status-plan")) {
       printMonthlyStatusReportRun();
     } else if (process.argv.includes("--pmo-report")) {
@@ -3254,6 +3410,8 @@ module.exports = {
   buildProjectRecordApiUrl,
   buildStatusApiEnvelope,
   buildStatusReportIdempotencyKey,
+  buildStatusReportSuggestion: projectIntelligence.buildStatusReportSuggestion,
+  buildStatusSuggestionReport: projectIntelligence.buildStatusSuggestionReport,
   buildStatusUpdateAttachmentPlan,
   buildStatusUpdateCreateRecordPlan,
   buildStatusUpdateDuplicateCheck,

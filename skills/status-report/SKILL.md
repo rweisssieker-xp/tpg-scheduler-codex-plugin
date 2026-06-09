@@ -13,10 +13,10 @@ For PMO reporting, portfolio management packs, the 12-report PMO suite, or DOCX/
 
 - Use the Codex in-app Browser for Dynamics 365 work.
 - Read Dataverse data through the authenticated Dynamics browser context as the production path.
-- For PMO inputs, call D365 API helpers such as `TPGProjectAssist.retrieveProjectIntelligenceFromD365()`, `retrieveMonthlyStatusPlanFromD365()`, `buildLivePmoControlCenterFromD365()`, or `retrieveMonthlyPmSelfServiceFlowFromD365()`; do not use downloaded exports as the normal path.
+- For PMO inputs, call D365 API helpers such as `TPGProjectAssist.retrieveProjectIntelligenceFromD365()`, `retrieveStatusSuggestionReportFromD365()`, `retrieveMonthlyStatusPlanFromD365()`, `buildLivePmoControlCenterFromD365()`, or `retrieveMonthlyPmSelfServiceFlowFromD365()`; do not use downloaded exports as the normal path.
 - Verify the configured project manager before collecting or staging a status update.
 - For monthly runs, prepare one Status Update per active verified project and report month with `--monthly-status-plan`.
-- Use the Status API Max Layer and D365 API Max helpers for status history, duplicate checks, idempotency, writeback queues, metadata discovery, permission probes, audit evidence packs, live PMO control center output, Submitted-To resolution, Power BI-ready output, and confirmation-gated Dataverse create plans.
+- Use the Status API Max Layer and D365 API Max helpers for automatic status suggestion reports, status history, duplicate checks, idempotency, writeback queues, metadata discovery, permission probes, audit evidence packs, live PMO control center output, Submitted-To resolution, Power BI-ready output, and confirmation-gated Dataverse create plans.
 - Show project safety level and PMO control findings before collecting or staging a status update.
 - When generating intelligence JSON, include and explain `maximumUsps` if the user asks for USPs, differentiation, PMO/CIO/CEO value, or product positioning.
 - When the user asks for PMO-specific value, operational PMO workflows, steering, audit, or CIO/CEO PMO outcomes, include and explain `pmoUsps`.

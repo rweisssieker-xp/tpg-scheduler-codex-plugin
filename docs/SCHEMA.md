@@ -13,13 +13,13 @@ The plugin exposes stable JSON contracts for offline reports and downstream PMO 
 - `schemas/status-writeback-audit-event.schema.json`: audit event for proposed, staged, saved, skipped, or failed status actions.
 - `schemas/status-update-duplicate-check.schema.json`: duplicate detection result for project/month status updates.
 
-The top-level project intelligence schema also includes the filtered `pmoStatusReport` contract.
+The top-level project intelligence schema also includes the filtered `pmoStatusReport` contract and the `statusSuggestionReport` contract for review-only status text suggestions.
 The PMO report suite adds uniform report objects with `reportType`, `title`, `generatedAt`, `filters`, `summary`, `sections`, `rows`, `evidence`, and `dataGaps`.
 The Maximum USP layer adds `maximumUsps` with exactly 12 implemented advisory differentiators, each carrying implementation status, proof metric, required data, trust controls, and runtime signals.
 The PMO USP layer adds `pmoUsps` with exactly 15 implemented operational PMO differentiators plus `commandQueue`, `evidenceLedger`, and `dataGaps`.
 The preferred production data path is live D365 API retrieval through the authenticated Dynamics browser context. Local JSON envelopes or bare project arrays are offline fallback inputs and require `--allow-offline-input`.
 
-DOCX and XLSX exports serialize the same `pmoStatusReport` object; the schema therefore remains the source contract for file-generation consumers.
+DOCX and XLSX exports serialize the same report objects, including `pmoStatusReport` and `statusSuggestionReport`; the schema therefore remains the source contract for file-generation consumers.
 The Status API Max Layer uses separate schemas so integrations can validate writeback queues and create plans without granting CRM write access.
 
 ## Contract Principles
