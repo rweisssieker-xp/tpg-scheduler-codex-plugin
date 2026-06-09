@@ -38,8 +38,8 @@ Preferred script names:
 ```powershell
 npm run status-report:help
 npm run status-report:dataverse
-node ./scripts/statusbericht.js --intelligence <real-project-export.json>
-node ./scripts/statusbericht.js --pmo-report <real-project-export.json>
+node ./scripts/statusbericht.js --intelligence <snapshot.json> --allow-offline-input
+node ./scripts/statusbericht.js --pmo-report <snapshot.json> --allow-offline-input
 ```
 
 Compatibility aliases:
@@ -47,8 +47,8 @@ Compatibility aliases:
 ```powershell
 npm run statusbericht:help
 npm run statusbericht:dataverse
-node ./scripts/statusbericht.js --intelligence <real-project-export.json>
-node ./scripts/statusbericht.js --pmo-report <real-project-export.json>
+node ./scripts/statusbericht.js --intelligence <snapshot.json> --allow-offline-input
+node ./scripts/statusbericht.js --pmo-report <snapshot.json> --allow-offline-input
 ```
 
 No npm command runs sample or fixture data as an active workflow. Test fixtures are reserved for automated tests and documentation.

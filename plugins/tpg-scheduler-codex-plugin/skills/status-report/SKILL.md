@@ -34,7 +34,7 @@ If Dynamics asks for login, pause and let the user complete Microsoft login manu
 ## Dataverse Access
 
 - Prefer Dataverse reads over visual UI scraping after a Dynamics browser session is authenticated.
-- Treat Dataverse Web API reads through `Xrm.WebApi` as the primary data path for candidate discovery and PMO exports.
+- Treat Dataverse Web API reads through `Xrm.WebApi` as the required production data path for candidate discovery, PMO intelligence, and monthly status planning.
 - Use the logged-in Dynamics page context for Dataverse reads; do not introduce a separate OAuth, Azure CLI, Power Platform CLI, service-principal, or browser process unless the user explicitly asks for it.
 - The project table discovered from Dynamics is:
   - logical name: `tpg_project`
@@ -97,26 +97,32 @@ If Dynamics asks for login, pause and let the user complete Microsoft login manu
   - `buildStatusWritebackAuditEvent(action, payload, options)`
   - `mapDataverseError(error)`
   - `getDataverseBrowserSnippet()`
-- When PMO report data is needed, load the Dataverse snippet and use:
-  - `await TPGProjectAssist.downloadPmoProjectExport()`
-  - `await TPGProjectAssist.copyPmoProjectExportToClipboard()`
-- The export must be read-only with `exportType: "tpg_pmo_project_export"` and `source: "dataverse_web_api"`.
+- When PMO or status-plan data is needed, load the Dataverse snippet and use direct D365 API helpers:
+  - `await TPGProjectAssist.retrieveProjectIntelligenceFromD365({ today: "YYYY-MM-DD" })`
+  - `await TPGProjectAssist.retrieveBatchProjectPreviewFromD365({ today: "YYYY-MM-DD" })`
+  - `await TPGProjectAssist.retrieveMonthlyStatusPlanFromD365({ month: "YYYY-MM", statusText: "kv" })`
+- Do not use downloaded project exports as the normal production path. File-based snapshots are offline fallback only.
 - To install browser-context helpers into an authenticated Dynamics page, print the snippet with:
   `npm run statusbericht:dataverse`
   Then run that JavaScript in the in-app Browser page context. It exposes `window.TPGProjectAssist`.
-- To generate an offline project intelligence report from exported project JSON, run:
-  `node ./scripts/statusbericht.js --intelligence <projects.json> --today YYYY-MM-DD`
-- To generate a PMO report with filters, run:
-  `node ./scripts/statusbericht.js --pmo-report <projects.json> --project-status "In Progress" --last-status-before YYYY-MM-DD`
+- To generate an offline fallback project intelligence report from reviewed local JSON, run:
+  `node ./scripts/statusbericht.js --intelligence <snapshot.json> --allow-offline-input --today YYYY-MM-DD`
+- To generate an offline fallback PMO report with filters, run:
+  `node ./scripts/statusbericht.js --pmo-report <snapshot.json> --allow-offline-input --project-status "In Progress" --last-status-before YYYY-MM-DD`
 - To write PMO Word and Excel files, add:
   `--docx reports/pmo-status.docx --xlsx reports/pmo-status.xlsx`
-- To prepare monthly project-leader status writeback plans, run:
-  `node ./scripts/statusbericht.js --monthly-status-plan <projects.json> --month YYYY-MM --json`
+- To prepare monthly project-leader status writeback plans, prefer:
+  `await TPGProjectAssist.retrieveMonthlyStatusPlanFromD365({ month: "YYYY-MM" })`
+  Offline fallback requires:
+  `node ./scripts/statusbericht.js --monthly-status-plan <snapshot.json> --allow-offline-input --month YYYY-MM --json`
   The DOCX and XLSX outputs must be treated as management-ready review artifacts generated from the same filtered real project data.
 - Use `--json` with `--intelligence` when another automation should consume the complete intelligence pack.
 - Use `--exports` with `--intelligence` to emit CSV strings for Power BI/import workflows and JSON for automation.
 - Available browser helper methods after injection:
   - `TPGProjectAssist.retrieveActiveProjects({ top })`
+  - `TPGProjectAssist.retrieveProjectIntelligenceFromD365({ today })`
+  - `TPGProjectAssist.retrieveBatchProjectPreviewFromD365({ today })`
+  - `TPGProjectAssist.retrieveMonthlyStatusPlanFromD365({ month, statusText })`
   - `TPGProjectAssist.retrieveProject(projectId)`
   - `TPGProjectAssist.buildBatchProjectPreview(projects, { today })`
   - `TPGProjectAssist.evaluateProjectStatusQuality(project, { today })`

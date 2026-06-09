@@ -109,8 +109,8 @@ assert.equal(suiteJson.summary.reportCount, 12);
 assert.equal(suiteJson.reports.map((report) => report.reportType).includes("audit_writeback_safety"), true);
 
 const outputDir = fs.mkdtempSync(path.join(os.tmpdir(), "tpg-pmo-report-"));
-const dataverseExportPath = path.join(outputDir, "real-dataverse-export.json");
-fs.writeFileSync(dataverseExportPath, JSON.stringify({
+const reviewedSnapshotPath = path.join(outputDir, "reviewed-d365-snapshot.json");
+fs.writeFileSync(reviewedSnapshotPath, JSON.stringify({
   exportType: "tpg_pmo_project_export",
   version: "1.0",
   source: "dataverse_web_api",
@@ -118,9 +118,16 @@ fs.writeFileSync(dataverseExportPath, JSON.stringify({
   organizationUrl: "https://posp365.crm4.dynamics.com",
   projects: JSON.parse(fs.readFileSync(fixturePath, "utf8")),
 }), "utf8");
+assert.throws(
+  () => execFileSync(process.execPath, [scriptPath, "--pmo-suite", reviewedSnapshotPath, "--json"], {
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+  }),
+  /offline fallback only/
+);
 const dataverseSuiteOutput = execFileSync(
   process.execPath,
-  [scriptPath, "--pmo-suite", dataverseExportPath, "--json"],
+  [scriptPath, "--pmo-suite", reviewedSnapshotPath, "--json", "--allow-offline-input"],
   { encoding: "utf8" }
 );
 const dataverseSuiteJson = JSON.parse(dataverseSuiteOutput);
@@ -131,7 +138,7 @@ const monthlyStatusOutput = execFileSync(
   [
     scriptPath,
     "--monthly-status-plan",
-    dataverseExportPath,
+    reviewedSnapshotPath,
     "--month",
     "2026-06",
     "--status-text",
@@ -139,6 +146,7 @@ const monthlyStatusOutput = execFileSync(
     "--project-manager-verified",
     "--reviewed",
     "--json",
+    "--allow-offline-input",
   ],
   { encoding: "utf8" }
 );

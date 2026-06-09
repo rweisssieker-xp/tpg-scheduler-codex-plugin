@@ -41,7 +41,7 @@ Attach or link:
 - Plugin validation output.
 - Release manifest output from `npm run release:manifest`.
 - Release notes from `docs/RELEASE_NOTES_v0.1.0.md` or the matching version file.
-- Offline output generated from a real or anonymized project export.
+- Offline fallback output generated from a reviewed or anonymized local snapshot.
 - Dynamics smoke-test notes with no customer data.
 - Status API live metadata notes with no customer data.
 - Known limitations.

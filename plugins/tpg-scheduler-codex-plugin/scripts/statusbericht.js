@@ -225,7 +225,7 @@ function unwrapProjectInput(parsed) {
   if (parsed && typeof parsed === "object" && Array.isArray(parsed.projects)) {
     return parsed.projects;
   }
-  throw new Error("Project intelligence input must be a JSON array of projects or a Dataverse PMO project export with a projects array.");
+  throw new Error("Project intelligence input must be a JSON array of projects or an offline Dataverse snapshot with a projects array.");
 }
 
 function isActiveProjectCandidate(project) {
@@ -1538,6 +1538,25 @@ function getDataverseBrowserSnippet() {
     return buildPmoProjectExport(projects, options);
   }
 
+  async function retrieveProjectIntelligenceFromD365(options = {}) {
+    const projects = await retrievePmoProjectPortfolio(options);
+    return buildProjectIntelligence(projects, options);
+  }
+
+  async function retrieveBatchProjectPreviewFromD365(options = {}) {
+    const projects = await retrievePmoProjectPortfolio(options);
+    return buildBatchProjectPreview(projects, options);
+  }
+
+  async function retrieveMonthlyStatusPlanFromD365(options = {}) {
+    const projects = await retrievePmoProjectPortfolio(options);
+    return buildMonthlyStatusReportRun(projects, {
+      ...options,
+      reportMonth: options.reportMonth || options.month,
+      defaultStatusText: options.defaultStatusText || options.statusText || "",
+    });
+  }
+
   async function retrieveStatusUpdates(project = {}, options = {}) {
     const entityLogicalName = options.entityLogicalName;
     if (!entityLogicalName) throw new Error("Status Update entity logical name is required.");
@@ -1740,6 +1759,9 @@ function getDataverseBrowserSnippet() {
   window.TPGProjectAssist = {
     constants,
     buildPmoProjectExport,
+    retrieveProjectIntelligenceFromD365,
+    retrieveBatchProjectPreviewFromD365,
+    retrieveMonthlyStatusPlanFromD365,
     buildMonthlyStatusReportDraft,
     buildMonthlyStatusReportRun,
     buildStatusReportIdempotencyKey,
@@ -1819,24 +1841,21 @@ Dataverse active projects API:
 Dataverse browser snippet:
   npm run statusbericht:dataverse
   In the authenticated Dynamics browser console:
-    await TPGProjectAssist.downloadPmoProjectExport()
-    await TPGProjectAssist.copyPmoProjectExportToClipboard()
+    await TPGProjectAssist.retrieveProjectIntelligenceFromD365({ today: "YYYY-MM-DD" })
+    await TPGProjectAssist.retrieveMonthlyStatusPlanFromD365({ month: "YYYY-MM", statusText: "kv" })
+    await TPGProjectAssist.retrieveBatchProjectPreviewFromD365({ today: "YYYY-MM-DD" })
 
-Offline intelligence:
-  node ./scripts/statusbericht.js --intelligence <real-dataverse-export.json>
-  node ./scripts/statusbericht.js --intelligence <real-project-export.json> --json
-  node ./scripts/statusbericht.js --intelligence <real-project-export.json> --exports
+Offline fallback for tests or reviewed local snapshots only:
+  node ./scripts/statusbericht.js --intelligence <snapshot.json> --allow-offline-input --json
+  node ./scripts/statusbericht.js --intelligence <snapshot.json> --allow-offline-input --exports
 
 PMO report with filters:
-  node ./scripts/statusbericht.js --pmo-report <real-project-export.json> --project-status "In Progress" --last-status-before YYYY-MM-DD
-  node ./scripts/statusbericht.js --pmo-report <real-project-export.json> --project-status "In Progress,Planning" --last-status-contains "vendor" --json
-  node ./scripts/statusbericht.js --pmo-report <real-project-export.json> --pmo-report-type executive_exception --json
-  node ./scripts/statusbericht.js --pmo-suite <real-project-export.json> --docx reports/pmo-suite.docx --xlsx reports/pmo-suite.xlsx
-  node ./scripts/statusbericht.js --pmo-report <real-project-export.json> --project-status "In Progress" --docx reports/pmo-status.docx --xlsx reports/pmo-status.xlsx
+  Productive PMO report data should come from the D365 API helpers above.
+  File-based report commands require --allow-offline-input.
 
 Monthly project-leader status writeback plan:
-  node ./scripts/statusbericht.js --monthly-status-plan <real-project-export.json> --month YYYY-MM --json
-  node ./scripts/statusbericht.js --monthly-status-plan <real-project-export.json> --month YYYY-MM --status-text "kv" --json
+  Productive monthly status plans should use retrieveMonthlyStatusPlanFromD365().
+  File-based monthly plan commands require --allow-offline-input.
 
 Sample and fixture inputs are rejected by default. They are reserved for automated tests and documentation fixtures.
 `);
@@ -1846,9 +1865,14 @@ function printDataverseSnippet() {
   console.log(getDataverseBrowserSnippet());
 }
 
-function readProjectsInput(inputPath) {
-  if (isSampleInputPath(inputPath) && !process.argv.includes("--allow-sample")) {
-    throw new Error("Sample or synthetic project data is not accepted for production runs. Use live Dynamics data or an explicit real project JSON export.");
+function readProjectsInput(inputPath, options = {}) {
+  const allowSample = options.allowSample ?? process.argv.includes("--allow-sample");
+  const allowOfflineInput = options.allowOfflineInput ?? process.argv.includes("--allow-offline-input");
+  if (isSampleInputPath(inputPath) && !allowSample) {
+    throw new Error("Sample or synthetic project data is not accepted for production runs. Use live D365 API data or pass --allow-sample for tests.");
+  }
+  if (!allowOfflineInput && !allowSample) {
+    throw new Error("File-based project input is an offline fallback only. Use authenticated D365 API helpers in the browser, or pass --allow-offline-input for a reviewed local snapshot.");
   }
   const raw = inputPath && inputPath !== "-"
     ? fs.readFileSync(inputPath, "utf8")

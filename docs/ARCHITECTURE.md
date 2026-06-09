@@ -5,7 +5,7 @@
 The plugin separates browser workflow guidance from deterministic project intelligence logic.
 
 - The skill file describes how Codex should operate inside the in-app Browser.
-- `scripts/statusbericht.js` exposes CLI commands, Dataverse-first browser export helpers, URL builders, and public exports.
+- `scripts/statusbericht.js` exposes CLI commands, D365 API browser helpers, URL builders, and public exports.
 - `scripts/lib/project-intelligence.js` contains pure functions for risk, decision, governance, and AI/KI intelligence features.
 - The project safety gate layer evaluates each project across eight advisory safety domains before status collection or CRM staging.
 - The PMO control tower layer evaluates each project across 25 governance and portfolio-control routines for PMO review.
@@ -29,8 +29,8 @@ The primary project data path is the authenticated Dynamics browser context:
 
 1. Codex opens Dynamics and lets the user complete login.
 2. `npm run status-report:dataverse` prints a browser snippet that uses `Xrm.WebApi.retrieveMultipleRecords`.
-3. `TPGProjectAssist.downloadPmoProjectExport()` or `copyPmoProjectExportToClipboard()` creates a read-only `tpg_pmo_project_export` envelope from `tpg_projects`.
-4. CLI report commands consume the envelope's `projects` array for intelligence, PMO reports, DOCX, and XLSX.
+3. `TPGProjectAssist.retrieveProjectIntelligenceFromD365()`, `retrieveBatchProjectPreviewFromD365()`, and `retrieveMonthlyStatusPlanFromD365()` read `tpg_projects` directly in the authenticated Dynamics context.
+4. CLI file commands are an explicit offline fallback for reviewed local snapshots and require `--allow-offline-input`.
 
 Visual UI scraping is only a fallback for navigation, field verification, and explicit save confirmation. The plugin does not add service-principal authentication or background CRM writes.
 
@@ -38,8 +38,8 @@ Visual UI scraping is only a fallback for navigation, field verification, and ex
 
 `scripts/statusbericht.js` provides:
 
-- offline intelligence commands
-- Dataverse browser-context snippet generation and PMO export helpers
+- offline fallback intelligence commands guarded by `--allow-offline-input`
+- Dataverse browser-context snippet generation and D365 API helpers
 - Dynamics URL builders
 - status update draft helpers
 - monthly project-leader status writeback plans
@@ -81,7 +81,7 @@ The plugin does not directly automate CRM writes from Node.js. Browser-based CRM
 
 `buildMonthlyStatusReportRun(projects, options)` prepares a portfolio run for one report month. It filters to active projects, tracks missing project-leader input, counts writeback risks, and declares `quick_create_confirmation_gated` as the only writeback mode.
 
-The CLI command `--monthly-status-plan <real-project-export.json> --month YYYY-MM` serializes this plan for project leaders. Browser save behavior remains manual and confirmation-gated through `Quick Create: Status Update`.
+The production path calls `TPGProjectAssist.retrieveMonthlyStatusPlanFromD365({ month: "YYYY-MM" })` from the authenticated Dynamics browser context. The CLI command `--monthly-status-plan <snapshot.json> --allow-offline-input --month YYYY-MM` is only an offline fallback. Browser save behavior remains manual and confirmation-gated through `Quick Create: Status Update`.
 
 ## Status API Max Layer
 
@@ -159,6 +159,6 @@ The tests cover:
 - AI/KI helper outputs
 - maximum project safety gate outputs
 - PMO control tower outputs
-- CLI JSON/export behavior
+- CLI JSON/offline fallback behavior
 - schema and documentation-only sample-output presence
 - release, privacy, ownership, and dependency-management files

@@ -6,24 +6,24 @@ Use this checklist before making the repository public or publishing a release p
 
 1. Open Dynamics in Codex Desktop and sign in manually.
 2. Run `npm run status-report:dataverse`.
-3. Use `TPGProjectAssist.downloadPmoProjectExport()` in the authenticated browser context.
-4. Generate PMO reports from the real export:
+3. Use `TPGProjectAssist.retrieveProjectIntelligenceFromD365()` in the authenticated browser context.
+4. Generate file-based PMO reports only from a reviewed offline snapshot:
 
 ```powershell
-node ./scripts/statusbericht.js --pmo-suite <real-dataverse-export.json> --docx reports/pmo-suite.docx --xlsx reports/pmo-suite.xlsx --json
+node ./scripts/statusbericht.js --pmo-suite <reviewed-snapshot.json> --allow-offline-input --docx reports/pmo-suite.docx --xlsx reports/pmo-suite.xlsx --json
 ```
 
 5. Generate a monthly status writeback plan:
 
 ```powershell
-node ./scripts/statusbericht.js --monthly-status-plan <real-dataverse-export.json> --month YYYY-MM --json
+await TPGProjectAssist.retrieveMonthlyStatusPlanFromD365({ month: "YYYY-MM" })
 ```
 
 6. Show that every write path requires project-manager verification, duplicate checks, blockers, and exact confirmation text.
 
 ## Public-Repo Checks
 
-- Do not commit real exports, generated reports, screenshots, logs, access tokens, cookies, or browser state.
+- Do not commit real snapshots, generated reports, screenshots, logs, access tokens, cookies, or browser state.
 - Keep `reports/` ignored for local generated files.
 - Keep examples synthetic and documentation-only.
 - Keep productive CLI commands free of sample or fixture paths.

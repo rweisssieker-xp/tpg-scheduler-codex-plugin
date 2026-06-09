@@ -12,16 +12,16 @@ For PMO-specific USP requests, also inspect `buildProjectIntelligence(...).pmoUs
 
 The implementation package, tests, and deeper documentation live in `plugins/tpg-scheduler-codex-plugin/`.
 
-Prefer real Dataverse-first input from the authenticated Dynamics browser. Generate it with `npm run status-report:dataverse`, then run `TPGProjectAssist.downloadPmoProjectExport()` or `TPGProjectAssist.copyPmoProjectExportToClipboard()` in Dynamics.
+Prefer real D365 API input from the authenticated Dynamics browser. Generate the helper with `npm run status-report:dataverse`, then run `TPGProjectAssist.retrieveProjectIntelligenceFromD365()` or `TPGProjectAssist.retrieveBatchProjectPreviewFromD365()` in Dynamics.
 
 ## Local Commands
 
 ```powershell
 cd plugins/tpg-scheduler-codex-plugin
 npm run status-report:dataverse
-node ./scripts/statusbericht.js --pmo-report <real-project-export.json> --pmo-report-type executive_exception --json
-node ./scripts/statusbericht.js --pmo-suite <real-project-export.json> --json
-node ./scripts/statusbericht.js --pmo-suite <real-project-export.json> --docx reports/pmo-suite.docx --xlsx reports/pmo-suite.xlsx
+node ./scripts/statusbericht.js --pmo-report <snapshot.json> --allow-offline-input --pmo-report-type executive_exception --json
+node ./scripts/statusbericht.js --pmo-suite <snapshot.json> --allow-offline-input --json
+node ./scripts/statusbericht.js --pmo-suite <snapshot.json> --allow-offline-input --docx reports/pmo-suite.docx --xlsx reports/pmo-suite.xlsx
 npm test
 ```
 
@@ -32,8 +32,9 @@ npm test
 ## Rules
 
 - Use real project data only.
-- Prefer real `tpg_pmo_project_export` envelopes with `source: "dataverse_web_api"`.
+- Prefer live D365 API helper output from the authenticated Dynamics browser.
 - Do not use sample, fixture, synthetic, or mock data for PMO work.
+- Use local JSON only as an explicit offline fallback with `--allow-offline-input`.
 - Treat missing optional fields as data gaps.
 - Keep CRM write actions out of PMO report generation.
 - Keep Maximum USP output advisory-only and evidence-backed.

@@ -343,7 +343,7 @@
         "painSolved": "Reports hide missing source data.",
         "concreteBenefit": "Every report carries evidence and data gaps.",
         "technicalMechanism": "Uniform PMO report envelopes with evidence, dataGaps, filters, sections, rows, DOCX, and XLSX outputs.",
-        "requiredData": ["real Dataverse export", "recordUrl", "status fields"],
+        "requiredData": ["live D365 API data", "recordUrl", "status fields"],
         "mvpImplementation": "Use buildPmoReportSuite and surface total data gaps.",
         "risksAndTrustControls": ["no_mock_productive_data", "data_gaps_not_fake_values"],
         "proofMetric": { "name": "report_data_gaps_visible", "currentValue": 3, "target": "All missing optional fields listed as data gaps", "status": "ready" },

@@ -55,8 +55,8 @@ const skill = assertFile("plugins/tpg-scheduler-codex-plugin/skills/status-repor
 assert.match(skill, /^---\nname: status-report\n/m);
 assert.match(skill, /Never save, submit, send, delete, change ownership, or change CRM state without explicit user confirmation\./);
 assert.match(skill, /pmo-report-suite/);
-assert.match(skill, /TPGProjectAssist\.downloadPmoProjectExport/);
-assert.match(skill, /tpg_pmo_project_export/);
+assert.match(skill, /TPGProjectAssist\.retrieveProjectIntelligenceFromD365/);
+assert.match(skill, /D365 API|Dataverse Web API/);
 assert.match(skill, /buildMonthlyStatusReportDraft/);
 assert.match(skill, /--monthly-status-plan/);
 assert.match(skill, /createStatusUpdateWithConfirmation/);
@@ -65,8 +65,8 @@ const pmoSkill = assertFile("plugins/tpg-scheduler-codex-plugin/skills/pmo-repor
 const rootPmoSkill = assertFile("skills/pmo-report-suite/SKILL.md");
 assert.match(pmoSkill, /^---\nname: pmo-report-suite\n/m);
 assert.match(rootPmoSkill, /^---\nname: pmo-report-suite\n/m);
-assert.match(pmoSkill, /source: "dataverse_web_api"|tpg_pmo_project_export/);
-assert.match(rootPmoSkill, /source: "dataverse_web_api"|tpg_pmo_project_export/);
+assert.match(pmoSkill, /retrieveProjectIntelligenceFromD365|D365 API|Dataverse Web API/);
+assert.match(rootPmoSkill, /retrieveProjectIntelligenceFromD365|D365 API|Dataverse Web API/);
 for (const reportType of [
   "portfolio_steering",
   "decision_action_aging",

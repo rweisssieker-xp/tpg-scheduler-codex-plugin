@@ -4,7 +4,7 @@ Initial public release for confirmation-gated Dynamics 365 TPG project status re
 
 ## Highlights
 
-- Dataverse-first project export from the authenticated Dynamics browser context.
+- D365 API-first project intelligence from the authenticated Dynamics browser context; local snapshots are offline fallback only.
 - Monthly project-leader status writeback planning with duplicate checks, idempotency, safety gates, and exact confirmation text.
 - Optional browser-context `Xrm.WebApi.createRecord` path that requires metadata discovery, validation, duplicate review, and exact confirmation.
 - PMO report suite with 12 report types plus DOCX/XLSX outputs.

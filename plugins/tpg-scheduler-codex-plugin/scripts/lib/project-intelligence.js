@@ -2555,10 +2555,10 @@ function buildMaximumUspLayer(projects = [], options = {}) {
       painSolved: "Management reports often hide missing source data or fill gaps with manually invented assumptions.",
       concreteBenefit: "Every report carries evidence and data gaps so steering packs remain auditable.",
       technicalMechanism: "Uniform PMO report envelopes with `evidence[]`, `dataGaps[]`, filters, sections, rows, DOCX, and XLSX outputs.",
-      requiredData: ["real Dataverse export", "recordUrl", "status fields", "optional budget/resource/snapshot fields"],
+      requiredData: ["live D365 API data", "recordUrl", "status fields", "optional budget/resource/snapshot fields"],
       whyDifferentiated: "The report contract exposes missing data explicitly instead of silently degrading report quality.",
       mvpImplementation: "Use `buildPmoReportSuite` and surface total data gaps in `maximumUsps`.",
-      risksAndTrustControls: ["no_mock_productive_data", "data_gaps_not_fake_values", "real_export_required"],
+      risksAndTrustControls: ["no_mock_productive_data", "data_gaps_not_fake_values", "d365_api_required_for_production"],
       proofMetric: proofMetric("report_data_gaps_visible", totalDataGaps, "All missing optional report fields listed as data gaps", "ready"),
       runtimeSignals: {
         reportCount: pmoSuite.summary.reportCount,

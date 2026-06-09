@@ -59,7 +59,7 @@ The status-update subgrid was visible as `status_grid`, but the underlying relat
 
 The plugin remains release-ready for:
 
-- read-only Dataverse export,
+- read-only Dataverse API retrieval,
 - PMO report generation,
 - project safety gates,
 - monthly status draft planning,

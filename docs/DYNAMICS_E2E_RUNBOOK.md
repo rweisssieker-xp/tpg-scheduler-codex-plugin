@@ -26,14 +26,14 @@ npm run status-report:dataverse
 3. In the authenticated Dynamics browser console, run:
 
 ```javascript
-await TPGProjectAssist.downloadPmoProjectExport()
+await TPGProjectAssist.retrieveProjectIntelligenceFromD365({ today: "YYYY-MM-DD" })
 ```
 
-4. Confirm that the downloaded JSON has `exportType: "tpg_pmo_project_export"`, `source: "dataverse_web_api"`, and a real `projects` array.
-5. Generate a PMO suite from the export:
+4. Confirm that the returned object contains real project intelligence from D365 API data and includes `preview`, `projectSafetyGates`, `pmoControlTower`, `maximumUsps`, and `pmoUsps`.
+5. For DOCX/XLSX file-generation fallback only, use a reviewed offline snapshot and include `--allow-offline-input`:
 
 ```powershell
-node ./scripts/statusbericht.js --pmo-suite <real-dataverse-export.json> --docx reports/pmo-suite.docx --xlsx reports/pmo-suite.xlsx --json
+node ./scripts/statusbericht.js --pmo-suite <reviewed-snapshot.json> --allow-offline-input --docx reports/pmo-suite.docx --xlsx reports/pmo-suite.xlsx --json
 ```
 
 6. Open one healthy project and one risky project when available.
@@ -46,10 +46,10 @@ node ./scripts/statusbericht.js --pmo-suite <real-dataverse-export.json> --docx 
 - `pmoControlTower.projects[*].checks`
 
 9. Test `kv` normalization in a draft.
-10. Generate a monthly status writeback plan from the same export:
+10. Generate a monthly status writeback plan directly from D365 API data:
 
 ```powershell
-node ./scripts/statusbericht.js --monthly-status-plan <real-dataverse-export.json> --month YYYY-MM --json
+await TPGProjectAssist.retrieveMonthlyStatusPlanFromD365({ month: "YYYY-MM" })
 ```
 
 11. Verify that the plan contains one draft per active project, the month-end report date, writeback blockers, and the exact confirmation text.
@@ -86,7 +86,7 @@ Keep raw browser exports and screenshots local only. Do not commit tenant-specif
 ## Pass Criteria
 
 - Active projects can be read only through the authenticated browser context.
-- The PMO export envelope is produced from Dataverse Web API data and can drive CLI JSON, DOCX, and XLSX outputs.
+- Project intelligence and monthly status plans are produced directly from Dataverse Web API data. CLI file inputs are offline fallback only and require `--allow-offline-input`.
 - Non-matching project manager records are not processed for status staging.
 - Safety gates and PMO controls appear before staging.
 - `kv` expands to the configured unchanged-status phrase.

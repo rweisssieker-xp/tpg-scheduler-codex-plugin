@@ -19,7 +19,7 @@ This runs:
 - PMO report suite tests for all 12 report types.
 - Maximum USP Layer tests for all 12 implemented advisory differentiators.
 - PMO USP Layer tests for all 15 implemented operational PMO differentiators.
-- Dataverse-first PMO export envelope tests for API helpers, browser snippet markers, and CLI input handling.
+- D365 API-first browser helper tests plus explicit offline fallback CLI input handling.
 - Status API Max Layer tests for duplicate checks, idempotency keys, queues, create plans, audit events, attachment plans, error mapping, and browser helper markers.
 - `pmo-report-suite` skill presence and report-type documentation.
 - CLI behavior tests.
@@ -57,7 +57,7 @@ The validation script checks:
 - Productive npm intelligence scripts do not point at sample or fixture data.
 - No npm script exposes demo, mock, sample, or fixture data as an active command.
 - DOCX and XLSX export dependencies are validated, and the vulnerable `exceljs` dependency tree is disallowed.
-- Dataverse export helpers remain read-only and expose the PMO export contract expected by report commands.
+- D365 API helpers remain read-only, and file-based project input remains blocked unless explicit offline fallback is requested.
 - GitHub Actions opt into the Node 24 JavaScript action runtime to avoid Node 20 runner deprecation warnings.
 - Release readiness checks verify license/package consistency, ignored report output, tracked-file safety, workflow action versions, and possible secret patterns.
 

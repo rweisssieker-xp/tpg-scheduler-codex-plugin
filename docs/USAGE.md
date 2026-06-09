@@ -5,38 +5,39 @@
 - Codex Desktop with the Browser plugin available.
 - Access to the target Dynamics 365 environment.
 - Permission to read relevant `tpg_project` records.
-- Node.js available for local tests and offline intelligence commands.
+- Node.js available for local tests and explicit offline fallback commands.
 
 ## Offline Intelligence
 
-The preferred input is a real Dataverse PMO project export created from the authenticated Dynamics browser context. A direct JSON array of mapped projects is still accepted for controlled offline workflows.
+The preferred production input is always live D365 API data from the authenticated Dynamics browser context. Direct JSON arrays or local snapshots are accepted only as an explicit offline fallback with `--allow-offline-input`.
 
-Create a Dataverse-first export after signing in to Dynamics:
+Install the D365 API helper after signing in to Dynamics:
 
 ```powershell
 npm run status-report:dataverse
 ```
 
-Paste the printed snippet into the authenticated Dynamics browser console, then run one of these read-only helpers:
+Paste the printed snippet into the authenticated Dynamics browser console, then run one of these read-only D365 API helpers:
 
 ```javascript
-await TPGProjectAssist.downloadPmoProjectExport()
-await TPGProjectAssist.copyPmoProjectExportToClipboard()
+await TPGProjectAssist.retrieveProjectIntelligenceFromD365({ today: "YYYY-MM-DD" })
+await TPGProjectAssist.retrieveBatchProjectPreviewFromD365({ today: "YYYY-MM-DD" })
+await TPGProjectAssist.retrieveMonthlyStatusPlanFromD365({ month: "YYYY-MM", statusText: "kv" })
 ```
 
-The export has `exportType: "tpg_pmo_project_export"`, `source: "dataverse_web_api"`, source metadata, and a `projects` array. It contains no CRM writes and no mock data.
+These helpers read through `Xrm.WebApi` and do not create CRM writes or require a downloaded export file.
 
-Run an intelligence report from a real Dataverse export:
+Offline fallback from a reviewed local snapshot:
 
 ```powershell
 cd plugins/tpg-scheduler-codex-plugin
-node ./scripts/statusbericht.js --intelligence <real-project-export.json>
+node ./scripts/statusbericht.js --intelligence <snapshot.json> --allow-offline-input
 ```
 
 Emit machine-readable JSON:
 
 ```powershell
-node ./scripts/statusbericht.js --intelligence <real-project-export.json> --json
+node ./scripts/statusbericht.js --intelligence <snapshot.json> --allow-offline-input --json
 ```
 
 The JSON includes `maximumUsps`, a 12-item Maximum USP Layer with implementation status, proof metrics, runtime signals, required data, trust controls, and USP scores.
@@ -45,29 +46,29 @@ It also includes `pmoUsps`, a 15-item PMO USP Layer with operational PMO command
 Emit CSV-ready export payloads:
 
 ```powershell
-node ./scripts/statusbericht.js --intelligence <real-project-export.json> --exports
+node ./scripts/statusbericht.js --intelligence <snapshot.json> --allow-offline-input --exports
 ```
 
 Sample and synthetic files are blocked by default and are reserved for automated tests and documentation fixtures.
 
 ## PMO Report Filters
 
-Create a PMO report from real project export data:
+For production PMO data, use the D365 API helpers in the authenticated browser. File-based PMO report commands are offline fallback only:
 
 ```powershell
-node ./scripts/statusbericht.js --pmo-report <real-project-export.json>
+node ./scripts/statusbericht.js --pmo-report <snapshot.json> --allow-offline-input
 ```
 
 Create one of the 12 PMO management reports:
 
 ```powershell
-node ./scripts/statusbericht.js --pmo-report <real-project-export.json> --pmo-report-type executive_exception --json
+node ./scripts/statusbericht.js --pmo-report <snapshot.json> --allow-offline-input --pmo-report-type executive_exception --json
 ```
 
 Create the complete 12-report suite:
 
 ```powershell
-node ./scripts/statusbericht.js --pmo-suite <real-project-export.json> --docx reports/pmo-suite.docx --xlsx reports/pmo-suite.xlsx --json
+node ./scripts/statusbericht.js --pmo-suite <snapshot.json> --allow-offline-input --docx reports/pmo-suite.docx --xlsx reports/pmo-suite.xlsx --json
 ```
 
 Use the `pmo-report-suite` skill for PMO reports and the `status-report` skill for Dynamics status-entry work.
@@ -75,35 +76,35 @@ Use the `pmo-report-suite` skill for PMO reports and the `status-report` skill f
 Filter by project status:
 
 ```powershell
-node ./scripts/statusbericht.js --pmo-report <real-project-export.json> --project-status "In Progress"
+node ./scripts/statusbericht.js --pmo-report <snapshot.json> --allow-offline-input --project-status "In Progress"
 ```
 
 Filter by multiple project statuses:
 
 ```powershell
-node ./scripts/statusbericht.js --pmo-report <real-project-export.json> --project-status "In Progress,Planning"
+node ./scripts/statusbericht.js --pmo-report <snapshot.json> --allow-offline-input --project-status "In Progress,Planning"
 ```
 
 Filter by the last status report:
 
 ```powershell
-node ./scripts/statusbericht.js --pmo-report <real-project-export.json> --last-status-before 2026-06-01
-node ./scripts/statusbericht.js --pmo-report <real-project-export.json> --last-status-after 2026-05-01
-node ./scripts/statusbericht.js --pmo-report <real-project-export.json> --last-status-on 2026-05-15
-node ./scripts/statusbericht.js --pmo-report <real-project-export.json> --last-status-contains "vendor"
-node ./scripts/statusbericht.js --pmo-report <real-project-export.json> --last-status-missing
+node ./scripts/statusbericht.js --pmo-report <snapshot.json> --allow-offline-input --last-status-before 2026-06-01
+node ./scripts/statusbericht.js --pmo-report <snapshot.json> --allow-offline-input --last-status-after 2026-05-01
+node ./scripts/statusbericht.js --pmo-report <snapshot.json> --allow-offline-input --last-status-on 2026-05-15
+node ./scripts/statusbericht.js --pmo-report <snapshot.json> --allow-offline-input --last-status-contains "vendor"
+node ./scripts/statusbericht.js --pmo-report <snapshot.json> --allow-offline-input --last-status-missing
 ```
 
 Emit the filtered PMO report as JSON:
 
 ```powershell
-node ./scripts/statusbericht.js --pmo-report <real-project-export.json> --project-status "In Progress" --json
+node ./scripts/statusbericht.js --pmo-report <snapshot.json> --allow-offline-input --project-status "In Progress" --json
 ```
 
 Write the PMO report as Word and Excel files:
 
 ```powershell
-node ./scripts/statusbericht.js --pmo-report <real-project-export.json> --project-status "In Progress" --docx reports/pmo-status.docx --xlsx reports/pmo-status.xlsx
+node ./scripts/statusbericht.js --pmo-report <snapshot.json> --allow-offline-input --project-status "In Progress" --docx reports/pmo-status.docx --xlsx reports/pmo-status.xlsx
 ```
 
 The DOCX contains a PMO executive title band, subtitle band, executive-attention callout, KPI snapshot cards, filter-scope callout, status legend, project spotlight, summary table, and highlighted project table. The XLSX workbook contains styled worksheets for summary, filters, filtered projects, and PMO findings with frozen headers, widths, filters, and risk/status highlighting.
@@ -123,16 +124,16 @@ Supported `--pmo-report-type` values are `portfolio_steering`, `decision_action_
 
 ## Monthly Project-Leader Status Writeback
 
-Project leaders can prepare one status report per active project and month from a real Dataverse export:
+Project leaders should prepare monthly status plans directly from the D365 API in the authenticated browser:
 
 ```powershell
-node ./scripts/statusbericht.js --monthly-status-plan <real-project-export.json> --month 2026-06 --json
+await TPGProjectAssist.retrieveMonthlyStatusPlanFromD365({ month: "2026-06" })
 ```
 
 To prefill every active project with the unchanged-status shortcut for review:
 
 ```powershell
-node ./scripts/statusbericht.js --monthly-status-plan <real-project-export.json> --month 2026-06 --status-text "kv" --project-manager-verified --reviewed --json
+await TPGProjectAssist.retrieveMonthlyStatusPlanFromD365({ month: "2026-06", statusText: "kv", projectManagerVerified: true, reviewed: true })
 ```
 
 The output contains one monthly draft per project, the report period, prepared Status Update fields, project safety level, writeback risk, blockers, and the exact confirmation text required before saving. It does not auto-save. The safe write path remains:
@@ -168,15 +169,15 @@ The status API layer exposes these integration helpers for real Dynamics workflo
 ```powershell
 npm run status-report:help
 npm run status-report:dataverse
-node ./scripts/statusbericht.js --intelligence <real-project-export.json>
-node ./scripts/statusbericht.js --monthly-status-plan <real-project-export.json> --month YYYY-MM --json
-node ./scripts/statusbericht.js --pmo-report <real-project-export.json>
+node ./scripts/statusbericht.js --intelligence <snapshot.json> --allow-offline-input
+node ./scripts/statusbericht.js --monthly-status-plan <snapshot.json> --allow-offline-input --month YYYY-MM --json
+node ./scripts/statusbericht.js --pmo-report <snapshot.json> --allow-offline-input
 npm test
 ```
 
 ## Data Inputs
 
-Offline intelligence accepts either a Dataverse PMO project export envelope or a JSON array of mapped project objects. Common project fields:
+Offline fallback accepts either a reviewed Dataverse snapshot envelope or a JSON array of mapped project objects, and requires `--allow-offline-input`. Common project fields:
 
 - `projectId`
 - `name`

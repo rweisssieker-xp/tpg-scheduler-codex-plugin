@@ -12,8 +12,8 @@ For PMO reporting, portfolio management packs, the 12-report PMO suite, or DOCX/
 ## Operating Rules
 
 - Use the Codex in-app Browser for Dynamics 365 work.
-- Read Dataverse data through the authenticated Dynamics browser context as the primary path unless the user explicitly provides offline JSON.
-- For PMO inputs, create a read-only `tpg_pmo_project_export` via `TPGProjectAssist.downloadPmoProjectExport()` or `copyPmoProjectExportToClipboard()`.
+- Read Dataverse data through the authenticated Dynamics browser context as the production path.
+- For PMO inputs, call D365 API helpers such as `TPGProjectAssist.retrieveProjectIntelligenceFromD365()` or `retrieveMonthlyStatusPlanFromD365()`; do not use downloaded exports as the normal path.
 - Verify the configured project manager before collecting or staging a status update.
 - For monthly runs, prepare one Status Update per active verified project and report month with `--monthly-status-plan`.
 - Use the Status API Max Layer for status history, duplicate checks, idempotency, writeback queues, metadata discovery, permission probes, audit events, and confirmation-gated Dataverse create plans.
@@ -29,10 +29,10 @@ For PMO reporting, portfolio management packs, the 12-report PMO suite, or DOCX/
 ```powershell
 cd plugins/tpg-scheduler-codex-plugin
 npm run status-report:help
-node ./scripts/statusbericht.js --intelligence <real-project-export.json>
-node ./scripts/statusbericht.js --monthly-status-plan <real-project-export.json> --month YYYY-MM --json
-node ./scripts/statusbericht.js --pmo-report <real-project-export.json> --project-status "In Progress"
-node ./scripts/statusbericht.js --pmo-report <real-project-export.json> --docx reports/pmo-status.docx --xlsx reports/pmo-status.xlsx
+node ./scripts/statusbericht.js --intelligence <snapshot.json> --allow-offline-input
+node ./scripts/statusbericht.js --monthly-status-plan <snapshot.json> --allow-offline-input --month YYYY-MM --json
+node ./scripts/statusbericht.js --pmo-report <snapshot.json> --allow-offline-input --project-status "In Progress"
+node ./scripts/statusbericht.js --pmo-report <snapshot.json> --allow-offline-input --docx reports/pmo-status.docx --xlsx reports/pmo-status.xlsx
 npm test
 ```
 

@@ -314,6 +314,9 @@ assert.match(getDataverseBrowserSnippet(), /buildAuditEntry/);
 assert.match(getDataverseBrowserSnippet(), /buildSteeringAgenda/);
 assert.match(getDataverseBrowserSnippet(), /buildRiskLedgerEntries/);
 assert.match(getDataverseBrowserSnippet(), /buildCalibrationReport/);
+assert.match(getDataverseBrowserSnippet(), /retrieveProjectIntelligenceFromD365/);
+assert.match(getDataverseBrowserSnippet(), /retrieveMonthlyStatusPlanFromD365/);
+assert.match(getDataverseBrowserSnippet(), /retrieveBatchProjectPreviewFromD365/);
 assert.match(getDataverseBrowserSnippet(), /exportActiveProjectsForPmoReports/);
 assert.match(getDataverseBrowserSnippet(), /downloadPmoProjectExport/);
 assert.match(getDataverseBrowserSnippet(), /copyPmoProjectExportToClipboard/);
@@ -327,7 +330,7 @@ assert.match(getDataverseBrowserSnippet(), /discoverStatusUpdateMetadata/);
 assert.match(getDataverseBrowserSnippet(), /probeDataversePermissions/);
 assert.match(getDataverseBrowserSnippet(), /createStatusUpdateWithConfirmation/);
 assert.equal(isSampleInputPath("./scripts/fixtures/projects.sample.json"), true);
-assert.equal(isSampleInputPath("./real-project-export.json"), false);
+assert.equal(isSampleInputPath("./reviewed-snapshot.json"), false);
 const dataverseExport = buildPmoProjectExport([
   {
     id: "84966c5d-996d-4d19-88de-97a4300a6a62",
@@ -343,7 +346,8 @@ assert.equal(dataverseExport.safety.readOnlyExport, true);
 assert.equal(unwrapProjectInput(dataverseExport)[0].projectId, "2024-1058");
 const exportPath = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "tpg-dataverse-export-")), "projects.json");
 fs.writeFileSync(exportPath, JSON.stringify(dataverseExport), "utf8");
-assert.equal(readProjectsInput(exportPath)[0].name, "Dataverse Export Project");
+assert.throws(() => readProjectsInput(exportPath), /offline fallback only/);
+assert.equal(readProjectsInput(exportPath, { allowOfflineInput: true })[0].name, "Dataverse Export Project");
 assert.equal(typeof buildAuditEntry, "function");
 assert.equal(typeof buildAudienceReport, "function");
 assert.equal(typeof buildCalibrationReport, "function");

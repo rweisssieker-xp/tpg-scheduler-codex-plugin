@@ -5,7 +5,7 @@ TPG-Scheduler-Codex-Plugin is a Codex plugin for confirmation-gated Dynamics 365
 ## What It Does
 
 - Opens and reviews active Dynamics 365 TPG project candidates through the Codex in-app Browser workflow.
-- Reads project portfolio data Dataverse-first through the authenticated Dynamics `Xrm.WebApi` context and exports a real PMO project JSON envelope for offline reports.
+- Reads project portfolio data directly through the authenticated Dynamics `Xrm.WebApi` context; local JSON snapshots are only an explicit offline fallback.
 - Verifies that the opened project record belongs to the configured project manager before status work continues.
 - Normalizes short `kv` input to the configured unchanged-status phrase used in the target Dynamics environment.
 - Builds project intelligence packs with evidence-backed risk, decision, PMO, and executive views.
@@ -32,8 +32,8 @@ TPG-Scheduler-Codex-Plugin is a Codex plugin for confirmation-gated Dynamics 365
 - Monthly Project-Leader Status Writeback: prepares one status update per active project and report month, with Quick Create staging, project-manager verification, safety gates, and explicit save confirmation.
 - Status API Max Layer: adds status history reads, duplicate checks, idempotency keys, delta exports, pagination, metadata discovery, permission probes, structured status payloads, validation, writeback queues, audit events, attachment plans, Dataverse error mapping, schema envelopes, and confirmation-gated `Xrm.WebApi.createRecord` plans.
 - PMO Report Suite: generates 12 dedicated PMO management reports through the `pmo-report-suite` skill.
-- PMO Word/Excel Export: writes polished filtered PMO reports as `.docx` and `.xlsx` files with executive callouts, KPI cards, filter scope, status legend, project spotlight, highlighted project rows, and PMO findings from real project export data.
-- Dataverse-First PMO Export: downloads or copies `tpg_pmo_project_export` JSON from the logged-in Dynamics browser session; the CLI accepts either this export envelope or a direct project array.
+- PMO Word/Excel Export: writes polished filtered PMO reports as `.docx` and `.xlsx` files with executive callouts, KPI cards, filter scope, status legend, project spotlight, highlighted project rows, and PMO findings from live D365 API data or explicit offline snapshots.
+- D365 API-First PMO Data: builds intelligence and monthly status plans directly from the logged-in Dynamics browser session through `Xrm.WebApi`; local JSON snapshots require explicit offline fallback mode.
 - Decision Debt Analysis: measures open decisions, due dates, blocked projects, and decision-debt score.
 - Project Truth Score: detects status contradictions such as red KPI with weak narrative, overdue finish, or missing mitigation.
 - Sponsor Action Intelligence: turns steering agenda items into owner-specific sponsor actions.
@@ -104,7 +104,9 @@ npm run release:check
 npm run release:manifest
 npm run status-report:help
 npm run status-report:dataverse
-node ./scripts/statusbericht.js --intelligence <real-project-export.json>
+// In the authenticated Dynamics browser:
+await TPGProjectAssist.retrieveProjectIntelligenceFromD365({ today: "YYYY-MM-DD" })
+await TPGProjectAssist.retrieveMonthlyStatusPlanFromD365({ month: "YYYY-MM", statusText: "kv" })
 ```
 
 ## Documentation

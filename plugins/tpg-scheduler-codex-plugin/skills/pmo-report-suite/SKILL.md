@@ -12,13 +12,13 @@ If the user asks for PMO-specific USPs, operational PMO value, steering committe
 
 ## Ground Rules
 
-- Use real Dynamics 365 TPG project data or an explicit real project JSON export.
-- Prefer the Dataverse-first export from the authenticated Dynamics browser: `TPGProjectAssist.downloadPmoProjectExport()` or `copyPmoProjectExportToClipboard()`.
+- Use real Dynamics 365 TPG project data from the authenticated D365 API context.
+- Prefer direct D365 API helpers from the authenticated Dynamics browser: `TPGProjectAssist.retrieveProjectIntelligenceFromD365()`, `retrieveBatchProjectPreviewFromD365()`, or `retrieveMonthlyStatusPlanFromD365()`.
 - Do not use sample, fixture, synthetic, or mock data for productive PMO reporting.
 - Keep outputs advisory and evidence-backed.
 - Do not save, submit, send, delete, change ownership, or change CRM state.
 - If live Dynamics data is needed, use the authenticated Codex in-app Browser context and the `status-report` workflow rules for safe Dataverse reads.
-- Accept only real `tpg_pmo_project_export` envelopes or real mapped project arrays as report input.
+- Accept local JSON only as an explicit offline fallback snapshot with `--allow-offline-input`.
 - Write report files only to user-requested local paths such as `reports/*.docx` or `reports/*.xlsx`.
 
 ## Report Types
@@ -78,9 +78,11 @@ The PMO report suite can also be paired with `pmoUsps`:
 ```powershell
 cd plugins/tpg-scheduler-codex-plugin
 npm run status-report:dataverse
-node ./scripts/statusbericht.js --pmo-report <real-project-export.json> --pmo-report-type executive_exception --json
-node ./scripts/statusbericht.js --pmo-suite <real-project-export.json> --json
-node ./scripts/statusbericht.js --pmo-suite <real-project-export.json> --docx reports/pmo-suite.docx --xlsx reports/pmo-suite.xlsx
+// In the authenticated Dynamics browser:
+await TPGProjectAssist.retrieveProjectIntelligenceFromD365({ today: "YYYY-MM-DD" })
+node ./scripts/statusbericht.js --pmo-report <snapshot.json> --allow-offline-input --pmo-report-type executive_exception --json
+node ./scripts/statusbericht.js --pmo-suite <snapshot.json> --allow-offline-input --json
+node ./scripts/statusbericht.js --pmo-suite <snapshot.json> --allow-offline-input --docx reports/pmo-suite.docx --xlsx reports/pmo-suite.xlsx
 ```
 
 ## Filters
