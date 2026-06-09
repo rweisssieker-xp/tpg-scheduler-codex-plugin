@@ -3024,6 +3024,9 @@ function xlsxStyleIndex(value, rowIndex) {
     return 1;
   }
   const normalized = String(value || "").toLowerCase();
+  if (normalized === "open project" || normalized.startsWith("http")) {
+    return 6;
+  }
   if (["critical", "red", "ceo", "executive_governance"].some((token) => normalized.includes(token))) {
     return 4;
   }
@@ -3038,6 +3041,8 @@ function xlsxStyleIndex(value, rowIndex) {
 
 function buildWorksheetXml(rows, options = {}) {
   const columnCount = rows[0]?.length || 1;
+  const hyperlinks = options.hyperlinks || [];
+  const hyperlinkByRef = new Map(hyperlinks.map((item, index) => [item.ref, { ...item, id: item.id || `rId${index + 1}` }]));
   const colXml = Array.from({ length: columnCount }, (_, index) => {
     const width = options.widths?.[index] || 18;
     return `<col min="${index + 1}" max="${index + 1}" width="${width}" customWidth="1"/>`;
@@ -3045,19 +3050,33 @@ function buildWorksheetXml(rows, options = {}) {
   const rowXml = rows.map((row, rowIndex) => {
     const cellXml = row.map((cell, cellIndex) => {
       const ref = `${xlsxColumnName(cellIndex)}${rowIndex + 1}`;
-      const style = options.styleForCell ? options.styleForCell(cell, rowIndex, cellIndex, row) : xlsxStyleIndex(cell, rowIndex);
+      const style = hyperlinkByRef.has(ref) ? 6 : options.styleForCell ? options.styleForCell(cell, rowIndex, cellIndex, row) : xlsxStyleIndex(cell, rowIndex);
       return `<c r="${ref}" t="inlineStr" s="${style}"><is><t>${xmlEscape(cell)}</t></is></c>`;
     }).join("");
-    return `<row r="${rowIndex + 1}" ht="${rowIndex === 0 ? 24 : 18}" customHeight="1">${cellXml}</row>`;
+    return `<row r="${rowIndex + 1}" ht="${rowIndex === 0 ? 26 : 30}" customHeight="1">${cellXml}</row>`;
   }).join("");
   const autoFilter = options.autoFilter ? `<autoFilter ref="A1:${xlsxColumnName(columnCount - 1)}${Math.max(rows.length, 1)}"/>` : "";
+  const hyperlinkXml = hyperlinks.length
+    ? `<hyperlinks>${hyperlinks.map((item, index) => `<hyperlink ref="${item.ref}" r:id="${item.id || `rId${index + 1}`}"/>`).join("")}</hyperlinks>`
+    : "";
+  const relationshipsNamespace = hyperlinks.length ? ` xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"` : "";
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"${relationshipsNamespace}>
 <sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>
+<sheetFormatPr defaultRowHeight="20"/>
 <cols>${colXml}</cols>
 <sheetData>${rowXml}</sheetData>
 ${autoFilter}
+${hyperlinkXml}
+<pageMargins left="0.35" right="0.35" top="0.5" bottom="0.5" header="0.3" footer="0.3"/>
 </worksheet>`;
+}
+
+function buildWorksheetRelationshipsXml(hyperlinks = []) {
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+${hyperlinks.map((item, index) => `<Relationship Id="${item.id || `rId${index + 1}`}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink" Target="${xmlEscape(item.target)}" TargetMode="External"/>`).join("")}
+</Relationships>`;
 }
 
 function objectRows(headers, rows) {
@@ -3088,7 +3107,7 @@ async function buildPmoStatusReportXlsxBuffer(report) {
     ["Last status contains", report.filters.lastStatusContains || ""],
     ["Last status missing", report.filters.lastStatusMissing ? "Yes" : "No"],
   ];
-  const projectHeaders = ["Project ID", "Name", "Status", "Last Status Report", "PMO Level", "PMO Score", "Intervention", "Safety Level", "Management Attention", "Record URL"];
+  const projectHeaders = ["Project ID", "Name", "Status", "Last Status Report", "PMO Level", "PMO Score", "Intervention", "Safety Level", "Management Attention", "Project Link"];
   const projectRows = objectRows(projectHeaders, report.projects.map((project) => ({
     "Project ID": project.projectId || "",
     Name: project.name || "",
@@ -3099,8 +3118,11 @@ async function buildPmoStatusReportXlsxBuffer(report) {
     Intervention: project.intervention || "",
     "Safety Level": project.safetyLevel || "",
     "Management Attention": project.managementAttention || "",
-    "Record URL": project.recordUrl || "",
+    "Project Link": project.recordUrl ? "Open Project" : "",
   })));
+  const projectHyperlinks = report.projects
+    .map((project, index) => project.recordUrl ? { ref: `J${index + 2}`, target: project.recordUrl, id: `rId${index + 1}` } : null)
+    .filter(Boolean);
   const findingHeaders = ["Project ID", "Name", "Check ID", "Severity", "Recommendation"];
   const findingRows = objectRows(findingHeaders, report.pmoControlTower.portfolioFindings.map((finding) => ({
     "Project ID": finding.projectId || "",
@@ -3144,38 +3166,44 @@ async function buildPmoStatusReportXlsxBuffer(report) {
 </Relationships>`);
   zip.folder("xl").file("styles.xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
-<fonts count="2">
+<fonts count="3">
 <font><sz val="10"/><name val="Aptos"/></font>
 <font><b/><sz val="10"/><color rgb="FFFFFFFF"/><name val="Aptos"/></font>
+<font><u/><sz val="10"/><color rgb="FF0563C1"/><name val="Aptos"/></font>
 </fonts>
-<fills count="6">
+<fills count="7">
 <fill><patternFill patternType="none"/></fill>
 <fill><patternFill patternType="gray125"/></fill>
 <fill><patternFill patternType="solid"><fgColor rgb="FF1F4E79"/><bgColor indexed="64"/></patternFill></fill>
 <fill><patternFill patternType="solid"><fgColor rgb="FFE2F0D9"/><bgColor indexed="64"/></patternFill></fill>
 <fill><patternFill patternType="solid"><fgColor rgb="FFFFF2CC"/><bgColor indexed="64"/></patternFill></fill>
 <fill><patternFill patternType="solid"><fgColor rgb="FFF4CCCC"/><bgColor indexed="64"/></patternFill></fill>
+<fill><patternFill patternType="solid"><fgColor rgb="FFF7FBFF"/><bgColor indexed="64"/></patternFill></fill>
 </fills>
 <borders count="2">
 <border><left/><right/><top/><bottom/><diagonal/></border>
 <border><left style="thin"><color rgb="FFD9E2F3"/></left><right style="thin"><color rgb="FFD9E2F3"/></right><top style="thin"><color rgb="FFD9E2F3"/></top><bottom style="thin"><color rgb="FFD9E2F3"/></bottom><diagonal/></border>
 </borders>
 <cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
-<cellXfs count="6">
-<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1"/>
-<xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center"/></xf>
-<xf numFmtId="0" fontId="0" fillId="3" borderId="1" xfId="0" applyFill="1" applyBorder="1"/>
-<xf numFmtId="0" fontId="0" fillId="4" borderId="1" xfId="0" applyFill="1" applyBorder="1"/>
-<xf numFmtId="0" fontId="0" fillId="5" borderId="1" xfId="0" applyFill="1" applyBorder="1"/>
-<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1"/>
+<cellXfs count="7">
+<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>
+<xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>
+<xf numFmtId="0" fontId="0" fillId="3" borderId="1" xfId="0" applyFill="1" applyBorder="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>
+<xf numFmtId="0" fontId="0" fillId="4" borderId="1" xfId="0" applyFill="1" applyBorder="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>
+<xf numFmtId="0" fontId="0" fillId="5" borderId="1" xfId="0" applyFill="1" applyBorder="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>
+<xf numFmtId="0" fontId="0" fillId="6" borderId="1" xfId="0" applyFill="1" applyBorder="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>
+<xf numFmtId="0" fontId="2" fillId="6" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>
 </cellXfs>
 <cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>
 </styleSheet>`);
   const worksheets = zip.folder("xl").folder("worksheets");
   worksheets.file("sheet1.xml", buildWorksheetXml(summaryRows, { widths: [28, 36], autoFilter: true }));
   worksheets.file("sheet2.xml", buildWorksheetXml(filtersRows, { widths: [28, 42], autoFilter: true }));
-  worksheets.file("sheet3.xml", buildWorksheetXml(projectRows, { widths: [16, 34, 18, 18, 16, 12, 24, 16, 22, 52], autoFilter: true }));
+  worksheets.file("sheet3.xml", buildWorksheetXml(projectRows, { widths: [16, 34, 18, 18, 16, 12, 34, 16, 22, 18], autoFilter: true, hyperlinks: projectHyperlinks }));
   worksheets.file("sheet4.xml", buildWorksheetXml(findingRows, { widths: [16, 34, 28, 14, 42], autoFilter: true }));
+  if (projectHyperlinks.length) {
+    worksheets.folder("_rels").file("sheet3.xml.rels", buildWorksheetRelationshipsXml(projectHyperlinks));
+  }
   return zip.generateAsync({ type: "nodebuffer", compression: "DEFLATE" });
 }
 

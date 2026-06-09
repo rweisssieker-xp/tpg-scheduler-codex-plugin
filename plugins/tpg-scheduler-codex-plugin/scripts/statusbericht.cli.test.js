@@ -243,6 +243,7 @@ Promise.all([
 ]).then(async ([docxZip, xlsxZip]) => {
   const docXml = await docxZip.file("word/document.xml").async("string");
   const sheetXml = await xlsxZip.file("xl/worksheets/sheet3.xml").async("string");
+  const sheetRelsXml = await xlsxZip.file("xl/worksheets/_rels/sheet3.xml.rels").async("string");
   const stylesXml = await xlsxZip.file("xl/styles.xml").async("string");
   assert.match(docXml, /PMO Executive Status Report/);
   assert.match(docXml, /Executive attention/);
@@ -253,6 +254,13 @@ Promise.all([
   assert.match(docXml, /w:shd/);
   assert.match(sheetXml, /<pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"\/>/);
   assert.match(sheetXml, /autoFilter ref="A1:J3"/);
+  assert.match(sheetXml, /Project Link/);
+  assert.match(sheetXml, /Open Project/);
+  assert.match(sheetXml, /<hyperlinks>/);
+  assert.match(sheetXml, /<hyperlink ref="J2" r:id="rId1"\/>/);
+  assert.match(sheetRelsXml, /TargetMode="External"/);
+  assert.match(sheetRelsXml, /tpg_project/);
+  assert.match(stylesXml, /FF0563C1/);
   assert.match(stylesXml, /FF1F4E79/);
 }).then(() => {
   console.log("statusbericht cli tests passed");
