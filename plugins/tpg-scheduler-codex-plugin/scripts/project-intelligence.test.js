@@ -45,6 +45,7 @@ const {
   buildPmoReportSuite,
   buildPmoStatusReport,
   buildPmoUspLayer,
+  buildBoardPack,
   buildStatusReportSuggestion,
   buildStatusSuggestionReport,
   PMO_REPORT_TYPES,
@@ -755,6 +756,30 @@ assert.equal(suggestionReport.rows.find((row) => row.projectId === "2024-9999").
 assert.match(suggestionReport.rows.find((row) => row.projectId === "2024-9999").proposedStatusText, /Benoetigte Entscheidung/);
 assert.equal(buildStatusReportSuggestion(projects[1], { today: "2026-05-13" }).requiresReview, true);
 assert.equal(Boolean(buildProjectIntelligence(projects, { today: "2026-05-13" }).statusSuggestionReport), true);
+const boardPack = buildBoardPack(projects, { today: "2026-05-13", source: "d365_api" });
+assert.equal(boardPack.packType, "full_board_pack");
+assert.equal(boardPack.source, "d365_api");
+assert.equal(Boolean(boardPack.generatedAt), true);
+assert.equal(Boolean(boardPack.executive), true);
+assert.equal(Boolean(boardPack.pmo), true);
+assert.equal(Boolean(boardPack.projectLeader), true);
+assert.equal(Array.isArray(boardPack.steeringAgenda), true);
+assert.equal(Array.isArray(boardPack.decisionLog), true);
+assert.equal(Array.isArray(boardPack.riskRegister), true);
+assert.equal(Array.isArray(boardPack.statusSuggestions), true);
+assert.equal(Array.isArray(boardPack.projectSpotlights), true);
+assert.equal(Array.isArray(boardPack.evidenceLedger), true);
+assert.equal(Array.isArray(boardPack.dataGaps), true);
+assert.equal(Array.isArray(boardPack.accessIssues), true);
+assert.deepEqual(boardPack.safety, {
+  advisoryOnly: true,
+  canAutoSave: false,
+  crmWritesIncluded: false,
+});
+assert.equal(boardPack.executive.summary.projectsReviewed, 2);
+assert.equal(boardPack.projectLeader.statusSuggestions.length, 2);
+assert.equal(boardPack.statusSuggestions.some((row) => row.statusType === "critical_escalation"), true);
+assert.equal(buildProjectIntelligence(projects, { today: "2026-05-13" }).boardPack.packType, "full_board_pack");
 assert.equal(PMO_REPORT_TYPES.length, 12);
 for (const reportType of PMO_REPORT_TYPES) {
   const report = buildPmoReport(reportType, projects, { today: "2026-05-13" });

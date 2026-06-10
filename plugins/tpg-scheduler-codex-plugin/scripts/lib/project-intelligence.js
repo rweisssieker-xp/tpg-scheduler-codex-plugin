@@ -1925,6 +1925,134 @@ function buildStatusSuggestionReport(projects, options = {}) {
   };
 }
 
+function compactBoardEvidence(projects = [], options = {}) {
+  const risks = buildRiskLedgerEntries(projects, options).map((item) => ({
+    evidenceType: "risk",
+    projectId: item.projectId || null,
+    name: item.name || null,
+    code: item.evidenceCode || null,
+    field: item.field || null,
+    value: item.value ?? null,
+    message: item.message || null,
+    recordUrl: item.recordUrl || null,
+  }));
+  const gaps = buildEvidenceGapDetector(projects, options).items.flatMap((item) =>
+    item.gaps.map((gap) => ({
+      evidenceType: "data_gap",
+      projectId: item.projectId || null,
+      name: item.name || null,
+      code: "data_gap",
+      field: gap,
+      value: null,
+      message: `Missing evidence field: ${gap}`,
+      recordUrl: item.recordUrl || null,
+    }))
+  );
+  return [...risks, ...gaps];
+}
+
+function buildProjectSpotlights(projects = [], options = {}) {
+  const safetyById = new Map(buildProjectSafetyGateSuite(projects, options).projects.map((item) => [item.projectId, item]));
+  const pmoById = new Map(buildPmoControlTower(projects, options).projects.map((item) => [item.projectId, item]));
+  return (projects || []).map((project) => {
+    const projectId = project.projectId || project.id || null;
+    const safety = safetyById.get(projectId) || {};
+    const pmo = pmoById.get(projectId) || {};
+    return {
+      projectId,
+      name: project.name || null,
+      projectStatusLabel: project.projectStatusLabel || null,
+      overallKpiLabel: project.overallKpiLabel || null,
+      progress: project.progress ?? null,
+      finish: project.finish || null,
+      safetyLevel: safety.safetyLevel || null,
+      managementAttention: safety.managementAttention || null,
+      pmoLevel: pmo.pmoLevel || null,
+      intervention: pmo.intervention || null,
+      recordUrl: project.recordUrl || null,
+    };
+  });
+}
+
+function boardPackDataGap(project, field, message) {
+  return {
+    projectId: project?.projectId || project?.id || null,
+    name: project?.name || null,
+    field,
+    message,
+  };
+}
+
+function buildBoardPack(projects, options = {}) {
+  const sourceProjects = projects || [];
+  const today = options.today || new Date().toISOString().slice(0, 10);
+  const safety = buildProjectSafetyGateSuite(sourceProjects, options);
+  const pmoControl = buildPmoControlTower(sourceProjects, options);
+  const statusSuggestionReport = buildStatusSuggestionReport(sourceProjects, options);
+  const pmoSuite = buildPmoReportSuite(sourceProjects, options);
+  const risks = buildRiskLedgerEntries(sourceProjects, options);
+  const decisions = buildDecisionClosureItems(sourceProjects, options);
+  const evidenceGaps = buildEvidenceGapDetector(sourceProjects, options);
+  const executiveQuestions = buildExecutiveQuestionGenerator(sourceProjects, options);
+  const noSurpriseForecast = buildNoSurpriseForecast(sourceProjects, options);
+  const pmoUsps = buildPmoUspLayer(sourceProjects, options);
+  const projectSpotlights = buildProjectSpotlights(sourceProjects, options);
+  const missingRecordUrlGaps = sourceProjects
+    .filter((project) => !project.recordUrl)
+    .map((project) => boardPackDataGap(project, "recordUrl", "Project record URL is missing; Excel project hyperlink cannot be created."));
+  const dataGaps = [
+    ...evidenceGaps.items.flatMap((item) => item.gaps.map((gap) => boardPackDataGap(item, gap, `Missing evidence field: ${gap}`))),
+    ...statusSuggestionReport.dataGaps,
+    ...missingRecordUrlGaps,
+    ...(options.statusMetadataResolved === false ? [boardPackDataGap(null, "statusUpdateMetadata", "Status Update metadata could not be resolved; status history is unavailable.")] : []),
+  ];
+  return {
+    packType: "full_board_pack",
+    source: options.source || "offline_reviewed_snapshot",
+    generatedAt: options.generatedAt || new Date().toISOString(),
+    today,
+    executive: {
+      summary: {
+        projectsReviewed: sourceProjects.length,
+        criticalProjects: safety.summary.criticalProjects,
+        unsafeProjects: safety.summary.unsafeProjects,
+        ceoAttention: safety.summary.ceoAttention,
+        cioAttention: safety.summary.cioAttention,
+        topRisks: risks.length,
+        openDecisions: decisions.length,
+      },
+      topRisks: risks.slice(0, 10),
+      topDecisions: decisions.slice(0, 10),
+      questions: executiveQuestions.items || [],
+      noSurpriseForecast,
+    },
+    pmo: {
+      summary: pmoControl.summary,
+      workQueue: pmoUsps.commandQueue || [],
+      controlFindings: pmoControl.portfolioFindings || [],
+      reportSuiteSummary: pmoSuite.summary,
+    },
+    projectLeader: {
+      summary: statusSuggestionReport.summary,
+      statusSuggestions: statusSuggestionReport.rows,
+      queue: buildProjectNudges(sourceProjects, options),
+    },
+    steeringAgenda: buildSteeringAgenda(sourceProjects, options),
+    decisionLog: decisions,
+    riskRegister: risks,
+    statusSuggestions: statusSuggestionReport.rows,
+    projectSpotlights,
+    evidenceLedger: compactBoardEvidence(sourceProjects, options),
+    dataGaps,
+    accessIssues: options.accessIssues || [],
+    safety: {
+      advisoryOnly: true,
+      canAutoSave: false,
+      crmWritesIncluded: false,
+    },
+  };
+}
+
 function reportDataGap(project, field, message) {
   return {
     projectId: project?.projectId || project?.id || null,
@@ -2911,6 +3039,7 @@ function buildProjectIntelligence(projects, options = {}) {
     pmoControlTower: buildPmoControlTower(projects, options),
     pmoStatusReport: buildPmoStatusReport(projects, options),
     statusSuggestionReport: buildStatusSuggestionReport(projects, options),
+    boardPack: buildBoardPack(projects, options),
     pmoReportSuite: buildPmoReportSuite(projects, options),
     maximumUsps: buildMaximumUspLayer(projects, options),
     pmoUsps: buildPmoUspLayer(projects, options),
@@ -2976,6 +3105,7 @@ module.exports = {
   buildPmoReport,
   buildPmoReportSuite,
   buildPmoStatusReport,
+  buildBoardPack,
   buildStatusReportSuggestion,
   buildStatusSuggestionReport,
   buildPortfolioConstraintRadar,
