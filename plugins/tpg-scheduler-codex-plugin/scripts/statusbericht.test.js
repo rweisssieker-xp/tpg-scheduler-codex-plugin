@@ -15,6 +15,7 @@ const {
   buildAuditEntry,
   buildAudienceReport,
   buildBatchProjectPreview,
+  buildBoardPack,
   buildCalibrationReport,
   buildDataCompletenessScore,
   buildDataverseQuery,
@@ -319,6 +320,8 @@ assert.match(getDataverseBrowserSnippet(), /buildCalibrationReport/);
 assert.match(getDataverseBrowserSnippet(), /retrieveProjectIntelligenceFromD365/);
 assert.match(getDataverseBrowserSnippet(), /retrieveStatusSuggestionReportFromD365/);
 assert.match(getDataverseBrowserSnippet(), /buildStatusSuggestionReport/);
+assert.match(getDataverseBrowserSnippet(), /retrieveBoardPackFromD365/);
+assert.match(getDataverseBrowserSnippet(), /buildBoardPack/);
 assert.match(getDataverseBrowserSnippet(), /retrieveMonthlyStatusPlanFromD365/);
 assert.match(getDataverseBrowserSnippet(), /retrieveBatchProjectPreviewFromD365/);
 assert.match(getDataverseBrowserSnippet(), /discoverProjectFieldMetadataFromD365/);
@@ -401,6 +404,7 @@ assert.match(statusSuggestionReport.rows.find((row) => row.projectId === "2024-9
 assert.equal(buildStatusReportSuggestion(statusSuggestionReport.rows[0]).canAutoSave, false);
 assert.equal(typeof buildAuditEntry, "function");
 assert.equal(typeof buildAudienceReport, "function");
+assert.equal(typeof buildBoardPack, "function");
 assert.equal(typeof buildCalibrationReport, "function");
 assert.equal(typeof buildDataCompletenessScore, "function");
 assert.equal(typeof buildDataversePermissionProbePlan, "function");

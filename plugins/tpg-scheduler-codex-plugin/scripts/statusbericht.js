@@ -1684,6 +1684,92 @@ function getDataverseBrowserSnippet() {
     return buildStatusSuggestionReport(projects, options);
   }
 
+  function buildBoardPack(projects, options = {}) {
+    const sourceProjects = projects || [];
+    const intelligence = buildProjectIntelligence(sourceProjects, options);
+    const statusSuggestions = buildStatusSuggestionReport(sourceProjects, options);
+    const risks = buildRiskLedgerEntries(sourceProjects, options);
+    const decisions = buildDecisionClosureItems(sourceProjects, options);
+    const projectSpotlights = buildBatchProjectPreview(sourceProjects, options).map((project) => ({
+      projectId: project.projectId || null,
+      name: project.name || null,
+      projectStatusLabel: project.projectStatusLabel || null,
+      overallKpiLabel: project.overallKpiLabel || null,
+      progress: project.progress ?? null,
+      finish: project.finish || null,
+      safetyLevel: intelligence.projectSafetyGates?.projects?.find((item) => item.projectId === project.projectId)?.safetyLevel || null,
+      managementAttention: intelligence.projectSafetyGates?.projects?.find((item) => item.projectId === project.projectId)?.managementAttention || null,
+      pmoLevel: intelligence.pmoControlTower?.projects?.find((item) => item.projectId === project.projectId)?.pmoLevel || null,
+      recordUrl: project.recordUrl || null,
+    }));
+    return {
+      packType: "full_board_pack",
+      source: options.source || "d365_api",
+      generatedAt: options.generatedAt || new Date().toISOString(),
+      today: options.today || new Date().toISOString().slice(0, 10),
+      executive: {
+        summary: {
+          projectsReviewed: sourceProjects.length,
+          criticalProjects: intelligence.projectSafetyGates?.summary?.criticalProjects || 0,
+          unsafeProjects: intelligence.projectSafetyGates?.summary?.unsafeProjects || 0,
+          ceoAttention: intelligence.projectSafetyGates?.summary?.ceoAttention || 0,
+          cioAttention: intelligence.projectSafetyGates?.summary?.cioAttention || 0,
+          topRisks: risks.length,
+          openDecisions: decisions.length,
+        },
+        topRisks: risks.slice(0, 10),
+        topDecisions: decisions.slice(0, 10),
+        questions: intelligence.executiveQuestionGenerator?.items || [],
+        noSurpriseForecast: intelligence.noSurpriseForecast || null,
+      },
+      pmo: {
+        summary: intelligence.pmoControlTower?.summary || {},
+        workQueue: intelligence.pmoUsps?.commandQueue || [],
+        controlFindings: intelligence.pmoControlTower?.portfolioFindings || [],
+        reportSuiteSummary: intelligence.pmoReportSuite?.summary || {},
+      },
+      projectLeader: {
+        summary: statusSuggestions.summary,
+        statusSuggestions: statusSuggestions.rows,
+        queue: buildProjectNudges(sourceProjects, options),
+      },
+      steeringAgenda: buildSteeringAgenda(sourceProjects, options),
+      decisionLog: decisions,
+      riskRegister: risks,
+      statusSuggestions: statusSuggestions.rows,
+      projectSpotlights,
+      evidenceLedger: [
+        ...risks.map((item) => ({ evidenceType: "risk", projectId: item.projectId, name: item.name, code: item.evidenceCode, field: item.field, value: item.value ?? null, message: item.message || null, recordUrl: item.recordUrl || null })),
+        ...(intelligence.pmoUsps?.evidenceLedger || []).map((item) => ({ evidenceType: "pmo_usp", ...item })),
+      ],
+      dataGaps: [
+        ...(intelligence.evidenceGapDetector?.gaps || []),
+        ...(statusSuggestions.dataGaps || []),
+        ...sourceProjects.filter((project) => !project.recordUrl).map((project) => ({ projectId: project.projectId || project.id || null, name: project.name || null, field: "recordUrl", message: "Project record URL is missing; Excel project hyperlink cannot be created." })),
+        ...(options.statusMetadataResolved === false ? [{ projectId: null, name: null, field: "statusUpdateMetadata", message: "Status Update metadata could not be resolved; status history is unavailable." }] : []),
+      ],
+      accessIssues: options.accessIssues || [],
+      safety: { advisoryOnly: true, canAutoSave: false, crmWritesIncluded: false },
+    };
+  }
+
+  async function retrieveBoardPackFromD365(options = {}) {
+    const projects = await retrievePmoProjectPortfolio(options);
+    let statusMetadata = null;
+    const accessIssues = [];
+    try {
+      statusMetadata = await discoverStatusUpdateMetadata(options);
+    } catch (error) {
+      accessIssues.push({ area: "status_metadata", error: mapDataverseError(error) });
+    }
+    return buildBoardPack(projects, {
+      ...options,
+      source: "d365_api",
+      statusMetadataResolved: Boolean(statusMetadata?.found),
+      accessIssues,
+    });
+  }
+
   async function retrieveStatusUpdates(project = {}, options = {}) {
     const entityLogicalName = options.entityLogicalName;
     if (!entityLogicalName) throw new Error("Status Update entity logical name is required.");
@@ -2343,8 +2429,10 @@ function getDataverseBrowserSnippet() {
     constants,
     buildPmoProjectExport,
     buildAuditEvidencePackFromD365,
+    buildBoardPack,
     retrieveProjectIntelligenceFromD365,
     retrieveStatusSuggestionReportFromD365,
+    retrieveBoardPackFromD365,
     retrieveBatchProjectPreviewFromD365,
     retrieveMonthlyStatusPlanFromD365,
     retrieveMonthlyPmSelfServiceFlowFromD365,
@@ -3460,6 +3548,7 @@ module.exports = {
   buildAiEscalationPack: projectIntelligence.buildAiEscalationPack,
   buildAudienceReport: projectIntelligence.buildAudienceReport,
   buildAutonomousPmoWatchtower: projectIntelligence.buildAutonomousPmoWatchtower,
+  buildBoardPack: projectIntelligence.buildBoardPack,
   buildCalibrationReport: projectIntelligence.buildCalibrationReport,
   buildCommitmentTracker: projectIntelligence.buildCommitmentTracker,
   buildCrossProjectDependencyIntelligence: projectIntelligence.buildCrossProjectDependencyIntelligence,
