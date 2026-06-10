@@ -271,6 +271,24 @@ const boardPackFileOutput = execFileSync(
 const boardPackFileJson = JSON.parse(boardPackFileOutput);
 assert.equal(fs.existsSync(boardDocxPath), true);
 assert.equal(boardPackFileJson.writtenFiles.docx, path.resolve(boardDocxPath));
+const boardPackXlsxOutput = execFileSync(
+  process.execPath,
+  [
+    scriptPath,
+    "--board-pack",
+    fixturePath,
+    "--today",
+    "2026-05-13",
+    "--xlsx",
+    boardXlsxPath,
+    "--json",
+    "--allow-sample",
+  ],
+  { encoding: "utf8" }
+);
+const boardPackXlsxJson = JSON.parse(boardPackXlsxOutput);
+assert.equal(fs.existsSync(boardXlsxPath), true);
+assert.equal(boardPackXlsxJson.writtenFiles.xlsx, path.resolve(boardXlsxPath));
 assert.deepEqual([...fs.readFileSync(docxPath).subarray(0, 2)].map((byte) => String.fromCharCode(byte)).join(""), "PK");
 assert.deepEqual([...fs.readFileSync(xlsxPath).subarray(0, 2)].map((byte) => String.fromCharCode(byte)).join(""), "PK");
 assert.equal(pmoFileJson.writtenFiles.docx, path.resolve(docxPath));
@@ -280,12 +298,16 @@ Promise.all([
   JSZip.loadAsync(fs.readFileSync(docxPath)),
   JSZip.loadAsync(fs.readFileSync(xlsxPath)),
   JSZip.loadAsync(fs.readFileSync(boardDocxPath)),
-]).then(async ([docxZip, xlsxZip, boardDocxZip]) => {
+  JSZip.loadAsync(fs.readFileSync(boardXlsxPath)),
+]).then(async ([docxZip, xlsxZip, boardDocxZip, boardXlsxZip]) => {
   const docXml = await docxZip.file("word/document.xml").async("string");
   const boardDocXml = await boardDocxZip.file("word/document.xml").async("string");
   const sheetXml = await xlsxZip.file("xl/worksheets/sheet3.xml").async("string");
   const sheetRelsXml = await xlsxZip.file("xl/worksheets/_rels/sheet3.xml.rels").async("string");
   const stylesXml = await xlsxZip.file("xl/styles.xml").async("string");
+  const boardWorkbookXml = await boardXlsxZip.file("xl/workbook.xml").async("string");
+  const boardProjectLinksXml = await boardXlsxZip.file("xl/worksheets/sheet8.xml").async("string");
+  const boardProjectLinksRels = await boardXlsxZip.file("xl/worksheets/_rels/sheet8.xml.rels").async("string");
   assert.match(docXml, /PMO Executive Status Report/);
   assert.match(docXml, /Executive attention/);
   assert.match(docXml, /Filter Scope/);
@@ -298,6 +320,19 @@ Promise.all([
   assert.match(boardDocXml, /PMO Work Queue/);
   assert.match(boardDocXml, /Status Suggestions/);
   assert.match(boardDocXml, /Evidence And Data Gaps/);
+  assert.match(boardWorkbookXml, /Executive Dashboard/);
+  assert.match(boardWorkbookXml, /PMO Control/);
+  assert.match(boardWorkbookXml, /Project Leader Queue/);
+  assert.match(boardWorkbookXml, /Steering Agenda/);
+  assert.match(boardWorkbookXml, /Risks/);
+  assert.match(boardWorkbookXml, /Decisions/);
+  assert.match(boardWorkbookXml, /Status Suggestions/);
+  assert.match(boardWorkbookXml, /Project Links/);
+  assert.match(boardWorkbookXml, /Evidence/);
+  assert.match(boardWorkbookXml, /Data Gaps/);
+  assert.match(boardProjectLinksXml, /Open Project/);
+  assert.match(boardProjectLinksXml, /<hyperlinks>/);
+  assert.match(boardProjectLinksRels, /TargetMode="External"/);
   assert.match(sheetXml, /<pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"\/>/);
   assert.match(sheetXml, /autoFilter ref="A1:J3"/);
   assert.match(sheetXml, /Project Link/);

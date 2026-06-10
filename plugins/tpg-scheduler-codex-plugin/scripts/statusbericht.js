@@ -3240,6 +3240,45 @@ function objectRows(headers, rows) {
   return [headers, ...rows.map((row) => headers.map((header) => row[header] ?? ""))];
 }
 
+function rowsFromObjects(headers, rows) {
+  return [headers, ...(rows || []).map((row) => headers.map((header) => row[header] ?? ""))];
+}
+
+function buildWorkbookStylesXml() {
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+<fonts count="3">
+<font><sz val="10"/><name val="Aptos"/></font>
+<font><b/><sz val="10"/><color rgb="FFFFFFFF"/><name val="Aptos"/></font>
+<font><u/><sz val="10"/><color rgb="FF0563C1"/><name val="Aptos"/></font>
+</fonts>
+<fills count="7">
+<fill><patternFill patternType="none"/></fill>
+<fill><patternFill patternType="gray125"/></fill>
+<fill><patternFill patternType="solid"><fgColor rgb="FF1F4E79"/><bgColor indexed="64"/></patternFill></fill>
+<fill><patternFill patternType="solid"><fgColor rgb="FFE2F0D9"/><bgColor indexed="64"/></patternFill></fill>
+<fill><patternFill patternType="solid"><fgColor rgb="FFFFF2CC"/><bgColor indexed="64"/></patternFill></fill>
+<fill><patternFill patternType="solid"><fgColor rgb="FFF4CCCC"/><bgColor indexed="64"/></patternFill></fill>
+<fill><patternFill patternType="solid"><fgColor rgb="FFF7FBFF"/><bgColor indexed="64"/></patternFill></fill>
+</fills>
+<borders count="2">
+<border><left/><right/><top/><bottom/><diagonal/></border>
+<border><left style="thin"><color rgb="FFD9E2F3"/></left><right style="thin"><color rgb="FFD9E2F3"/></right><top style="thin"><color rgb="FFD9E2F3"/></top><bottom style="thin"><color rgb="FFD9E2F3"/></bottom><diagonal/></border>
+</borders>
+<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
+<cellXfs count="7">
+<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>
+<xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>
+<xf numFmtId="0" fontId="0" fillId="3" borderId="1" xfId="0" applyFill="1" applyBorder="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>
+<xf numFmtId="0" fontId="0" fillId="4" borderId="1" xfId="0" applyFill="1" applyBorder="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>
+<xf numFmtId="0" fontId="0" fillId="5" borderId="1" xfId="0" applyFill="1" applyBorder="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>
+<xf numFmtId="0" fontId="0" fillId="6" borderId="1" xfId="0" applyFill="1" applyBorder="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>
+<xf numFmtId="0" fontId="2" fillId="6" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>
+</cellXfs>
+<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>
+</styleSheet>`;
+}
+
 async function buildPmoStatusReportXlsxBuffer(report) {
   report = toOfficeReport(report);
   const zip = new JSZip();
@@ -3321,38 +3360,7 @@ async function buildPmoStatusReportXlsxBuffer(report) {
 <Relationship Id="rId4" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet4.xml"/>
 <Relationship Id="rId5" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
 </Relationships>`);
-  zip.folder("xl").file("styles.xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
-<fonts count="3">
-<font><sz val="10"/><name val="Aptos"/></font>
-<font><b/><sz val="10"/><color rgb="FFFFFFFF"/><name val="Aptos"/></font>
-<font><u/><sz val="10"/><color rgb="FF0563C1"/><name val="Aptos"/></font>
-</fonts>
-<fills count="7">
-<fill><patternFill patternType="none"/></fill>
-<fill><patternFill patternType="gray125"/></fill>
-<fill><patternFill patternType="solid"><fgColor rgb="FF1F4E79"/><bgColor indexed="64"/></patternFill></fill>
-<fill><patternFill patternType="solid"><fgColor rgb="FFE2F0D9"/><bgColor indexed="64"/></patternFill></fill>
-<fill><patternFill patternType="solid"><fgColor rgb="FFFFF2CC"/><bgColor indexed="64"/></patternFill></fill>
-<fill><patternFill patternType="solid"><fgColor rgb="FFF4CCCC"/><bgColor indexed="64"/></patternFill></fill>
-<fill><patternFill patternType="solid"><fgColor rgb="FFF7FBFF"/><bgColor indexed="64"/></patternFill></fill>
-</fills>
-<borders count="2">
-<border><left/><right/><top/><bottom/><diagonal/></border>
-<border><left style="thin"><color rgb="FFD9E2F3"/></left><right style="thin"><color rgb="FFD9E2F3"/></right><top style="thin"><color rgb="FFD9E2F3"/></top><bottom style="thin"><color rgb="FFD9E2F3"/></bottom><diagonal/></border>
-</borders>
-<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
-<cellXfs count="7">
-<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>
-<xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>
-<xf numFmtId="0" fontId="0" fillId="3" borderId="1" xfId="0" applyFill="1" applyBorder="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>
-<xf numFmtId="0" fontId="0" fillId="4" borderId="1" xfId="0" applyFill="1" applyBorder="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>
-<xf numFmtId="0" fontId="0" fillId="5" borderId="1" xfId="0" applyFill="1" applyBorder="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>
-<xf numFmtId="0" fontId="0" fillId="6" borderId="1" xfId="0" applyFill="1" applyBorder="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>
-<xf numFmtId="0" fontId="2" fillId="6" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>
-</cellXfs>
-<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>
-</styleSheet>`);
+  zip.folder("xl").file("styles.xml", buildWorkbookStylesXml());
   const worksheets = zip.folder("xl").folder("worksheets");
   worksheets.file("sheet1.xml", buildWorksheetXml(summaryRows, { widths: [28, 36], autoFilter: true }));
   worksheets.file("sheet2.xml", buildWorksheetXml(filtersRows, { widths: [28, 42], autoFilter: true }));
@@ -3361,6 +3369,169 @@ async function buildPmoStatusReportXlsxBuffer(report) {
   if (projectHyperlinks.length) {
     worksheets.folder("_rels").file("sheet3.xml.rels", buildWorksheetRelationshipsXml(projectHyperlinks));
   }
+  return zip.generateAsync({ type: "nodebuffer", compression: "DEFLATE" });
+}
+
+async function buildBoardPackXlsxBuffer(boardPack) {
+  const zip = new JSZip();
+  const sheets = [
+    {
+      name: "Executive Dashboard",
+      rows: [
+        ["Metric", "Value"],
+        ["Generated", boardPack.generatedAt],
+        ["Projects reviewed", boardPack.executive.summary.projectsReviewed],
+        ["Critical projects", boardPack.executive.summary.criticalProjects],
+        ["Unsafe projects", boardPack.executive.summary.unsafeProjects],
+        ["CEO attention", boardPack.executive.summary.ceoAttention],
+        ["CIO attention", boardPack.executive.summary.cioAttention],
+        ["Top risks", boardPack.executive.summary.topRisks],
+        ["Open decisions", boardPack.executive.summary.openDecisions],
+      ],
+      widths: [28, 42],
+    },
+    {
+      name: "PMO Control",
+      rows: rowsFromObjects(["Project ID", "Name", "Check ID", "Severity", "Recommendation"], (boardPack.pmo.controlFindings || []).map((item) => ({
+        "Project ID": item.projectId || "",
+        Name: item.name || "",
+        "Check ID": item.checkId || "",
+        Severity: item.severity || "",
+        Recommendation: item.recommendation || "",
+      }))),
+      widths: [16, 34, 30, 14, 44],
+    },
+    {
+      name: "Project Leader Queue",
+      rows: rowsFromObjects(["Project ID", "Name", "Status Type", "Can Use KV", "Recommended Action", "Suggestion"], (boardPack.projectLeader.statusSuggestions || []).map((item) => ({
+        "Project ID": item.projectId || "",
+        Name: item.name || "",
+        "Status Type": item.statusType || "",
+        "Can Use KV": item.canUseKv ? "Yes" : "No",
+        "Recommended Action": item.recommendedAction || "",
+        Suggestion: item.proposedStatusText || "",
+      }))),
+      widths: [16, 34, 24, 14, 24, 80],
+    },
+    {
+      name: "Steering Agenda",
+      rows: rowsFromObjects(["Project ID", "Name", "Priority", "Agenda Item", "Owner", "Due Date"], (boardPack.steeringAgenda || []).map((item) => ({
+        "Project ID": item.projectId || "",
+        Name: item.name || "",
+        Priority: item.priority || "",
+        "Agenda Item": item.agendaItem || "",
+        Owner: item.owner || "",
+        "Due Date": item.dueDate || "",
+      }))),
+      widths: [16, 34, 16, 60, 22, 16],
+    },
+    {
+      name: "Risks",
+      rows: rowsFromObjects(["Project ID", "Name", "Status", "Evidence Code", "Field", "Value", "Message"], (boardPack.riskRegister || []).map((item) => ({
+        "Project ID": item.projectId || "",
+        Name: item.name || "",
+        Status: item.status || "",
+        "Evidence Code": item.evidenceCode || "",
+        Field: item.field || "",
+        Value: item.value ?? "",
+        Message: item.message || "",
+      }))),
+      widths: [16, 34, 16, 24, 22, 36, 60],
+    },
+    {
+      name: "Decisions",
+      rows: rowsFromObjects(["Project ID", "Name", "Decision", "Owner", "Due Date", "Status"], (boardPack.decisionLog || []).map((item) => ({
+        "Project ID": item.projectId || "",
+        Name: item.name || "",
+        Decision: item.decision || "",
+        Owner: item.owner || "",
+        "Due Date": item.dueDate || "",
+        Status: item.status || "",
+      }))),
+      widths: [16, 34, 60, 22, 16, 16],
+    },
+    {
+      name: "Status Suggestions",
+      rows: rowsFromObjects(["Project ID", "Name", "Status Type", "Quality Score", "Can Use KV", "Text"], (boardPack.statusSuggestions || []).map((item) => ({
+        "Project ID": item.projectId || "",
+        Name: item.name || "",
+        "Status Type": item.statusType || "",
+        "Quality Score": item.qualityScore ?? "",
+        "Can Use KV": item.canUseKv ? "Yes" : "No",
+        Text: item.proposedStatusText || "",
+      }))),
+      widths: [16, 34, 24, 14, 14, 90],
+    },
+    {
+      name: "Project Links",
+      rows: rowsFromObjects(["Project ID", "Name", "Status", "KPI", "Progress", "Safety", "PMO", "Project Link"], (boardPack.projectSpotlights || []).map((item) => ({
+        "Project ID": item.projectId || "",
+        Name: item.name || "",
+        Status: item.projectStatusLabel || "",
+        KPI: item.overallKpiLabel || "",
+        Progress: item.progress ?? "",
+        Safety: item.safetyLevel || "",
+        PMO: item.pmoLevel || "",
+        "Project Link": item.recordUrl ? "Open Project" : "",
+      }))),
+      widths: [16, 34, 18, 12, 12, 16, 16, 18],
+      hyperlinks: (boardPack.projectSpotlights || []).map((item, index) => item.recordUrl ? { ref: `H${index + 2}`, target: item.recordUrl, id: `rId${index + 1}` } : null).filter(Boolean),
+    },
+    {
+      name: "Evidence",
+      rows: rowsFromObjects(["Type", "Project ID", "Name", "Code", "Field", "Value", "Message"], (boardPack.evidenceLedger || []).map((item) => ({
+        Type: item.evidenceType || "",
+        "Project ID": item.projectId || "",
+        Name: item.name || "",
+        Code: item.code || "",
+        Field: item.field || "",
+        Value: item.value ?? "",
+        Message: item.message || "",
+      }))),
+      widths: [18, 16, 34, 24, 22, 36, 60],
+    },
+    {
+      name: "Data Gaps",
+      rows: rowsFromObjects(["Project ID", "Name", "Field", "Message"], (boardPack.dataGaps || []).map((item) => ({
+        "Project ID": item.projectId || "",
+        Name: item.name || "",
+        Field: item.field || "",
+        Message: item.message || "",
+      }))),
+      widths: [16, 34, 28, 70],
+    },
+  ];
+  zip.file("[Content_Types].xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+<Default Extension="xml" ContentType="application/xml"/>
+<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>
+<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>
+${sheets.map((_, index) => `<Override PartName="/xl/worksheets/sheet${index + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join("\n")}
+</Types>`);
+  zip.folder("_rels").file(".rels", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>
+</Relationships>`);
+  zip.folder("xl").file("workbook.xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+<sheets>
+${sheets.map((sheet, index) => `<sheet name="${xmlEscape(sheet.name)}" sheetId="${index + 1}" r:id="rId${index + 1}"/>`).join("\n")}
+</sheets>
+</workbook>`);
+  zip.folder("xl").folder("_rels").file("workbook.xml.rels", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+${sheets.map((_, index) => `<Relationship Id="rId${index + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${index + 1}.xml"/>`).join("\n")}
+<Relationship Id="rId${sheets.length + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+</Relationships>`);
+  zip.folder("xl").file("styles.xml", buildWorkbookStylesXml());
+  const worksheets = zip.folder("xl").folder("worksheets");
+  sheets.forEach((sheet, index) => {
+    worksheets.file(`sheet${index + 1}.xml`, buildWorksheetXml(sheet.rows, { widths: sheet.widths, autoFilter: true, hyperlinks: sheet.hyperlinks || [] }));
+    if (sheet.hyperlinks?.length) {
+      worksheets.folder("_rels").file(`sheet${index + 1}.xml.rels`, buildWorksheetRelationshipsXml(sheet.hyperlinks));
+    }
+  });
   return zip.generateAsync({ type: "nodebuffer", compression: "DEFLATE" });
 }
 
@@ -3391,7 +3562,9 @@ async function writeBoardPackFiles(boardPack, options = {}) {
     writtenFiles.docx = path.resolve(options.docxPath);
   }
   if (options.xlsxPath) {
-    throw new Error("Board Pack XLSX writing is not implemented yet.");
+    ensureParentDirectory(options.xlsxPath);
+    fs.writeFileSync(options.xlsxPath, await buildBoardPackXlsxBuffer(boardPack));
+    writtenFiles.xlsx = path.resolve(options.xlsxPath);
   }
   return writtenFiles;
 }
@@ -3664,6 +3837,7 @@ module.exports = {
   buildPmoStatusReportDocxBuffer,
   buildPmoStatusReportXlsxBuffer,
   buildBoardPackDocxBuffer,
+  buildBoardPackXlsxBuffer,
   formatProjectIntelligenceMarkdown,
   formatMonthlyStatusReportRunMarkdown,
   formatPmoStatusReportMarkdown,
