@@ -15,6 +15,7 @@ If the user asks for validation, assurance, false green projects, `kv` safety, r
 
 - Use real Dynamics 365 TPG project data from the authenticated D365 API context.
 - Prefer direct D365 API helpers from the authenticated Dynamics browser: `TPGProjectAssist.retrieveBoardPackFromD365()`, `retrieveProjectIntelligenceFromD365()`, `retrieveBatchProjectPreviewFromD365()`, `retrieveMonthlyStatusPlanFromD365()`, `buildLivePmoControlCenterFromD365()`, `retrieveExecutiveSteeringPackFromD365()`, or `retrievePmoDataGapWorklistFromD365()`.
+- Use `TPG_PLUGIN_SETTINGS` for D365 metadata defaults, project/status field mappings, workflow defaults, and safety flags.
 - For automatic status wording, use `TPGProjectAssist.retrieveStatusSuggestionReportFromD365()` or offline fallback `--status-suggestion-report`.
 - Do not use sample, fixture, synthetic, or mock data for productive PMO reporting.
 - Keep outputs advisory and evidence-backed.

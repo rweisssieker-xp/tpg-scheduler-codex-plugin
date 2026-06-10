@@ -126,6 +126,7 @@ const requiredDocs = [
   "skills/pmo-report-suite/SKILL.md",
   "schemas/board-pack.schema.json",
   "schemas/logic-validation.schema.json",
+  "schemas/settings.schema.json",
   "schemas/project-intelligence.schema.json",
   "schemas/project-safety-gates.schema.json",
   "schemas/pmo-control-tower.schema.json",
@@ -136,6 +137,7 @@ const requiredDocs = [
   "schemas/status-update-duplicate-check.schema.json",
   "examples/board-pack.sample.json",
   "examples/logic-validation.sample.json",
+  "examples/settings.sample.json",
   "examples/project-intelligence.sample.json",
   "examples/status-api-max.sample.json",
   "plugins/tpg-scheduler-codex-plugin/README.md",
@@ -199,6 +201,7 @@ for (const schemaPath of [
   "schemas/project-intelligence.schema.json",
   "schemas/board-pack.schema.json",
   "schemas/logic-validation.schema.json",
+  "schemas/settings.schema.json",
   "schemas/project-safety-gates.schema.json",
   "schemas/pmo-control-tower.schema.json",
   "schemas/status-api-envelope.schema.json",
@@ -231,6 +234,9 @@ assert.equal(boardPackSchema.properties.packType.const, "full_board_pack", "boar
 assert.equal(Boolean(boardPackSchema.properties.logicAssurance), true, "board pack schema must include logicAssurance");
 const logicValidationSchema = JSON.parse(assertFile("schemas/logic-validation.schema.json"));
 assert.equal(logicValidationSchema.properties.checks.minItems, 15, "logic validation schema must require 15 check groups");
+const settingsSchema = JSON.parse(assertFile("schemas/settings.schema.json"));
+assert.equal(Boolean(settingsSchema.properties.dynamics), true, "settings schema must include dynamics settings");
+assert.equal(Boolean(settingsSchema.properties.statusUpdate), true, "settings schema must include status update settings");
 
 const safetySchema = JSON.parse(assertFile("schemas/project-safety-gates.schema.json"));
 assert.deepEqual(safetySchema.properties.projects.items.required, [
@@ -270,6 +276,13 @@ assert.equal(boardPackSample.safety.canAutoSave, false, "board pack sample must 
 const logicValidationSample = JSON.parse(assertFile("examples/logic-validation.sample.json"));
 assert.equal(logicValidationSample.summary.checkCount, 15, "logic validation sample must use 15 check groups");
 assert.equal(logicValidationSample.checks.length, 15, "logic validation sample must include all 15 check groups");
+const settingsSample = JSON.parse(assertFile("examples/settings.sample.json"));
+assert.equal(settingsSample.settingsVersion, "1.0", "settings sample must expose settings version");
+assert.equal(settingsSample.dynamics.orgUrl, "https://posp365.crm4.dynamics.com", "settings sample must include D365 organization URL");
+assert.equal(settingsSample.project.entityLogicalName, "tpg_project", "settings sample must include project entity");
+assert.equal(settingsSample.statusUpdate.fields.statusSummary, "tpg_title", "settings sample must include status summary field");
+assert.equal(settingsSample.workflow.projectManagerName, "Reiner Weisssieker", "settings sample must include workflow owner default");
+assert.equal(settingsSample.safety.mockDataAllowed, false, "settings sample must keep productive mock data disabled");
 
 const statusApiSample = JSON.parse(assertFile("examples/status-api-max.sample.json"));
 assert.equal(statusApiSample.apiEnvelope.api, "tpg_status_api", "status API sample must include API envelope");

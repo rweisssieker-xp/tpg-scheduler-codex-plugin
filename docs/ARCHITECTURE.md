@@ -5,6 +5,7 @@
 The plugin separates browser workflow guidance from deterministic project intelligence logic.
 
 - The skill file describes how Codex should operate inside the in-app Browser.
+- `scripts/lib/settings.js` centralizes tenant, project, status-update, workflow, export, and safety configuration.
 - `scripts/statusbericht.js` exposes CLI commands, D365 API browser helpers, URL builders, and public exports.
 - `scripts/lib/project-intelligence.js` contains pure functions for risk, decision, governance, and AI/KI intelligence features.
 - The project safety gate layer evaluates each project across eight advisory safety domains before status collection or CRM staging.
@@ -50,6 +51,19 @@ Visual UI scraping is only a fallback for navigation, field verification, and ex
 - 15 D365 API Max helpers for field discovery, live control center, status entity resolution, PM self-service, dry-runs, Submitted-To lookup, status history, duplicate prevention, steering packs, data-gap worklists, executive routing, Power BI output, permission probes, audit evidence, and pilot writeback
 - public exports for project intelligence functions
 - plugin validation checks
+
+### Settings Layer
+
+`scripts/lib/settings.js` exposes `TPG_PLUGIN_SETTINGS` and `SETTINGS_VERSION` as the canonical configuration contract. The settings object groups:
+
+- `dynamics`: organization URL, app ID, API version, and project list URL.
+- `project`: entity names, primary attributes, active filters, selected columns, status labels, and known option labels.
+- `statusUpdate`: entity candidates, tab/subgrid names, field mappings, and required fields.
+- `pmoExport` and `statusApi`: versioned contract identifiers.
+- `workflow`: project-manager and unchanged-status defaults.
+- `safety`: read-only export, CRM write, confirmation, and mock-data flags.
+
+`scripts/statusbericht.js` re-exports the existing flat constants for compatibility, but new code should use the grouped settings object to avoid scattered literals.
 
 ### Project Intelligence
 
@@ -171,6 +185,7 @@ The schema layer documents output contracts without adding runtime dependencies.
 - Project intelligence includes `logicValidation` and `logicAssuranceUsps` for Maximum Logic Assurance.
 - Safety gate projects expose safety score, level, management attention, writeback risk, gates, evidence, and actions.
 - PMO control tower summaries declare exactly 25 checks per project.
+- Settings schema exposes D365, project, status-update, workflow, and safety groups.
 
 Schemas are intentionally tolerant of additional properties so new advisory fields can be added without breaking consumers.
 

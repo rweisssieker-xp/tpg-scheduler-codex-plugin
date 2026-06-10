@@ -1,0 +1,110 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TPG Scheduler Plugin Settings",
+  "type": "object",
+  "required": [
+    "settingsVersion",
+    "dynamics",
+    "project",
+    "statusUpdate",
+    "pmoExport",
+    "statusApi",
+    "workflow",
+    "safety"
+  ],
+  "properties": {
+    "settingsVersion": {
+      "type": "string"
+    },
+    "dynamics": {
+      "type": "object",
+      "required": ["orgUrl", "appId", "apiVersion", "projectListUrl"],
+      "properties": {
+        "orgUrl": { "type": "string" },
+        "appId": { "type": "string" },
+        "apiVersion": { "type": "string" },
+        "projectListUrl": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "project": {
+      "type": "object",
+      "required": [
+        "entityLogicalName",
+        "entitySetName",
+        "primaryIdAttribute",
+        "primaryNameAttribute",
+        "activeStateFilter",
+        "activeStatusLabels",
+        "defaultSelectColumns",
+        "knownOptionLabels"
+      ],
+      "properties": {
+        "entityLogicalName": { "type": "string" },
+        "entitySetName": { "type": "string" },
+        "primaryIdAttribute": { "type": "string" },
+        "primaryNameAttribute": { "type": "string" },
+        "activeStateFilter": { "type": "string" },
+        "activeStatusLabels": { "type": "array", "items": { "type": "string" } },
+        "defaultSelectColumns": { "type": "array", "items": { "type": "string" } },
+        "knownOptionLabels": { "type": "object" }
+      },
+      "additionalProperties": true
+    },
+    "statusUpdate": {
+      "type": "object",
+      "required": ["entityLogicalNameCandidates", "tabName", "subgridName", "fields", "requiredFields"],
+      "properties": {
+        "entityLogicalNameCandidates": { "type": "array", "items": { "type": "string" } },
+        "tabName": { "type": "string" },
+        "subgridName": { "type": "string" },
+        "fields": { "type": "object" },
+        "requiredFields": { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": true
+    },
+    "pmoExport": {
+      "type": "object",
+      "required": ["type", "version"],
+      "properties": {
+        "type": { "type": "string" },
+        "version": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "statusApi": {
+      "type": "object",
+      "required": ["version"],
+      "properties": {
+        "version": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "workflow": {
+      "type": "object",
+      "required": ["projectManagerName", "unchangedStatusText"],
+      "properties": {
+        "projectManagerName": { "type": "string" },
+        "unchangedStatusText": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "safety": {
+      "type": "object",
+      "required": [
+        "readOnlyExport",
+        "crmWritesIncluded",
+        "requiresExplicitSaveConfirmationForWriteback",
+        "mockDataAllowed"
+      ],
+      "properties": {
+        "readOnlyExport": { "type": "boolean" },
+        "crmWritesIncluded": { "type": "boolean" },
+        "requiresExplicitSaveConfirmationForWriteback": { "type": "boolean" },
+        "mockDataAllowed": { "type": "boolean" }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

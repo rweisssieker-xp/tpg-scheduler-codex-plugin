@@ -48,6 +48,7 @@ If Dynamics asks for login, pause and let the user complete Microsoft login manu
 - The direct Dynamics record URL shape is:
   `https://posp365.crm4.dynamics.com/main.aspx?appid=1a66513c-266c-ef11-bfe2-6045bd8d5d87&forceUCI=1&pagetype=entityrecord&etn=tpg_project&id=<project-guid>`
 - Use `scripts/statusbericht.js` for stable constants and URL builders:
+  - `TPG_PLUGIN_SETTINGS`
   - `buildActiveProjectsApiUrl()`
   - `buildProjectRecordApiUrl(projectId)`
   - `buildDynamicsProjectRecordUrl(projectId)`
@@ -110,6 +111,7 @@ If Dynamics asks for login, pause and let the user complete Microsoft login manu
   - `await TPGProjectAssist.buildLivePmoControlCenterFromD365({ today: "YYYY-MM-DD" })`
   - `await TPGProjectAssist.retrieveMonthlyPmSelfServiceFlowFromD365({ month: "YYYY-MM" })`
 - Do not use downloaded project exports as the normal production path. File-based snapshots are offline fallback only.
+- Use `TPG_PLUGIN_SETTINGS` for D365 URLs, project metadata, status-update fields, workflow defaults, and safety defaults; avoid adding scattered literal settings.
 - To install browser-context helpers into an authenticated Dynamics page, print the snippet with:
   `npm run statusbericht:dataverse`
   Then run that JavaScript in the in-app Browser page context. It exposes `window.TPGProjectAssist`.

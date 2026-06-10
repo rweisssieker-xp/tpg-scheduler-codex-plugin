@@ -19,74 +19,32 @@ const {
   WidthType,
 } = require("docx");
 const projectIntelligence = require("./lib/project-intelligence");
-
-const PROJECT_LIST_URL =
-  "https://posp365.crm4.dynamics.com/main.aspx?appid=1a66513c-266c-ef11-bfe2-6045bd8d5d87&forceUCI=1&pagetype=entitylist&etn=tpg_project&viewid=40761dc9-c0d4-ef11-a72e-7c1e52862247&viewType=4230";
-const DATAVERSE_ORG_URL = "https://posp365.crm4.dynamics.com";
-const DYNAMICS_APP_ID = "1a66513c-266c-ef11-bfe2-6045bd8d5d87";
-const DATAVERSE_API_VERSION = "v9.2";
-const PROJECT_ENTITY_LOGICAL_NAME = "tpg_project";
-const PROJECT_ENTITY_SET_NAME = "tpg_projects";
-const PROJECT_PRIMARY_ID_ATTRIBUTE = "tpg_projectid";
-const PROJECT_PRIMARY_NAME_ATTRIBUTE = "tpg_subject";
-const PMO_PROJECT_EXPORT_TYPE = "tpg_pmo_project_export";
-const PMO_PROJECT_EXPORT_VERSION = "1.0";
-const STATUS_API_FEATURE_VERSION = "1.0";
-const STATUS_UPDATE_ENTITY_LOGICAL_NAME_CANDIDATES = [
-  "tpg_statusupdate",
-  "tpg_projectstatusupdate",
-  "gbl_statusupdate",
-];
-const PROJECT_DEFAULT_SELECT_COLUMNS = [
+const {
+  SETTINGS_VERSION,
+  TPG_PLUGIN_SETTINGS,
+  PROJECT_LIST_URL,
+  DATAVERSE_ORG_URL,
+  DYNAMICS_APP_ID,
+  DATAVERSE_API_VERSION,
+  PROJECT_ENTITY_LOGICAL_NAME,
+  PROJECT_ENTITY_SET_NAME,
   PROJECT_PRIMARY_ID_ATTRIBUTE,
-  "tpg_projectnum",
-  "gbl_projectnumber",
   PROJECT_PRIMARY_NAME_ATTRIBUTE,
-  "tpg_projectstatus",
-  "tpg_lifecyclephase",
-  "tpg_overallkpi",
-  "tpg_progress",
-  "tpg_start",
-  "tpg_finish",
-  "gbl_laststatusupdate",
-  "_ownerid_value",
-];
-const PROJECT_ACTIVE_STATE_FILTER = "statecode eq 0";
-const PROJECT_MANAGER_NAME = "Reiner Weisssieker";
-const ACTIVE_PROJECT_STATUS_LABELS = ["Created", "Planning", "In Progress"];
-const STATUS_UPDATE_TAB_NAME = "tab_status";
-const STATUS_UPDATE_SUBGRID_NAME = "status_grid";
-const STATUS_UPDATE_FIELDS = Object.freeze({
-  reportDate: "tpg_reportdate",
-  project: "tpg_project",
-  statusSummary: "tpg_title",
-  owner: "ownerid",
-  submittedTo: "tpg_submittedto",
-  emailStatusUpdate: "tpg_emailstatusupdate",
-  accomplishedActivities: "tpg_accomplishedactivities",
-  missedActivities: "tpg_missedactivities",
-  plannedActivities: "tpg_plannedactivities",
-  sponsorActions: "tpg_sponsoractions",
-  obstaclesAndMeasures: "gbl_obstaclesandmeasures",
-  decisions: "gbl_decisions",
-});
-const STATUS_UPDATE_REQUIRED_FIELDS = [
-  STATUS_UPDATE_FIELDS.reportDate,
-  STATUS_UPDATE_FIELDS.project,
-  STATUS_UPDATE_FIELDS.statusSummary,
-  STATUS_UPDATE_FIELDS.owner,
-  STATUS_UPDATE_FIELDS.submittedTo,
-];
-const PROJECT_KNOWN_OPTION_LABELS = Object.freeze({
-  tpg_projectstatus: {
-    926720004: "Closed",
-  },
-  tpg_overallkpi: {
-    926720002: "Green",
-  },
-});
-const UNCHANGED_STATUS_TEXT =
-  "Status unverändert seit letztem Bericht (keine inhaltlichen Änderungen)";
+  PMO_PROJECT_EXPORT_TYPE,
+  PMO_PROJECT_EXPORT_VERSION,
+  STATUS_API_FEATURE_VERSION,
+  STATUS_UPDATE_ENTITY_LOGICAL_NAME_CANDIDATES,
+  PROJECT_DEFAULT_SELECT_COLUMNS,
+  PROJECT_ACTIVE_STATE_FILTER,
+  PROJECT_MANAGER_NAME,
+  ACTIVE_PROJECT_STATUS_LABELS,
+  STATUS_UPDATE_TAB_NAME,
+  STATUS_UPDATE_SUBGRID_NAME,
+  STATUS_UPDATE_FIELDS,
+  STATUS_UPDATE_REQUIRED_FIELDS,
+  PROJECT_KNOWN_OPTION_LABELS,
+  UNCHANGED_STATUS_TEXT,
+} = require("./lib/settings");
 
 function normalizeStatusInput(value) {
   const trimmed = String(value || "").trim();
@@ -3825,6 +3783,8 @@ if (require.main === module) {
 }
 
 module.exports = {
+  SETTINGS_VERSION,
+  TPG_PLUGIN_SETTINGS,
   DATAVERSE_API_VERSION,
   DATAVERSE_ORG_URL,
   DYNAMICS_APP_ID,

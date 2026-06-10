@@ -11,6 +11,7 @@ This runs:
 
 - JavaScript syntax checks.
 - Status workflow tests.
+- Structured settings export tests.
 - Project intelligence tests.
 - Maximum project safety gate tests.
 - PMO control tower tests.
@@ -53,6 +54,7 @@ The validation script checks:
 - Critical CRM write-safety language remains present.
 - Public docs use en-US wording, except for the fixed German CRM `kv` phrase where explicitly documented.
 - JSON schemas parse and expose the required project safety and PMO contract anchors.
+- Settings schema and sample output parse and expose D365, project, status-update, workflow, and safety groups.
 - Board Pack schema and sample output parse and expose `packType: "full_board_pack"` with `canAutoSave: false`.
 - Logic validation schema and sample output parse and expose 15 check groups plus advisory assurance levels.
 - Status API schemas parse and expose queue, create-plan, duplicate-check, audit-event, and envelope contracts.

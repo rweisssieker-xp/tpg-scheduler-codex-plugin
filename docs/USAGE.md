@@ -28,6 +28,18 @@ await TPGProjectAssist.retrieveMonthlyStatusPlanFromD365({ month: "YYYY-MM", sta
 
 These helpers read through `Xrm.WebApi` and do not create CRM writes or require a downloaded export file.
 
+## Structured Settings
+
+Use `TPG_PLUGIN_SETTINGS` when code needs plugin configuration:
+
+```javascript
+const { TPG_PLUGIN_SETTINGS } = require("./scripts/statusbericht");
+console.log(TPG_PLUGIN_SETTINGS.dynamics.orgUrl);
+console.log(TPG_PLUGIN_SETTINGS.statusUpdate.fields.statusSummary);
+```
+
+The grouped settings cover D365, project metadata, status-update mappings, export/API versions, workflow defaults, and safety flags. Existing flat exports such as `DATAVERSE_ORG_URL` and `STATUS_UPDATE_FIELDS` remain available for compatibility.
+
 Offline fallback from a reviewed local snapshot:
 
 ```powershell
@@ -298,10 +310,11 @@ Machine-readable contracts are stored in `schemas/`:
 
 - `project-intelligence.schema.json`
 - `logic-validation.schema.json`
+- `settings.schema.json`
 - `project-safety-gates.schema.json`
 - `pmo-control-tower.schema.json`
 
-A compact synthetic JSON example is available at `examples/project-intelligence.sample.json` for documentation and consumer tests only. It is not accepted by productive CLI runs.
+Compact synthetic JSON examples are available at `examples/project-intelligence.sample.json` and `examples/settings.sample.json` for documentation and consumer tests only. They are not accepted by productive CLI runs.
 
 ## Live Verification
 

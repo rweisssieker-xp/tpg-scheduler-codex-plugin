@@ -18,6 +18,7 @@ Initial public release for confirmation-gated Dynamics 365 TPG project status re
 - Post-release `main` adds the Automatic Status Suggestion Report for review-only status wording from D365 project fields and planning data, including JSON/DOCX/XLSX output and live `retrieveStatusSuggestionReportFromD365`.
 - Post-release `main` adds the Full Board Pack / Steering Pack with live `retrieveBoardPackFromD365`, JSON/DOCX/XLSX output, audience sections, evidence ledger, project links, and review-only safety flags.
 - Post-release `main` adds Maximum Logic Assurance with 15 advisory validation groups, 12 logic-assurance USPs, Board Pack assurance sections, schema/sample contracts, and Markdown/JSON/DOCX/XLSX visibility.
+- Post-release `main` adds structured plugin settings with `TPG_PLUGIN_SETTINGS`, compatibility constant exports, schema validation, and a documentation-only settings example.
 
 ## Safety
 

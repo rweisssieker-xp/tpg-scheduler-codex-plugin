@@ -17,6 +17,7 @@ For PMO reporting, the Full Board Pack / Steering Pack, portfolio management pac
 - Verify the configured project manager before collecting or staging a status update.
 - For monthly runs, prepare one Status Update per active verified project and report month with `--monthly-status-plan`.
 - Use the Status API Max Layer and D365 API Max helpers for automatic status suggestion reports, status history, duplicate checks, idempotency, writeback queues, metadata discovery, permission probes, audit evidence packs, live PMO control center output, Submitted-To resolution, Power BI-ready output, and confirmation-gated Dataverse create plans.
+- Use `TPG_PLUGIN_SETTINGS` for D365 URLs, project metadata, status-update fields, workflow defaults, and safety defaults; avoid scattering literal settings across new code.
 - Show project safety level and PMO control findings before collecting or staging a status update.
 - When generating intelligence JSON, include and explain `maximumUsps` if the user asks for USPs, differentiation, PMO/CIO/CEO value, or product positioning.
 - When the user asks for PMO-specific value, operational PMO workflows, steering, board packs, audit, or CIO/CEO PMO outcomes, include and explain `pmoUsps` and `boardPack`.

@@ -1,0 +1,54 @@
+{
+  "settingsVersion": "1.0",
+  "dynamics": {
+    "orgUrl": "https://posp365.crm4.dynamics.com",
+    "appId": "1a66513c-266c-ef11-bfe2-6045bd8d5d87",
+    "apiVersion": "v9.2",
+    "projectListUrl": "https://posp365.crm4.dynamics.com/main.aspx?appid=1a66513c-266c-ef11-bfe2-6045bd8d5d87&forceUCI=1&pagetype=entitylist&etn=tpg_project&viewid=40761dc9-c0d4-ef11-a72e-7c1e52862247&viewType=4230"
+  },
+  "project": {
+    "entityLogicalName": "tpg_project",
+    "entitySetName": "tpg_projects",
+    "primaryIdAttribute": "tpg_projectid",
+    "primaryNameAttribute": "tpg_subject",
+    "activeStateFilter": "statecode eq 0",
+    "activeStatusLabels": ["Created", "Planning", "In Progress"],
+    "defaultSelectColumns": ["tpg_projectid", "tpg_projectnum", "gbl_projectnumber", "tpg_subject"],
+    "knownOptionLabels": {
+      "tpg_projectstatus": {
+        "926720004": "Closed"
+      }
+    }
+  },
+  "statusUpdate": {
+    "entityLogicalNameCandidates": ["tpg_statusupdate", "tpg_projectstatusupdate", "gbl_statusupdate"],
+    "tabName": "tab_status",
+    "subgridName": "status_grid",
+    "fields": {
+      "reportDate": "tpg_reportdate",
+      "project": "tpg_project",
+      "statusSummary": "tpg_title",
+      "owner": "ownerid",
+      "submittedTo": "tpg_submittedto",
+      "emailStatusUpdate": "tpg_emailstatusupdate"
+    },
+    "requiredFields": ["tpg_reportdate", "tpg_project", "tpg_title", "ownerid", "tpg_submittedto"]
+  },
+  "pmoExport": {
+    "type": "tpg_pmo_project_export",
+    "version": "1.0"
+  },
+  "statusApi": {
+    "version": "1.0"
+  },
+  "workflow": {
+    "projectManagerName": "Reiner Weisssieker",
+    "unchangedStatusText": "Status unverändert seit letztem Bericht (keine inhaltlichen Änderungen)"
+  },
+  "safety": {
+    "readOnlyExport": true,
+    "crmWritesIncluded": false,
+    "requiresExplicitSaveConfirmationForWriteback": true,
+    "mockDataAllowed": false
+  }
+}

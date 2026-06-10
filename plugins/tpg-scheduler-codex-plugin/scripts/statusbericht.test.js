@@ -3,6 +3,8 @@ const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 const {
+  SETTINGS_VERSION,
+  TPG_PLUGIN_SETTINGS,
   DATAVERSE_ORG_URL,
   PMO_PROJECT_EXPORT_TYPE,
   PROJECT_ENTITY_LOGICAL_NAME,
@@ -101,6 +103,14 @@ assert.equal(normalizeStatusInput("  Projekt ist im Plan.  "), "Projekt ist im P
 assert.equal(normalizeStatusInput(""), "");
 assert.equal(normalizeStatusInput("   "), "");
 
+assert.equal(SETTINGS_VERSION, "1.0");
+assert.equal(Object.isFrozen(TPG_PLUGIN_SETTINGS), true);
+assert.equal(TPG_PLUGIN_SETTINGS.dynamics.orgUrl, DATAVERSE_ORG_URL);
+assert.equal(TPG_PLUGIN_SETTINGS.project.entityLogicalName, PROJECT_ENTITY_LOGICAL_NAME);
+assert.equal(TPG_PLUGIN_SETTINGS.project.entitySetName, PROJECT_ENTITY_SET_NAME);
+assert.equal(TPG_PLUGIN_SETTINGS.statusUpdate.fields.statusSummary, STATUS_UPDATE_FIELDS.statusSummary);
+assert.equal(TPG_PLUGIN_SETTINGS.statusUpdate.requiredFields.includes(STATUS_UPDATE_FIELDS.submittedTo), true);
+assert.equal(TPG_PLUGIN_SETTINGS.safety.mockDataAllowed, false);
 assert.equal(DATAVERSE_ORG_URL, "https://posp365.crm4.dynamics.com");
 assert.equal(PROJECT_ENTITY_LOGICAL_NAME, "tpg_project");
 assert.equal(PROJECT_ENTITY_SET_NAME, "tpg_projects");

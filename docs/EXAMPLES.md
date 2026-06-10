@@ -49,6 +49,18 @@ The JSON payload includes:
 
 A compact synthetic sample is stored at `examples/project-intelligence.sample.json` for documentation and consumer tests only. Productive CLI runs reject sample and fixture paths.
 
+## Settings Contract
+
+Code consumers can inspect the grouped settings object:
+
+```javascript
+const { TPG_PLUGIN_SETTINGS } = require("./scripts/statusbericht");
+console.log(TPG_PLUGIN_SETTINGS.project.entityLogicalName);
+console.log(TPG_PLUGIN_SETTINGS.statusUpdate.fields.statusSummary);
+```
+
+The compact settings example is stored at `examples/settings.sample.json`. It documents D365, project, status-update, workflow, and safety settings; it is documentation-only and must not be treated as runtime tenant discovery.
+
 ## Export Payload
 
 ```powershell
@@ -135,6 +147,7 @@ Consumer tools should start with:
 - `schemas/project-intelligence.schema.json`
 - `schemas/board-pack.schema.json`
 - `schemas/logic-validation.schema.json`
+- `schemas/settings.schema.json`
 - `schemas/project-safety-gates.schema.json`
 - `schemas/pmo-control-tower.schema.json`
 - `schemas/status-api-envelope.schema.json`

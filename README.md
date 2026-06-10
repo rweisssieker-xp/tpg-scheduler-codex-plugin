@@ -6,6 +6,7 @@ TPG-Scheduler-Codex-Plugin is a Codex plugin for confirmation-gated Dynamics 365
 
 - Opens and reviews active Dynamics 365 TPG project candidates through the Codex in-app Browser workflow.
 - Reads project portfolio data directly through the authenticated Dynamics `Xrm.WebApi` context; local JSON snapshots are only an explicit offline fallback.
+- Uses a structured, versioned settings layer for D365 URLs, project metadata, status-update fields, workflow defaults, and safety defaults.
 - Verifies that the opened project record belongs to the configured project manager before status work continues.
 - Normalizes short `kv` input to the configured unchanged-status phrase used in the target Dynamics environment.
 - Builds project intelligence packs with evidence-backed risk, decision, PMO, and executive views.
@@ -25,6 +26,7 @@ TPG-Scheduler-Codex-Plugin is a Codex plugin for confirmation-gated Dynamics 365
 - Maximum USP Layer with 12 concrete, technically implemented differentiators exposed as `maximumUsps` in the project intelligence JSON.
 - 15 PMO USP Layer exposed as `pmoUsps` for operational PMO steering, escalation, audit, quality, and evidence workflows.
 - Public-repo safety posture: no mock data in productive commands, no automatic CRM writes, no secrets, and synthetic examples only.
+- Structured Settings Contract exported as `TPG_PLUGIN_SETTINGS` while preserving legacy constant exports for existing integrations.
 
 ## AI/KI Differentiators
 
@@ -95,6 +97,12 @@ The pack includes executive risk and decision summaries, PMO command queue items
 
 The layer reports `assuranceLevel`, findings, evidence trace, false-positive risks, data gaps, and recommended actions without changing CRM data.
 
+## Structured Settings
+
+`scripts/lib/settings.js` centralizes tenant, project, status-update, export, workflow, and safety settings as `TPG_PLUGIN_SETTINGS`. `scripts/statusbericht.js` still exports the existing constants such as `DATAVERSE_ORG_URL`, `STATUS_UPDATE_FIELDS`, and `PROJECT_ENTITY_LOGICAL_NAME` for compatibility.
+
+The settings contract is documented in `schemas/settings.schema.json` with a compact synthetic example at `examples/settings.sample.json`. Productive behavior remains D365 API-first and confirmation-gated; `safety.mockDataAllowed` stays `false`.
+
 ## Repository Layout
 
 ```text
@@ -104,12 +112,14 @@ The layer reports `assuranceLevel`, findings, evidence trace, false-positive ris
 skills/status-report/SKILL.md
 docs/
 examples/project-intelligence.sample.json
+examples/settings.sample.json
 schemas/*.schema.json
 .github/workflows/
 plugins/tpg-scheduler-codex-plugin/
   .codex-plugin/plugin.json
   skills/status-report/SKILL.md
   scripts/statusbericht.js
+  scripts/lib/settings.js
   scripts/lib/project-intelligence.js
   scripts/*.test.js
 ```

@@ -7,6 +7,7 @@ The plugin exposes stable JSON contracts for offline reports and downstream PMO 
 - `schemas/project-intelligence.schema.json`: top-level project intelligence output for D365 API data and explicit offline fallback snapshots.
 - `schemas/board-pack.schema.json`: Full Board Pack / Steering Pack output for executive, PMO, and project-leader review.
 - `schemas/logic-validation.schema.json`: Maximum Logic Assurance output with 15 check groups, findings, evidence trace, data gaps, and assurance level.
+- `schemas/settings.schema.json`: structured plugin settings for D365, project metadata, status-update fields, workflow defaults, and safety posture.
 - `schemas/project-safety-gates.schema.json`: advisory safety gate suite output.
 - `schemas/pmo-control-tower.schema.json`: PMO control tower output with 25 checks per project.
 - `schemas/status-api-envelope.schema.json`: versioned Status API envelope.
@@ -21,6 +22,7 @@ The Maximum USP layer adds `maximumUsps` with exactly 12 implemented advisory di
 The PMO USP layer adds `pmoUsps` with exactly 15 implemented operational PMO differentiators plus `commandQueue`, `evidenceLedger`, and `dataGaps`.
 The Board Pack layer adds `boardPack` with `packType: "full_board_pack"`, audience sections, steering agenda, decision log, risk register, status suggestions, evidence ledger, data gaps, access issues, and review-only safety flags.
 The Maximum Logic Assurance layer adds `logicValidation` and `logicAssuranceUsps` to the top-level project intelligence contract.
+The settings contract adds `TPG_PLUGIN_SETTINGS` structure for code consumers while preserving legacy flat exports from `statusbericht.js`.
 The preferred production data path is live D365 API retrieval through the authenticated Dynamics browser context. Local JSON envelopes or bare project arrays are offline fallback inputs and require `--allow-offline-input`.
 
 DOCX and XLSX exports serialize the same report objects, including `pmoStatusReport`, `statusSuggestionReport`, and Board Pack output; the schema therefore remains the source contract for file-generation consumers.

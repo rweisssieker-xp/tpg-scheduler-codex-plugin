@@ -36,6 +36,7 @@ npm test
 - Use real project data only.
 - Prefer live D365 API helper output from the authenticated Dynamics browser.
 - Use D365 API Max helpers for live control center, executive steering packs, PMO data-gap worklists, CIO/CFO routing, audit evidence packs, and Power BI-ready output.
+- Use `TPG_PLUGIN_SETTINGS` for report field mappings, D365 metadata defaults, workflow defaults, and safety flags.
 - Use `retrieveBoardPackFromD365` for Full Board Pack / Steering Pack output that combines executive, PMO, and project-leader sections.
 - Combine PMO reports and Board Packs with Maximum Logic Assurance when the user asks about confidence, validation, false green projects, `kv` safety, auditability, or report consistency.
 - Use the status suggestion report when the user asks for proposed status wording from project fields or planning data.

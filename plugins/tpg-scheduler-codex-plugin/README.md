@@ -28,6 +28,8 @@ Production PMO packs should use the authenticated Dynamics browser helper `TPGPr
 
 Maximum Logic Assurance is included in project intelligence and Board Pack output. It adds advisory logic validation, evidence traceability, and 12 logic-assurance USPs without changing CRM data.
 
+Structured settings are exposed through `TPG_PLUGIN_SETTINGS` from `scripts/statusbericht.js`. Use that grouped object for D365, project, status-update, workflow, and safety settings; flat constants remain exported for compatibility.
+
 ## Safety
 
 This package does not provide an unattended CRM writer. It prepares evidence-backed drafts, reports, and decision-support outputs. Saving in Dynamics remains a user-confirmed browser action.
