@@ -16,6 +16,7 @@ const {
   buildAudienceReport,
   buildBatchProjectPreview,
   buildBoardPack,
+  buildBoardPackDocxBuffer,
   buildCalibrationReport,
   buildDataCompletenessScore,
   buildDataverseQuery,
@@ -405,6 +406,7 @@ assert.equal(buildStatusReportSuggestion(statusSuggestionReport.rows[0]).canAuto
 assert.equal(typeof buildAuditEntry, "function");
 assert.equal(typeof buildAudienceReport, "function");
 assert.equal(typeof buildBoardPack, "function");
+assert.equal(typeof buildBoardPackDocxBuffer, "function");
 assert.equal(typeof buildCalibrationReport, "function");
 assert.equal(typeof buildDataCompletenessScore, "function");
 assert.equal(typeof buildDataversePermissionProbePlan, "function");

@@ -3092,6 +3092,71 @@ async function buildPmoStatusReportDocxBuffer(report) {
   return Packer.toBuffer(document);
 }
 
+async function buildBoardPackDocxBuffer(boardPack) {
+  const executiveRows = Object.entries(boardPack.executive.summary || {}).map(([key, value]) => ({
+    Metric: key,
+    Value: typeof value === "object" ? JSON.stringify(value) : value,
+  }));
+  const riskRows = (boardPack.executive.topRisks || []).slice(0, 10).map((risk) => ({
+    Project: `${risk.name || ""} (${risk.projectId || ""})`,
+    Signal: risk.evidenceCode || risk.status || "",
+    Detail: risk.message || risk.value || "",
+  }));
+  const decisionRows = (boardPack.decisionLog || []).slice(0, 10).map((decision) => ({
+    Project: `${decision.name || ""} (${decision.projectId || ""})`,
+    Owner: decision.owner || "",
+    Decision: decision.decision || "",
+  }));
+  const pmoRows = (boardPack.pmo.workQueue || []).slice(0, 15).map((item) => ({
+    Project: `${item.name || ""} (${item.projectId || ""})`,
+    Priority: item.priority || item.severity || "",
+    Action: item.action || item.recommendedAction || item.title || "",
+  }));
+  const suggestionRows = (boardPack.statusSuggestions || []).slice(0, 15).map((item) => ({
+    Project: `${item.name || ""} (${item.projectId || ""})`,
+    Type: item.statusType || "",
+    Suggestion: item.proposedStatusText || "",
+  }));
+  const gapRows = (boardPack.dataGaps || []).slice(0, 25).map((gap) => ({
+    Project: `${gap.name || ""} (${gap.projectId || ""})`,
+    Field: gap.field || "",
+    Message: gap.message || "",
+  }));
+  const document = new Document({
+    sections: [{
+      children: [
+        new Paragraph({
+          alignment: AlignmentType.CENTER,
+          shading: { fill: DOCX_COLORS.navy },
+          spacing: { after: 120 },
+          children: [new TextRun({ text: "Full Board Pack", bold: true, color: DOCX_COLORS.white, size: 40 })],
+        }),
+        new Paragraph({
+          alignment: AlignmentType.CENTER,
+          shading: { fill: DOCX_COLORS.darkBlue },
+          spacing: { after: 240 },
+          children: [new TextRun({ text: "D365 API-first steering pack for Executive, PMO, and Project Leader review", color: DOCX_COLORS.white, size: 20 })],
+        }),
+        new Paragraph({ text: `Generated: ${boardPack.generatedAt}`, alignment: AlignmentType.RIGHT, spacing: { after: 180 } }),
+        buildDocxCallout("Safety", "Advisory only. No CRM writes are included. canAutoSave is false.", DOCX_COLORS.lightBlue),
+        new Paragraph({ text: "Executive Summary", heading: HeadingLevel.HEADING_1 }),
+        buildDocxTable(["Metric", "Value"], executiveRows),
+        new Paragraph({ text: "Top Risks", heading: HeadingLevel.HEADING_1 }),
+        buildDocxTable(["Project", "Signal", "Detail"], riskRows.length ? riskRows : [{ Project: "No risks", Signal: "", Detail: "" }]),
+        new Paragraph({ text: "Open Decisions", heading: HeadingLevel.HEADING_1 }),
+        buildDocxTable(["Project", "Owner", "Decision"], decisionRows.length ? decisionRows : [{ Project: "No decisions", Owner: "", Decision: "" }]),
+        new Paragraph({ text: "PMO Work Queue", heading: HeadingLevel.HEADING_1 }),
+        buildDocxTable(["Project", "Priority", "Action"], pmoRows.length ? pmoRows : [{ Project: "No PMO work items", Priority: "", Action: "" }], { headerFill: "7030A0" }),
+        new Paragraph({ text: "Status Suggestions", heading: HeadingLevel.HEADING_1 }),
+        buildDocxTable(["Project", "Type", "Suggestion"], suggestionRows.length ? suggestionRows : [{ Project: "No suggestions", Type: "", Suggestion: "" }]),
+        new Paragraph({ text: "Evidence And Data Gaps", heading: HeadingLevel.HEADING_1 }),
+        buildDocxTable(["Project", "Field", "Message"], gapRows.length ? gapRows : [{ Project: "No data gaps", Field: "", Message: "" }]),
+      ],
+    }],
+  });
+  return Packer.toBuffer(document);
+}
+
 function xmlEscape(value) {
   return String(value ?? "")
     .replace(/&/g, "&amp;")
@@ -3320,8 +3385,13 @@ async function writePmoReportFiles(reportOrSuite, options = {}) {
 
 async function writeBoardPackFiles(boardPack, options = {}) {
   const writtenFiles = {};
-  if (options.docxPath || options.xlsxPath) {
-    throw new Error("Board Pack DOCX/XLSX writing is not implemented yet.");
+  if (options.docxPath) {
+    ensureParentDirectory(options.docxPath);
+    fs.writeFileSync(options.docxPath, await buildBoardPackDocxBuffer(boardPack));
+    writtenFiles.docx = path.resolve(options.docxPath);
+  }
+  if (options.xlsxPath) {
+    throw new Error("Board Pack XLSX writing is not implemented yet.");
   }
   return writtenFiles;
 }
@@ -3593,6 +3663,7 @@ module.exports = {
   buildStructuredStatusUpdateDraft,
   buildPmoStatusReportDocxBuffer,
   buildPmoStatusReportXlsxBuffer,
+  buildBoardPackDocxBuffer,
   formatProjectIntelligenceMarkdown,
   formatMonthlyStatusReportRunMarkdown,
   formatPmoStatusReportMarkdown,

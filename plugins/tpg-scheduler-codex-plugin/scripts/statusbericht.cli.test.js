@@ -191,6 +191,8 @@ const suiteDocxPath = path.join(outputDir, "pmo-suite.docx");
 const suiteXlsxPath = path.join(outputDir, "pmo-suite.xlsx");
 const suggestionDocxPath = path.join(outputDir, "status-suggestions.docx");
 const suggestionXlsxPath = path.join(outputDir, "status-suggestions.xlsx");
+const boardDocxPath = path.join(outputDir, "board-pack.docx");
+const boardXlsxPath = path.join(outputDir, "board-pack.xlsx");
 const pmoFileOutput = execFileSync(
   process.execPath,
   [
@@ -251,6 +253,24 @@ assert.equal(fs.existsSync(suggestionDocxPath), true);
 assert.equal(fs.existsSync(suggestionXlsxPath), true);
 assert.equal(suggestionFileJson.writtenFiles.docx, path.resolve(suggestionDocxPath));
 assert.equal(suggestionFileJson.writtenFiles.xlsx, path.resolve(suggestionXlsxPath));
+const boardPackFileOutput = execFileSync(
+  process.execPath,
+  [
+    scriptPath,
+    "--board-pack",
+    fixturePath,
+    "--today",
+    "2026-05-13",
+    "--docx",
+    boardDocxPath,
+    "--json",
+    "--allow-sample",
+  ],
+  { encoding: "utf8" }
+);
+const boardPackFileJson = JSON.parse(boardPackFileOutput);
+assert.equal(fs.existsSync(boardDocxPath), true);
+assert.equal(boardPackFileJson.writtenFiles.docx, path.resolve(boardDocxPath));
 assert.deepEqual([...fs.readFileSync(docxPath).subarray(0, 2)].map((byte) => String.fromCharCode(byte)).join(""), "PK");
 assert.deepEqual([...fs.readFileSync(xlsxPath).subarray(0, 2)].map((byte) => String.fromCharCode(byte)).join(""), "PK");
 assert.equal(pmoFileJson.writtenFiles.docx, path.resolve(docxPath));
@@ -259,8 +279,10 @@ assert.equal(pmoFileJson.writtenFiles.xlsx, path.resolve(xlsxPath));
 Promise.all([
   JSZip.loadAsync(fs.readFileSync(docxPath)),
   JSZip.loadAsync(fs.readFileSync(xlsxPath)),
-]).then(async ([docxZip, xlsxZip]) => {
+  JSZip.loadAsync(fs.readFileSync(boardDocxPath)),
+]).then(async ([docxZip, xlsxZip, boardDocxZip]) => {
   const docXml = await docxZip.file("word/document.xml").async("string");
+  const boardDocXml = await boardDocxZip.file("word/document.xml").async("string");
   const sheetXml = await xlsxZip.file("xl/worksheets/sheet3.xml").async("string");
   const sheetRelsXml = await xlsxZip.file("xl/worksheets/_rels/sheet3.xml.rels").async("string");
   const stylesXml = await xlsxZip.file("xl/styles.xml").async("string");
@@ -271,6 +293,11 @@ Promise.all([
   assert.match(docXml, /Project Spotlight/);
   assert.equal((docXml.match(/w:shd/g) || []).length >= 12, true);
   assert.match(docXml, /w:shd/);
+  assert.match(boardDocXml, /Full Board Pack/);
+  assert.match(boardDocXml, /Executive Summary/);
+  assert.match(boardDocXml, /PMO Work Queue/);
+  assert.match(boardDocXml, /Status Suggestions/);
+  assert.match(boardDocXml, /Evidence And Data Gaps/);
   assert.match(sheetXml, /<pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"\/>/);
   assert.match(sheetXml, /autoFilter ref="A1:J3"/);
   assert.match(sheetXml, /Project Link/);
