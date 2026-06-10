@@ -108,6 +108,25 @@ assert.equal(statusSuggestion.reportType, "status_suggestion");
 assert.equal(statusSuggestion.summary.canAutoSave, false);
 assert.equal(statusSuggestion.rows.some((row) => row.proposedStatusText && row.requiresReview), true);
 assert.equal(statusSuggestion.rows.some((row) => row.statusType === "critical_escalation"), true);
+assert.throws(
+  () => execFileSync(process.execPath, [scriptPath, "--board-pack", fixturePath, "--json"], {
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+  }),
+  /Sample or synthetic project data is not accepted for production runs/
+);
+const boardPackOutput = execFileSync(
+  process.execPath,
+  [scriptPath, "--board-pack", fixturePath, "--today", "2026-05-13", "--json", "--allow-sample"],
+  { encoding: "utf8" }
+);
+const boardPack = JSON.parse(boardPackOutput);
+assert.equal(boardPack.packType, "full_board_pack");
+assert.equal(boardPack.source, "offline_reviewed_snapshot");
+assert.equal(boardPack.safety.canAutoSave, false);
+assert.equal(Array.isArray(boardPack.executive.topRisks), true);
+assert.equal(Array.isArray(boardPack.pmo.workQueue), true);
+assert.equal(Array.isArray(boardPack.projectLeader.statusSuggestions), true);
 
 const suiteJsonOutput = execFileSync(
   process.execPath,

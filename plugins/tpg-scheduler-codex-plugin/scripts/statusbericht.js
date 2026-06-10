@@ -2532,6 +2532,7 @@ Dataverse browser snippet:
   In the authenticated Dynamics browser console:
     await TPGProjectAssist.retrieveProjectIntelligenceFromD365({ today: "YYYY-MM-DD" })
     await TPGProjectAssist.retrieveStatusSuggestionReportFromD365({ today: "YYYY-MM-DD" })
+    await TPGProjectAssist.retrieveBoardPackFromD365({ today: "YYYY-MM-DD" })
     await TPGProjectAssist.retrieveMonthlyStatusPlanFromD365({ month: "YYYY-MM", statusText: "kv" })
     await TPGProjectAssist.retrieveBatchProjectPreviewFromD365({ today: "YYYY-MM-DD" })
 
@@ -2544,6 +2545,9 @@ PMO report with filters:
   File-based report commands require --allow-offline-input.
   Status suggestion report offline fallback:
     node ./scripts/statusbericht.js --status-suggestion-report <snapshot.json> --allow-offline-input --json
+  Board Pack offline fallback:
+    node ./scripts/statusbericht.js --board-pack <snapshot.json> --allow-offline-input --json
+    node ./scripts/statusbericht.js --board-pack <snapshot.json> --allow-offline-input --docx reports/board-pack.docx --xlsx reports/board-pack.xlsx
 
 Monthly project-leader status writeback plan:
   Productive monthly status plans should use retrieveMonthlyStatusPlanFromD365().
@@ -3314,6 +3318,14 @@ async function writePmoReportFiles(reportOrSuite, options = {}) {
   return writePmoStatusReportFiles(reportOrSuite, options);
 }
 
+async function writeBoardPackFiles(boardPack, options = {}) {
+  const writtenFiles = {};
+  if (options.docxPath || options.xlsxPath) {
+    throw new Error("Board Pack DOCX/XLSX writing is not implemented yet.");
+  }
+  return writtenFiles;
+}
+
 function printProjectIntelligence() {
   const inputPath = getArgValue("--intelligence");
   if (!inputPath) {
@@ -3409,6 +3421,46 @@ async function printStatusSuggestionReport() {
   console.log(`${formatPmoStatusReportMarkdown(report)}${fileLines}`);
 }
 
+function formatBoardPackMarkdown(boardPack, writtenFiles = {}) {
+  return [
+    "# Full Board Pack",
+    "",
+    `Source: ${boardPack.source}`,
+    `Projects reviewed: ${boardPack.executive.summary.projectsReviewed}`,
+    `Critical projects: ${boardPack.executive.summary.criticalProjects}`,
+    `Open decisions: ${boardPack.executive.summary.openDecisions}`,
+    `PMO work items: ${boardPack.pmo.workQueue.length}`,
+    `Status suggestions: ${boardPack.projectLeader.statusSuggestions.length}`,
+    `Data gaps: ${boardPack.dataGaps.length}`,
+    "",
+    "## Files",
+    "",
+    ...(Object.keys(writtenFiles).length ? Object.entries(writtenFiles).map(([type, outputPath]) => `- ${type}: ${outputPath}`) : ["- No files written."]),
+    "",
+  ].join("\n");
+}
+
+async function printBoardPack() {
+  const inputPath = getArgValue("--board-pack");
+  if (!inputPath) {
+    throw new Error("--board-pack requires a JSON file path or '-' for stdin.");
+  }
+  const projects = readProjectsInput(inputPath);
+  const boardPack = projectIntelligence.buildBoardPack(projects, {
+    ...buildPmoReportOptions(),
+    source: "offline_reviewed_snapshot",
+  });
+  const writtenFiles = await writeBoardPackFiles(boardPack, {
+    docxPath: getArgValue("--docx"),
+    xlsxPath: getArgValue("--xlsx"),
+  });
+  if (process.argv.includes("--json")) {
+    console.log(JSON.stringify({ ...boardPack, writtenFiles }, null, 2));
+    return;
+  }
+  console.log(formatBoardPackMarkdown(boardPack, writtenFiles));
+}
+
 function formatMonthlyStatusReportRunMarkdown(run) {
   return [
     "# Monthly Project Status Writeback Plan",
@@ -3465,6 +3517,8 @@ async function main() {
       printHelp();
     } else if (process.argv.includes("--dataverse")) {
       printDataverseSnippet();
+    } else if (process.argv.includes("--board-pack")) {
+      await printBoardPack();
     } else if (process.argv.includes("--pmo-suite")) {
       await printPmoReportSuite();
     } else if (process.argv.includes("--status-suggestion-report")) {
@@ -3544,6 +3598,7 @@ module.exports = {
   formatPmoStatusReportMarkdown,
   writePmoStatusReportFiles,
   writePmoReportFiles,
+  writeBoardPackFiles,
   buildAuditEntry: projectIntelligence.buildAuditEntry,
   buildAiEscalationPack: projectIntelligence.buildAiEscalationPack,
   buildAudienceReport: projectIntelligence.buildAudienceReport,
