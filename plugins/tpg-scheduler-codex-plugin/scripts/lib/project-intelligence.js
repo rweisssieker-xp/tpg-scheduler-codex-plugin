@@ -73,6 +73,37 @@ const PMO_USP_IDS = Object.freeze([
   "dependency_blast_radius",
   "pmo_board_pack_diff",
 ]);
+const LOGIC_VALIDATION_CHECK_IDS = Object.freeze([
+  "schema_deep_validation",
+  "evidence_to_claim_trace",
+  "false_green_detector",
+  "false_red_detector",
+  "kv_logic_guard",
+  "status_suggestion_consistency",
+  "decision_sla_consistency",
+  "board_pack_completeness",
+  "report_cross_consistency",
+  "d365_api_path_assurance",
+  "writeback_negative_assurance",
+  "time_series_logic",
+  "pagination_scale_guard",
+  "data_privacy_guard",
+  "golden_output_guard",
+]);
+const LOGIC_ASSURANCE_USP_IDS = Object.freeze([
+  "evidence_to_decision_trace",
+  "false_green_radar",
+  "kv_safety_lock",
+  "board_pack_consistency_engine",
+  "decision_sla_integrity",
+  "d365_api_trust_mode",
+  "no_silent_critical_project",
+  "schema_backed_management_reports",
+  "writeback_failure_firewall",
+  "timeline_drift_intelligence",
+  "pmo_audit_confidence_score",
+  "golden_report_assurance",
+]);
 
 function buildPmoConfig(overrides = {}) {
   return { ...DEFAULT_PMO_CONFIG, ...overrides };
@@ -1983,6 +2014,349 @@ function boardPackDataGap(project, field, message) {
   };
 }
 
+function logicFinding(checkId, project, severity, message, options = {}) {
+  return {
+    checkId,
+    projectId: project?.projectId || project?.id || options.projectId || null,
+    name: project?.name || options.name || null,
+    severity,
+    message,
+    evidenceCode: options.evidenceCode || checkId,
+    sourceField: options.sourceField || null,
+    recordUrl: project?.recordUrl || options.recordUrl || null,
+    recommendedAction: options.recommendedAction || "Review the finding before management reporting.",
+  };
+}
+
+function logicDataGap(project, field, message, checkId = "time_series_logic") {
+  return {
+    checkId,
+    projectId: project?.projectId || project?.id || null,
+    name: project?.name || null,
+    field,
+    message,
+  };
+}
+
+function containsRiskText(project) {
+  return /block|blocked|risk|issue|delay|overdue|decision|problem|critical|vendor|understaffed|eskalat|escalat/i.test([
+    project?.currentStatusText,
+    project?.lastStatusUpdate,
+    project?.obstaclesAndMeasures,
+    project?.decisions,
+    project?.sponsorActions,
+    project?.plannedActivities,
+  ].filter(Boolean).join(" "));
+}
+
+function hasSecretLikeText(value) {
+  return /(client_secret|password|passwd|bearer\s+[a-z0-9._-]+|eyj[a-z0-9_-]{10,}|api[_-]?key|access[_-]?token)/i.test(String(value || ""));
+}
+
+function requiredContractMissing(name, object, fields) {
+  return fields.filter((field) => {
+    const value = String(field).split(".").reduce((current, part) => current?.[part], object);
+    return value === undefined || value === null;
+  }).map((field) => ({ name, field }));
+}
+
+function classifyAssuranceLevel(findings, dataGaps) {
+  if (findings.some((finding) => finding.severity === "critical")) return "unsafe";
+  if (findings.some((finding) => finding.severity === "fail")) return "weak";
+  if (findings.some((finding) => finding.severity === "warning") || dataGaps.length) return "review";
+  return "trusted";
+}
+
+function buildLogicValidationSuite(projects, options = {}) {
+  const sourceProjects = projects || [];
+  const today = options.today || new Date().toISOString().slice(0, 10);
+  const safety = buildProjectSafetyGateSuite(sourceProjects, options);
+  const pmo = buildPmoControlTower(sourceProjects, options);
+  const statusSuggestionReport = buildStatusSuggestionReport(sourceProjects, options);
+  const pmoSuite = buildPmoReportSuite(sourceProjects, options);
+  const decisionSla = buildDecisionSlaCockpit(sourceProjects, options);
+  const decisions = buildDecisionClosureItems(sourceProjects, options);
+  const boardPack = options.boardPack || (options.skipBoardPackBuild ? null : buildBoardPack(sourceProjects, { ...options, skipLogicAssurance: true }));
+  const projectFindings = [];
+  const portfolioFindings = [];
+  const dataGaps = [];
+  const evidenceTrace = [];
+  const falsePositiveRisks = [];
+
+  const addProjectFinding = (checkId, project, severity, message, extra = {}) => {
+    const finding = logicFinding(checkId, project, severity, message, extra);
+    projectFindings.push(finding);
+    if (finding.evidenceCode && finding.sourceField) {
+      evidenceTrace.push({
+        checkId,
+        projectId: finding.projectId,
+        name: finding.name,
+        evidenceCode: finding.evidenceCode,
+        sourceField: finding.sourceField,
+        recordUrl: finding.recordUrl,
+      });
+    }
+    return finding;
+  };
+  const addPortfolioFinding = (checkId, severity, message, extra = {}) => {
+    const finding = logicFinding(checkId, null, severity, message, extra);
+    portfolioFindings.push(finding);
+    return finding;
+  };
+
+  for (const missing of [
+    ...requiredContractMissing("projectIntelligence", { preview: [], projectSafetyGates: safety, pmoControlTower: pmo, pmoReportSuite: pmoSuite, statusSuggestionReport, boardPack }, ["preview", "projectSafetyGates.summary", "pmoControlTower.summary", "pmoReportSuite.summary", "statusSuggestionReport.summary", "boardPack.packType"]),
+    ...requiredContractMissing("boardPack", boardPack || {}, ["packType", "executive.summary", "pmo.workQueue", "projectLeader.statusSuggestions", "safety.canAutoSave"]),
+  ]) {
+    addPortfolioFinding("schema_deep_validation", "fail", `${missing.name} is missing required contract field ${missing.field}.`, { evidenceCode: "missing_contract_field", sourceField: missing.field });
+  }
+
+  const safetyById = new Map((safety.projects || []).map((item) => [item.projectId, item]));
+  const pmoQueueIds = new Set((boardPack?.pmo?.workQueue || []).map((item) => item.projectId).filter(Boolean));
+  const riskIds = new Set((boardPack?.riskRegister || []).map((item) => item.projectId).filter(Boolean));
+  const evidenceIds = new Set((boardPack?.evidenceLedger || []).map((item) => item.projectId).filter(Boolean));
+  const executiveRiskIds = new Set((boardPack?.executive?.topRisks || []).map((item) => item.projectId).filter(Boolean));
+
+  for (const project of sourceProjects) {
+    const projectId = project.projectId || project.id || null;
+    const kpi = String(project.overallKpiLabel || "").toLowerCase();
+    const finish = parseDateOnly(project.finish);
+    const todayDate = parseDateOnly(today);
+    const overdue = finish && todayDate && finish < todayDate && !/closed|complete|completed/i.test(project.projectStatusLabel || "");
+    const riskyText = containsRiskText(project);
+    const hasDecision = Boolean(normalizeText(project.decisions));
+    const safetyItem = safetyById.get(projectId);
+
+    if (kpi === "green" && (riskyText || overdue || hasDecision || ["critical", "unsafe"].includes(safetyItem?.safetyLevel))) {
+      addProjectFinding("false_green_detector", project, "fail", "Green KPI conflicts with blocker, overdue, decision, or unsafe safety evidence.", { evidenceCode: "false_green", sourceField: "overallKpiLabel" });
+      falsePositiveRisks.push({ projectId, name: project.name || null, type: "false_green", reason: "Green KPI conflicts with risk signals." });
+    }
+    if (kpi === "red" && !riskyText && !hasDecision) {
+      addProjectFinding("false_red_detector", project, "warning", "Red KPI lacks supporting risk, blocker, decision, or mitigation text.", { evidenceCode: "false_red", sourceField: "overallKpiLabel" });
+      falsePositiveRisks.push({ projectId, name: project.name || null, type: "false_red", reason: "Red KPI has weak narrative evidence." });
+    }
+    if (options.proposedStatusText && normalizeText(options.proposedStatusText).toLowerCase() === "kv" && (kpi === "red" || kpi === "yellow" || riskyText || overdue || hasDecision)) {
+      addProjectFinding("kv_logic_guard", project, "fail", "`kv` is risky because the project has KPI, blocker, decision, or schedule risk signals.", { evidenceCode: "kv_blocked", sourceField: "proposedStatusText" });
+    }
+    const suggestion = (statusSuggestionReport.rows || []).find((row) => row.projectId === projectId);
+    if (suggestion?.canUseKv && (kpi === "red" || riskyText || overdue)) {
+      addProjectFinding("status_suggestion_consistency", project, "fail", "Status suggestion allows `kv` despite critical project signals.", { evidenceCode: "status_suggestion_conflict", sourceField: "statusSuggestionReport.rows.canUseKv" });
+    }
+    if (suggestion?.statusType === "stable_or_kv" && (kpi === "red" || riskyText || overdue)) {
+      addProjectFinding("status_suggestion_consistency", project, "warning", "Status suggestion is too optimistic for current risk signals.", { evidenceCode: "optimistic_status_suggestion", sourceField: "statusSuggestionReport.rows.statusType" });
+    }
+    if (hasDecision && (!project.decisionOwner && !project.ownerName)) {
+      addProjectFinding("decision_sla_consistency", project, "warning", "Open decision has no explicit owner evidence.", { evidenceCode: "decision_owner_missing", sourceField: "decisions" });
+    }
+    if (hasDecision && !project.decisionDueDate && !project.dueDate) {
+      addProjectFinding("decision_sla_consistency", project, "warning", "Open decision has no due date evidence.", { evidenceCode: "decision_due_date_missing", sourceField: "decisions" });
+    }
+    if (["critical", "unsafe"].includes(safetyItem?.safetyLevel)) {
+      const missingSurfaces = [
+        !pmoQueueIds.has(projectId) ? "PMO queue" : null,
+        !riskIds.has(projectId) ? "risk register" : null,
+        !evidenceIds.has(projectId) ? "evidence ledger" : null,
+        !executiveRiskIds.has(projectId) ? "executive top risks" : null,
+      ].filter(Boolean);
+      if (missingSurfaces.length) {
+        addProjectFinding("board_pack_completeness", project, "critical", `Critical project is missing from Board Pack surface(s): ${missingSurfaces.join(", ")}.`, { evidenceCode: "silent_critical_project", sourceField: "boardPack" });
+      }
+    }
+    for (const [field, value] of Object.entries(project)) {
+      if (hasSecretLikeText(value)) {
+        addProjectFinding("data_privacy_guard", project, "critical", `Secret-like value detected in project field ${field}.`, { evidenceCode: "secret_like_value", sourceField: field });
+      }
+    }
+  }
+
+  for (const risk of boardPack?.riskRegister || []) {
+    if (!risk.evidenceCode && !risk.code && !risk.field) {
+      addProjectFinding("evidence_to_claim_trace", risk, "warning", "Management risk claim has no evidence code or source field.", { evidenceCode: "unsupported_claim", sourceField: "riskRegister" });
+    }
+  }
+
+  if (boardPack) {
+    const reportProjects = pmoSuite.summary?.projectsReviewed;
+    const boardProjects = boardPack.executive?.summary?.projectsReviewed;
+    if (reportProjects !== undefined && boardProjects !== undefined && reportProjects !== boardProjects) {
+      addPortfolioFinding("report_cross_consistency", "fail", "PMO Report Suite and Board Pack reviewed project counts do not match.", { evidenceCode: "project_count_mismatch", sourceField: "summary.projectsReviewed" });
+    }
+    if (boardPack.executive?.summary?.criticalProjects !== safety.summary.criticalProjects) {
+      addPortfolioFinding("report_cross_consistency", "fail", "Board Pack and Safety Gates critical project counts do not match.", { evidenceCode: "critical_count_mismatch", sourceField: "summary.criticalProjects" });
+    }
+  }
+  if (options.source && options.source !== "d365_api" && options.production === true) {
+    addPortfolioFinding("d365_api_path_assurance", "fail", "Production run is not marked as D365 API sourced.", { evidenceCode: "non_d365_production_source", sourceField: "source" });
+  }
+  if (options.offlineInputUsed && !options.allowOfflineInput) {
+    addPortfolioFinding("d365_api_path_assurance", "critical", "Offline input was used without explicit offline fallback permission.", { evidenceCode: "offline_without_permission", sourceField: "allowOfflineInput" });
+  }
+  if (options.sampleInputUsed && !options.allowSample) {
+    addPortfolioFinding("d365_api_path_assurance", "critical", "Sample or fixture input is not allowed for productive logic assurance.", { evidenceCode: "sample_input_blocked", sourceField: "inputPath" });
+  }
+
+  const writebackSafety = buildProjectSafetyGateSuite(sourceProjects, {
+    ...options,
+    draft: options.draft || { fields: {}, emailStatusUpdate: options.emailStatusUpdate === true },
+    projectManagerVerified: options.projectManagerVerified === true,
+    requiresSubmittedTo: options.requiresSubmittedTo,
+    submittedTo: options.submittedTo,
+    confirmationMatches: options.confirmationMatches,
+  });
+  for (const item of writebackSafety.projects || []) {
+    for (const gate of item.gates.filter((gate) => gate.domain === "writeback" && ["fail", "critical"].includes(gate.status))) {
+      addProjectFinding("writeback_negative_assurance", item, gate.status === "critical" ? "critical" : "fail", gate.message, { evidenceCode: gate.evidenceCodes?.[0] || gate.id, sourceField: gate.checkId, recordUrl: item.recordUrl });
+    }
+  }
+
+  if (!Array.isArray(options.previousSnapshots) || !options.previousSnapshots.length) {
+    dataGaps.push(logicDataGap(null, "previousSnapshots", "Previous snapshots are missing; time-series drift checks can only report current-state signals."));
+  }
+  if (!options.previousPack) {
+    dataGaps.push(logicDataGap(null, "previousPack", "Previous Board Pack is missing; Board Pack diff cannot be validated."));
+  }
+  if (Array.isArray(options.previousSnapshots) && options.previousSnapshots.length) {
+    const drift = buildRiskNarrativeDrift(options.previousSnapshots, buildRiskLedgerEntries(sourceProjects, options), options);
+    if ((drift.items || []).some((item) => item.driftType && item.driftType !== "unchanged")) {
+      addPortfolioFinding("time_series_logic", "warning", "Risk narrative drift detected across snapshots.", { evidenceCode: "risk_narrative_drift", sourceField: "previousSnapshots" });
+    }
+  }
+  if (sourceProjects.length >= 500 || options.expectedProjectCount >= 500) {
+    addPortfolioFinding("pagination_scale_guard", "warning", "Large portfolio requires D365 paging and scale review.", { evidenceCode: "large_portfolio_paging", sourceField: "projects.length" });
+  }
+  if (options.d365PagingVerified === false) {
+    addPortfolioFinding("pagination_scale_guard", "fail", "D365 paging was not verified for the current helper run.", { evidenceCode: "paging_not_verified", sourceField: "d365PagingVerified" });
+  }
+  if (options.goldenOutputVerified === false) {
+    addPortfolioFinding("golden_output_guard", "warning", "Golden output checks were not verified for the generated DOCX/XLSX pack.", { evidenceCode: "golden_output_not_verified", sourceField: "goldenOutputVerified" });
+  }
+  if (decisionSla.summary?.overdue > 0 && !(boardPack?.pmo?.workQueue || []).length) {
+    addPortfolioFinding("decision_sla_consistency", "fail", "Overdue decisions exist but the PMO queue is empty.", { evidenceCode: "overdue_decision_not_queued", sourceField: "decisionSlaCockpit.summary.overdue" });
+  }
+
+  const allFindings = [...projectFindings, ...portfolioFindings];
+  const checks = LOGIC_VALIDATION_CHECK_IDS.map((id) => {
+    const findings = allFindings.filter((finding) => finding.checkId === id);
+    const gaps = dataGaps.filter((gap) => gap.checkId === id);
+    const hasCritical = findings.some((finding) => finding.severity === "critical");
+    const hasFail = findings.some((finding) => finding.severity === "fail");
+    const hasWarning = findings.some((finding) => finding.severity === "warning") || gaps.length > 0;
+    return {
+      id,
+      status: hasCritical ? "critical" : hasFail ? "fail" : hasWarning ? "warning" : "pass",
+      findings: findings.length,
+      dataGaps: gaps.length,
+      advisoryOnly: true,
+    };
+  });
+  const assuranceLevel = classifyAssuranceLevel(allFindings, dataGaps);
+  return {
+    reportType: "logic_validation",
+    generatedAt: options.generatedAt || new Date().toISOString(),
+    summary: {
+      projectsReviewed: sourceProjects.length,
+      checkCount: LOGIC_VALIDATION_CHECK_IDS.length,
+      findings: allFindings.length,
+      criticalFindings: allFindings.filter((finding) => finding.severity === "critical").length,
+      failFindings: allFindings.filter((finding) => finding.severity === "fail").length,
+      warningFindings: allFindings.filter((finding) => finding.severity === "warning").length,
+      dataGaps: dataGaps.length,
+      assuranceLevel,
+      safetyPosture: "advisory_only_confirmation_gated",
+    },
+    checks,
+    projectFindings,
+    portfolioFindings,
+    evidenceTrace,
+    falsePositiveRisks,
+    dataGaps,
+    recommendedActions: allFindings.slice(0, 20).map((finding) => ({
+      checkId: finding.checkId,
+      projectId: finding.projectId,
+      action: finding.recommendedAction,
+    })),
+    assuranceLevel,
+  };
+}
+
+function buildLogicValidationReport(projects, options = {}) {
+  const suite = buildLogicValidationSuite(projects, options);
+  return {
+    ...suite,
+    title: "Maximum Logic Assurance Report",
+    sections: [
+      { title: "Assurance summary", text: `Assurance level is ${suite.assuranceLevel}; ${suite.summary.findings} finding(s) and ${suite.summary.dataGaps} data gap(s) detected.` },
+      { title: "Safety", text: "All checks are advisory. CRM writes remain confirmation-gated." },
+    ],
+    rows: [...suite.projectFindings, ...suite.portfolioFindings],
+    evidence: suite.evidenceTrace,
+  };
+}
+
+function buildLogicAssuranceUspLayer(projects, options = {}) {
+  const validation = options.logicValidation || buildLogicValidationSuite(projects, options);
+  const sourceProjects = projects || [];
+  const count = (checkId) => [...validation.projectFindings, ...validation.portfolioFindings].filter((finding) => finding.checkId === checkId).length;
+  const dataGapCount = (field) => validation.dataGaps.filter((gap) => gap.field === field).length;
+  const definitions = {
+    evidence_to_decision_trace: ["Evidence-to-Decision Trace", "PMO lead and CIO", "Management asks lack traceability.", "Links decisions to evidence, fields, project IDs, and actions.", "Uses decision log, evidence trace, and Board Pack evidence ledger.", ["decisions", "evidenceLedger"], count("evidence_to_claim_trace"), "unsupported_claims"],
+    false_green_radar: ["False-Green Radar", "PMO quality owner", "Green projects can hide blockers.", "Flags green KPI contradictions before steering.", "Compares KPI with blockers, schedule, decisions, and safety gates.", ["overallKpiLabel", "finish", "obstaclesAndMeasures"], count("false_green_detector"), "false_green_findings"],
+    kv_safety_lock: ["KV Safety Lock", "Project leader and PMO", "`kv` can hide material change.", "Shows when unchanged-status input is risky.", "Checks KPI, blockers, decisions, and overdue finish before allowing `kv` as low-risk.", ["proposedStatusText", "overallKpiLabel"], count("kv_logic_guard"), "kv_blockers"],
+    board_pack_consistency_engine: ["Board Pack Consistency Engine", "PMO lead", "Audience packs drift apart.", "Keeps executive, PMO, and project-leader views aligned.", "Cross-checks Board Pack, PMO suite, safety gates, and project intelligence counts.", ["boardPack", "pmoReportSuite"], count("report_cross_consistency") + count("board_pack_completeness"), "pack_consistency_findings"],
+    decision_sla_integrity: ["Decision SLA Integrity", "CIO and PMO lead", "Overdue decisions disappear from management views.", "Makes SLA gaps visible across queue, questions, and reports.", "Combines Decision SLA Cockpit, closure items, and PMO queue checks.", ["decisions", "decisionDueDate"], count("decision_sla_consistency"), "decision_sla_findings"],
+    d365_api_trust_mode: ["D365 API Trust Mode", "CIO and audit reviewer", "Exports can become stale or manipulated.", "Proves whether productive data came from live D365 API helpers.", "Checks source markers, sample blocking, and offline fallback flags.", ["source", "allowOfflineInput"], count("d365_api_path_assurance"), "d365_source_findings"],
+    no_silent_critical_project: ["No Silent Critical Project", "CEO, CIO, and PMO", "Critical projects can be hidden in detail tables.", "Requires critical projects to appear in management surfaces.", "Checks Safety Gates against Executive risks, PMO queue, risk register, and evidence ledger.", ["projectSafetyGates", "boardPack"], count("board_pack_completeness"), "silent_critical_projects"],
+    schema_backed_management_reports: ["Schema-Backed Management Reports", "PMO analyst", "Reports can be hard to consume reliably.", "Validates report contracts for automation and dashboards.", "Checks runtime output against required schema anchors without CRM writes.", ["schemas", "runtimeOutput"], count("schema_deep_validation"), "schema_findings"],
+    writeback_failure_firewall: ["Writeback Failure Firewall", "CRM process owner", "Negative writeback cases can be missed.", "Surfaces confirmation, email, submitted-to, duplicate, and PM verification blockers.", "Reuses writeback safety gates and safe writeback simulation outputs.", ["draft", "confirmation", "permissions"], count("writeback_negative_assurance"), "writeback_blockers"],
+    timeline_drift_intelligence: ["Timeline Drift Intelligence", "PMO scheduler", "Risk and baseline drift needs history.", "Detects drift when snapshots exist and exposes gaps when they do not.", "Uses previousSnapshots, previousPack, risk narrative drift, and baseline signals.", ["previousSnapshots", "previousPack"], count("time_series_logic"), "timeline_findings"],
+    pmo_audit_confidence_score: ["PMO Audit Confidence Score", "Audit reviewer", "Auditability varies per project.", "Shows how many findings are evidence-backed versus gap-driven.", "Uses evidence trace, data gaps, and privacy checks.", ["evidenceTrace", "dataGaps"], validation.evidenceTrace.length, "evidence_trace_items"],
+    golden_report_assurance: ["Golden Report Assurance", "PMO report owner", "Word and Excel layout can regress.", "Tracks whether core DOCX/XLSX structure is protected by golden checks.", "Uses report golden-output guard and CLI workbook inspections.", ["docx", "xlsx"], count("golden_output_guard"), "golden_output_findings"],
+  };
+  const usps = LOGIC_ASSURANCE_USP_IDS.map((id) => {
+    const [title, targetUser, painSolved, concreteBenefit, technicalMechanism, requiredData, currentValue, metricName] = definitions[id];
+    const needsData = id === "timeline_drift_intelligence" && (dataGapCount("previousSnapshots") || dataGapCount("previousPack"));
+    return {
+      id,
+      title,
+      targetUser,
+      painSolved,
+      concreteBenefit,
+      technicalMechanism,
+      requiredData,
+      runtimeSignals: {
+        projectsReviewed: sourceProjects.length,
+        assuranceLevel: validation.assuranceLevel,
+        currentValue,
+      },
+      recommendedActions: currentValue > 0 ? ["Review related logic assurance findings."] : needsData ? ["Provide previous snapshots and previous Board Pack."] : ["Keep assurance checks in the management workflow."],
+      dataGaps: needsData ? validation.dataGaps.filter((gap) => ["previousSnapshots", "previousPack"].includes(gap.field)) : [],
+      proofMetric: {
+        name: metricName,
+        currentValue,
+        target: "Zero unreviewed management logic findings",
+        status: currentValue > 0 ? "watch" : needsData ? "needs_data" : "ready",
+      },
+      risksAndTrustControls: ["advisory_only", "evidence_backed", "confirmation_gated"],
+      implementationStatus: "implemented",
+      advisoryOnly: true,
+    };
+  });
+  return {
+    layerType: "logic_assurance_usps",
+    generatedAt: options.generatedAt || new Date().toISOString(),
+    summary: {
+      uspCount: usps.length,
+      implemented: usps.length,
+      projectsReviewed: sourceProjects.length,
+      assuranceLevel: validation.assuranceLevel,
+      findings: validation.summary.findings,
+      dataGaps: validation.summary.dataGaps,
+      safetyPosture: "advisory_only_confirmation_gated",
+    },
+    usps,
+  };
+}
+
 function buildBoardPack(projects, options = {}) {
   const sourceProjects = projects || [];
   const today = options.today || new Date().toISOString().slice(0, 10);
@@ -2006,7 +2380,7 @@ function buildBoardPack(projects, options = {}) {
     ...missingRecordUrlGaps,
     ...(options.statusMetadataResolved === false ? [boardPackDataGap(null, "statusUpdateMetadata", "Status Update metadata could not be resolved; status history is unavailable.")] : []),
   ];
-  return {
+  const pack = {
     packType: "full_board_pack",
     source: options.source || "offline_reviewed_snapshot",
     generatedAt: options.generatedAt || new Date().toISOString(),
@@ -2051,6 +2425,10 @@ function buildBoardPack(projects, options = {}) {
       crmWritesIncluded: false,
     },
   };
+  if (!options.skipLogicAssurance) {
+    pack.logicAssurance = buildLogicValidationSuite(sourceProjects, { ...options, boardPack: pack, skipBoardPackBuild: true });
+  }
+  return pack;
 }
 
 function reportDataGap(project, field, message) {
@@ -3000,6 +3378,10 @@ function buildMaximumUspLayer(projects = [], options = {}) {
 }
 
 function buildProjectIntelligence(projects, options = {}) {
+  const boardPack = buildBoardPack(projects, { ...options, skipLogicAssurance: true });
+  const logicValidation = buildLogicValidationSuite(projects, { ...options, boardPack, skipBoardPackBuild: true });
+  const logicAssuranceUsps = buildLogicAssuranceUspLayer(projects, { ...options, logicValidation });
+  boardPack.logicAssurance = logicValidation;
   const result = {
     preview: buildBatchProjectPreview(projects, options),
     portfolioRisks: buildPortfolioRiskList(projects, options),
@@ -3039,7 +3421,9 @@ function buildProjectIntelligence(projects, options = {}) {
     pmoControlTower: buildPmoControlTower(projects, options),
     pmoStatusReport: buildPmoStatusReport(projects, options),
     statusSuggestionReport: buildStatusSuggestionReport(projects, options),
-    boardPack: buildBoardPack(projects, options),
+    boardPack,
+    logicValidation,
+    logicAssuranceUsps,
     pmoReportSuite: buildPmoReportSuite(projects, options),
     maximumUsps: buildMaximumUspLayer(projects, options),
     pmoUsps: buildPmoUspLayer(projects, options),
@@ -3055,6 +3439,8 @@ function buildProjectIntelligence(projects, options = {}) {
 module.exports = {
   ACTIVE_PROJECT_STATUS_LABELS,
   DEFAULT_PMO_CONFIG,
+  LOGIC_ASSURANCE_USP_IDS,
+  LOGIC_VALIDATION_CHECK_IDS,
   MAXIMUM_USP_IDS,
   PMO_USP_IDS,
   PMO_REPORT_TYPES,
@@ -3082,6 +3468,9 @@ module.exports = {
   buildGovernanceReplay,
   buildHumanConfirmationAnalytics,
   buildLiveDynamicsRunPlan,
+  buildLogicAssuranceUspLayer,
+  buildLogicValidationReport,
+  buildLogicValidationSuite,
   buildManagementActionExportRows,
   buildMaximumUspLayer,
   buildPmoUspLayer,

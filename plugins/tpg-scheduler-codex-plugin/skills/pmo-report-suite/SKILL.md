@@ -9,6 +9,7 @@ Use this skill when the user asks for PMO reports, Full Board Pack / Steering Pa
 
 If the user asks for USPs, differentiation, CIO/CEO value, or maximum product value, use `buildProjectIntelligence(...).maximumUsps` or `buildMaximumUspLayer(projects, options)` alongside the PMO reports.
 If the user asks for PMO-specific USPs, operational PMO value, steering committee preparation, audit readiness, or PMO work queues, use `buildProjectIntelligence(...).pmoUsps` or `buildPmoUspLayer(projects, options)`.
+If the user asks for validation, assurance, false green projects, `kv` safety, report consistency, evidence traceability, or audit confidence, use `buildProjectIntelligence(...).logicValidation`, `logicAssuranceUsps`, or `buildLogicValidationSuite(projects, options)`.
 
 ## Ground Rules
 
@@ -83,6 +84,10 @@ Offline fallback is allowed only with `--allow-offline-input`:
 ```powershell
 node ./scripts/statusbericht.js --board-pack <snapshot.json> --allow-offline-input --docx reports/board-pack.docx --xlsx reports/board-pack.xlsx --json
 ```
+
+## Maximum Logic Assurance
+
+Use Logic Assurance with PMO reports and Board Packs when management needs confidence in the output. It provides 15 validation groups and 12 logic-assurance USPs covering evidence traceability, false green/red detection, `kv` safety, decision SLA integrity, Board Pack completeness, cross-report consistency, D365 API trust, writeback negative cases, timeline gaps, privacy, and golden report structure.
 
 ## Commands
 

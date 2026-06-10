@@ -44,6 +44,8 @@ The JSON payload includes:
 - `executiveQuestionGenerator`
 - `reportQualityBenchmark`
 - `boardPack`
+- `logicValidation`
+- `logicAssuranceUsps`
 
 A compact synthetic sample is stored at `examples/project-intelligence.sample.json` for documentation and consumer tests only. Productive CLI runs reject sample and fixture paths.
 
@@ -118,12 +120,21 @@ node ./scripts/statusbericht.js --board-pack <snapshot.json> --allow-offline-inp
 
 The JSON payload includes `executive`, `pmo`, `projectLeader`, `steeringAgenda`, `decisionLog`, `riskRegister`, `statusSuggestions`, `projectSpotlights`, `evidenceLedger`, `dataGaps`, `accessIssues`, and `safety`. A compact synthetic sample is stored at `examples/board-pack.sample.json` for documentation and consumer tests only.
 
+## Maximum Logic Assurance
+
+```powershell
+node ./scripts/statusbericht.js --intelligence <snapshot.json> --allow-offline-input --json
+```
+
+Consumers should inspect `logicValidation.summary.assuranceLevel`, `logicValidation.checks`, `logicValidation.projectFindings`, `logicValidation.evidenceTrace`, and `logicAssuranceUsps.usps`. A compact synthetic sample is stored at `examples/logic-validation.sample.json` for documentation and consumer tests only.
+
 ## Schema-Aware Consumers
 
 Consumer tools should start with:
 
 - `schemas/project-intelligence.schema.json`
 - `schemas/board-pack.schema.json`
+- `schemas/logic-validation.schema.json`
 - `schemas/project-safety-gates.schema.json`
 - `schemas/pmo-control-tower.schema.json`
 - `schemas/status-api-envelope.schema.json`

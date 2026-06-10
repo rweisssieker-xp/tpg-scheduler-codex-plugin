@@ -3,7 +3,7 @@
   "$id": "https://github.com/rweisssieker-xp/tpg-scheduler-codex-plugin/schemas/project-intelligence.schema.json",
   "title": "Project Intelligence Pack",
   "type": "object",
-  "required": ["preview", "portfolioRisks", "decisionRadar", "projectSafetyGates", "pmoControlTower", "maximumUsps", "pmoUsps", "boardPack"],
+  "required": ["preview", "portfolioRisks", "decisionRadar", "projectSafetyGates", "pmoControlTower", "maximumUsps", "pmoUsps", "boardPack", "logicValidation", "logicAssuranceUsps"],
   "additionalProperties": true,
   "properties": {
     "preview": { "type": "array" },
@@ -124,6 +124,37 @@
             "advisoryOnly": { "const": true },
             "canAutoSave": { "const": false },
             "crmWritesIncluded": { "const": false }
+          }
+        }
+      }
+    },
+    "logicValidation": {
+      "type": "object",
+      "required": ["summary", "checks", "projectFindings", "portfolioFindings", "evidenceTrace", "falsePositiveRisks", "dataGaps", "recommendedActions", "assuranceLevel"],
+      "additionalProperties": true,
+      "properties": {
+        "assuranceLevel": { "enum": ["trusted", "review", "weak", "unsafe"] },
+        "checks": { "type": "array", "minItems": 15 }
+      }
+    },
+    "logicAssuranceUsps": {
+      "type": "object",
+      "required": ["layerType", "summary", "usps"],
+      "additionalProperties": true,
+      "properties": {
+        "layerType": { "const": "logic_assurance_usps" },
+        "summary": {
+          "type": "object",
+          "required": ["uspCount", "implemented", "projectsReviewed", "assuranceLevel", "findings", "dataGaps", "safetyPosture"],
+          "additionalProperties": true
+        },
+        "usps": {
+          "type": "array",
+          "minItems": 12,
+          "items": {
+            "type": "object",
+            "required": ["id", "title", "targetUser", "painSolved", "concreteBenefit", "technicalMechanism", "requiredData", "runtimeSignals", "recommendedActions", "dataGaps", "proofMetric", "risksAndTrustControls", "implementationStatus", "advisoryOnly"],
+            "additionalProperties": true
           }
         }
       }

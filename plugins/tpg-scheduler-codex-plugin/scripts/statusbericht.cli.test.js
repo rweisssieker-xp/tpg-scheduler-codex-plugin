@@ -32,6 +32,8 @@ assert.match(output, /## Maximum USPs/);
 assert.match(output, /PMO Safety Radar/);
 assert.match(output, /## PMO USPs/);
 assert.match(output, /PMO Command Queue/);
+assert.match(output, /## Logic Assurance/);
+assert.match(output, /Assurance level:/);
 
 const jsonOutput = execFileSync(
   process.execPath,
@@ -49,6 +51,9 @@ assert.equal(parsed.maximumUsps.summary.uspCount, 12);
 assert.equal(parsed.maximumUsps.usps.find((usp) => usp.id === "executive_no_surprise_brief").implementationStatus, "implemented");
 assert.equal(parsed.pmoUsps.summary.uspCount, 15);
 assert.equal(parsed.pmoUsps.usps.find((usp) => usp.id === "pmo_command_queue").implementationStatus, "implemented");
+assert.equal(parsed.logicValidation.checks.length, 15);
+assert.equal(parsed.logicAssuranceUsps.summary.uspCount, 12);
+assert.equal(parsed.boardPack.logicAssurance.checks.length, 15);
 
 const exportsOutput = execFileSync(
   process.execPath,
@@ -127,6 +132,7 @@ assert.equal(boardPack.safety.canAutoSave, false);
 assert.equal(Array.isArray(boardPack.executive.topRisks), true);
 assert.equal(Array.isArray(boardPack.pmo.workQueue), true);
 assert.equal(Array.isArray(boardPack.projectLeader.statusSuggestions), true);
+assert.equal(boardPack.logicAssurance.checks.length, 15);
 
 const suiteJsonOutput = execFileSync(
   process.execPath,
@@ -320,6 +326,7 @@ Promise.all([
   assert.match(boardDocXml, /PMO Work Queue/);
   assert.match(boardDocXml, /Status Suggestions/);
   assert.match(boardDocXml, /Evidence And Data Gaps/);
+  assert.match(boardDocXml, /Logic Assurance/);
   assert.match(boardWorkbookXml, /Executive Dashboard/);
   assert.match(boardWorkbookXml, /PMO Control/);
   assert.match(boardWorkbookXml, /Project Leader Queue/);
@@ -330,6 +337,7 @@ Promise.all([
   assert.match(boardWorkbookXml, /Project Links/);
   assert.match(boardWorkbookXml, /Evidence/);
   assert.match(boardWorkbookXml, /Data Gaps/);
+  assert.match(boardWorkbookXml, /Logic Assurance/);
   assert.match(boardProjectLinksXml, /Open Project/);
   assert.match(boardProjectLinksXml, /<hyperlinks>/);
   assert.match(boardProjectLinksRels, /TargetMode="External"/);

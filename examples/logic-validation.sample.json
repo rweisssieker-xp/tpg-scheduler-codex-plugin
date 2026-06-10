@@ -1,0 +1,50 @@
+{
+  "reportType": "logic_validation",
+  "generatedAt": "2026-05-13T00:00:00.000Z",
+  "summary": {
+    "projectsReviewed": 2,
+    "checkCount": 15,
+    "findings": 2,
+    "criticalFindings": 0,
+    "failFindings": 1,
+    "warningFindings": 1,
+    "dataGaps": 2,
+    "assuranceLevel": "weak",
+    "safetyPosture": "advisory_only_confirmation_gated"
+  },
+  "checks": [
+    { "id": "schema_deep_validation", "status": "pass", "findings": 0, "dataGaps": 0, "advisoryOnly": true },
+    { "id": "evidence_to_claim_trace", "status": "pass", "findings": 0, "dataGaps": 0, "advisoryOnly": true },
+    { "id": "false_green_detector", "status": "fail", "findings": 1, "dataGaps": 0, "advisoryOnly": true },
+    { "id": "false_red_detector", "status": "pass", "findings": 0, "dataGaps": 0, "advisoryOnly": true },
+    { "id": "kv_logic_guard", "status": "warning", "findings": 1, "dataGaps": 0, "advisoryOnly": true },
+    { "id": "status_suggestion_consistency", "status": "pass", "findings": 0, "dataGaps": 0, "advisoryOnly": true },
+    { "id": "decision_sla_consistency", "status": "pass", "findings": 0, "dataGaps": 0, "advisoryOnly": true },
+    { "id": "board_pack_completeness", "status": "pass", "findings": 0, "dataGaps": 0, "advisoryOnly": true },
+    { "id": "report_cross_consistency", "status": "pass", "findings": 0, "dataGaps": 0, "advisoryOnly": true },
+    { "id": "d365_api_path_assurance", "status": "pass", "findings": 0, "dataGaps": 0, "advisoryOnly": true },
+    { "id": "writeback_negative_assurance", "status": "pass", "findings": 0, "dataGaps": 0, "advisoryOnly": true },
+    { "id": "time_series_logic", "status": "warning", "findings": 0, "dataGaps": 2, "advisoryOnly": true },
+    { "id": "pagination_scale_guard", "status": "pass", "findings": 0, "dataGaps": 0, "advisoryOnly": true },
+    { "id": "data_privacy_guard", "status": "pass", "findings": 0, "dataGaps": 0, "advisoryOnly": true },
+    { "id": "golden_output_guard", "status": "pass", "findings": 0, "dataGaps": 0, "advisoryOnly": true }
+  ],
+  "projectFindings": [
+    { "checkId": "false_green_detector", "projectId": "2024-9999", "name": "ERP Cutover", "severity": "fail", "message": "Green KPI conflicts with blocker evidence.", "evidenceCode": "false_green", "sourceField": "overallKpiLabel" }
+  ],
+  "portfolioFindings": [],
+  "evidenceTrace": [
+    { "checkId": "false_green_detector", "projectId": "2024-9999", "name": "ERP Cutover", "evidenceCode": "false_green", "sourceField": "overallKpiLabel" }
+  ],
+  "falsePositiveRisks": [
+    { "projectId": "2024-9999", "name": "ERP Cutover", "type": "false_green", "reason": "Green KPI conflicts with risk signals." }
+  ],
+  "dataGaps": [
+    { "checkId": "time_series_logic", "field": "previousSnapshots", "message": "Previous snapshots are missing." },
+    { "checkId": "time_series_logic", "field": "previousPack", "message": "Previous Board Pack is missing." }
+  ],
+  "recommendedActions": [
+    { "checkId": "false_green_detector", "projectId": "2024-9999", "action": "Review the finding before management reporting." }
+  ],
+  "assuranceLevel": "weak"
+}

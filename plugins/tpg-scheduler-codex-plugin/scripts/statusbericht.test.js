@@ -31,6 +31,9 @@ const {
   buildExportBundle,
   buildGovernanceExceptions,
   buildLiveDynamicsRunPlan,
+  buildLogicAssuranceUspLayer,
+  buildLogicValidationReport,
+  buildLogicValidationSuite,
   buildManagementActionExportRows,
   buildMeetingCaptureDrafts,
   buildNudgeDrafts,
@@ -54,6 +57,8 @@ const {
   buildPmoStatusReportXlsxBuffer,
   PMO_REPORT_TYPES,
   PMO_USP_IDS,
+  LOGIC_ASSURANCE_USP_IDS,
+  LOGIC_VALIDATION_CHECK_IDS,
   buildStatusApiEnvelope,
   buildStatusReportIdempotencyKey,
   buildStatusReportSuggestion,
@@ -409,6 +414,11 @@ assert.equal(typeof buildAudienceReport, "function");
 assert.equal(typeof buildBoardPack, "function");
 assert.equal(typeof buildBoardPackDocxBuffer, "function");
 assert.equal(typeof buildBoardPackXlsxBuffer, "function");
+assert.equal(typeof buildLogicValidationSuite, "function");
+assert.equal(typeof buildLogicValidationReport, "function");
+assert.equal(typeof buildLogicAssuranceUspLayer, "function");
+assert.equal(LOGIC_VALIDATION_CHECK_IDS.length, 15);
+assert.equal(LOGIC_ASSURANCE_USP_IDS.length, 12);
 assert.equal(typeof buildCalibrationReport, "function");
 assert.equal(typeof buildDataCompletenessScore, "function");
 assert.equal(typeof buildDataversePermissionProbePlan, "function");

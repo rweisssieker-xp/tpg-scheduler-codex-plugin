@@ -9,6 +9,7 @@ Use this root skill entry when the plugin is installed from the repository root 
 
 For USP or differentiation requests, also inspect `buildProjectIntelligence(...).maximumUsps` or `buildMaximumUspLayer(projects, options)`.
 For PMO-specific USP requests, also inspect `buildProjectIntelligence(...).pmoUsps` or `buildPmoUspLayer(projects, options)`.
+For management logic assurance requests, also inspect `buildProjectIntelligence(...).logicValidation`, `logicAssuranceUsps`, or `buildLogicValidationSuite(projects, options)`.
 
 The implementation package, tests, and deeper documentation live in `plugins/tpg-scheduler-codex-plugin/`.
 
@@ -36,6 +37,7 @@ npm test
 - Prefer live D365 API helper output from the authenticated Dynamics browser.
 - Use D365 API Max helpers for live control center, executive steering packs, PMO data-gap worklists, CIO/CFO routing, audit evidence packs, and Power BI-ready output.
 - Use `retrieveBoardPackFromD365` for Full Board Pack / Steering Pack output that combines executive, PMO, and project-leader sections.
+- Combine PMO reports and Board Packs with Maximum Logic Assurance when the user asks about confidence, validation, false green projects, `kv` safety, auditability, or report consistency.
 - Use the status suggestion report when the user asks for proposed status wording from project fields or planning data.
 - Do not use sample, fixture, synthetic, or mock data for PMO work.
 - Use local JSON only as an explicit offline fallback with `--allow-offline-input`.
@@ -43,3 +45,4 @@ npm test
 - Keep CRM write actions out of PMO report generation.
 - Keep Maximum USP output advisory-only and evidence-backed.
 - Keep PMO USP output advisory-only and evidence-backed.
+- Keep Maximum Logic Assurance advisory-only and evidence-backed.

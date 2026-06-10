@@ -22,6 +22,9 @@ const {
   buildGovernanceReplay,
   buildHumanConfirmationAnalytics,
   buildLiveDynamicsRunPlan,
+  buildLogicAssuranceUspLayer,
+  buildLogicValidationReport,
+  buildLogicValidationSuite,
   buildManagementActionExportRows,
   buildMaximumUspLayer,
   buildMeetingCaptureDrafts,
@@ -50,6 +53,8 @@ const {
   buildStatusSuggestionReport,
   PMO_REPORT_TYPES,
   PMO_USP_IDS,
+  LOGIC_ASSURANCE_USP_IDS,
+  LOGIC_VALIDATION_CHECK_IDS,
   buildPortfolioConstraintRadar,
   buildNoSurpriseForecast,
   buildReportQualityBenchmark,
@@ -780,6 +785,40 @@ assert.equal(boardPack.executive.summary.projectsReviewed, 2);
 assert.equal(boardPack.projectLeader.statusSuggestions.length, 2);
 assert.equal(boardPack.statusSuggestions.some((row) => row.statusType === "critical_escalation"), true);
 assert.equal(buildProjectIntelligence(projects, { today: "2026-05-13" }).boardPack.packType, "full_board_pack");
+const logicValidation = buildLogicValidationSuite([
+  { ...projects[0], overallKpiLabel: "Green", currentStatusText: "Blocked by vendor decision.", decisions: "Approve fallback interface." },
+  projects[1],
+], {
+  today: "2026-05-20",
+  proposedStatusText: "kv",
+  draft: { fields: {}, emailStatusUpdate: true },
+  projectManagerVerified: false,
+  requiresSubmittedTo: true,
+  confirmationMatches: false,
+  source: "offline_reviewed_snapshot",
+  production: true,
+  goldenOutputVerified: false,
+});
+assert.equal(LOGIC_VALIDATION_CHECK_IDS.length, 15);
+assert.equal(logicValidation.checks.length, 15);
+assert.equal(["unsafe", "weak", "review"].includes(logicValidation.assuranceLevel), true);
+assert.equal(logicValidation.projectFindings.some((finding) => finding.checkId === "false_green_detector"), true);
+assert.equal(logicValidation.projectFindings.some((finding) => finding.checkId === "kv_logic_guard"), true);
+assert.equal(logicValidation.projectFindings.some((finding) => finding.checkId === "writeback_negative_assurance"), true);
+assert.equal(logicValidation.dataGaps.some((gap) => gap.field === "previousSnapshots"), true);
+assert.equal(logicValidation.dataGaps.some((gap) => gap.field === "previousPack"), true);
+assert.equal(logicValidation.checks.find((check) => check.id === "schema_deep_validation").status, "pass");
+assert.equal(buildLogicValidationReport(projects, { today: "2026-05-13" }).title, "Maximum Logic Assurance Report");
+const logicAssuranceUsps = buildLogicAssuranceUspLayer(projects, { today: "2026-05-13" });
+assert.equal(LOGIC_ASSURANCE_USP_IDS.length, 12);
+assert.equal(logicAssuranceUsps.summary.uspCount, 12);
+assert.deepEqual(logicAssuranceUsps.usps.map((usp) => usp.id), LOGIC_ASSURANCE_USP_IDS);
+assert.equal(logicAssuranceUsps.usps.every((usp) => usp.technicalMechanism && usp.proofMetric?.name && usp.runtimeSignals && usp.risksAndTrustControls.length), true);
+assert.equal(logicAssuranceUsps.usps.every((usp) => usp.requiredData.length && usp.implementationStatus === "implemented" && usp.advisoryOnly === true), true);
+const intelligenceWithLogicAssurance = buildProjectIntelligence(projects, { today: "2026-05-13" });
+assert.equal(intelligenceWithLogicAssurance.logicValidation.checks.length, 15);
+assert.equal(intelligenceWithLogicAssurance.logicAssuranceUsps.summary.uspCount, 12);
+assert.equal(intelligenceWithLogicAssurance.boardPack.logicAssurance.checks.length, 15);
 assert.equal(PMO_REPORT_TYPES.length, 12);
 for (const reportType of PMO_REPORT_TYPES) {
   const report = buildPmoReport(reportType, projects, { today: "2026-05-13" });

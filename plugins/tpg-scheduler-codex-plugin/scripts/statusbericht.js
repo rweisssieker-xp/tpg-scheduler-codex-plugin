@@ -2670,6 +2670,22 @@ function formatProjectIntelligenceMarkdown(intelligence) {
     }
   }
 
+  lines.push("", "## Logic Assurance", "");
+  if (!intelligence.logicValidation?.summary) {
+    lines.push("- No logic assurance layer available.");
+  } else {
+    lines.push(`- Assurance level: ${intelligence.logicValidation.assuranceLevel}`);
+    lines.push(`- Checks: ${intelligence.logicValidation.summary.checkCount}`);
+    lines.push(`- Findings: ${intelligence.logicValidation.summary.findings}`);
+    lines.push(`- Data gaps: ${intelligence.logicValidation.summary.dataGaps}`);
+    for (const check of intelligence.logicValidation.checks.filter((item) => item.status !== "pass").slice(0, 10)) {
+      lines.push(`- ${check.id}: ${check.status}, findings=${check.findings}, gaps=${check.dataGaps}`);
+    }
+  }
+  if (intelligence.logicAssuranceUsps?.usps?.length) {
+    lines.push(`- Logic Assurance USPs: ${intelligence.logicAssuranceUsps.summary.implemented}/${intelligence.logicAssuranceUsps.summary.uspCount}`);
+  }
+
   return `${lines.join("\n")}\n`;
 }
 
@@ -3122,6 +3138,12 @@ async function buildBoardPackDocxBuffer(boardPack) {
     Field: gap.field || "",
     Message: gap.message || "",
   }));
+  const assuranceRows = (boardPack.logicAssurance?.checks || []).map((check) => ({
+    Check: check.id || "",
+    Status: check.status || "",
+    Findings: check.findings ?? "",
+    "Data Gaps": check.dataGaps ?? "",
+  }));
   const document = new Document({
     sections: [{
       children: [
@@ -3151,6 +3173,13 @@ async function buildBoardPackDocxBuffer(boardPack) {
         buildDocxTable(["Project", "Type", "Suggestion"], suggestionRows.length ? suggestionRows : [{ Project: "No suggestions", Type: "", Suggestion: "" }]),
         new Paragraph({ text: "Evidence And Data Gaps", heading: HeadingLevel.HEADING_1 }),
         buildDocxTable(["Project", "Field", "Message"], gapRows.length ? gapRows : [{ Project: "No data gaps", Field: "", Message: "" }]),
+        new Paragraph({ text: "Logic Assurance", heading: HeadingLevel.HEADING_1 }),
+        buildDocxCallout(
+          "Assurance level",
+          `${boardPack.logicAssurance?.assuranceLevel || "not_available"}; ${(boardPack.logicAssurance?.summary?.findings ?? 0)} finding(s), ${(boardPack.logicAssurance?.summary?.dataGaps ?? 0)} data gap(s).`,
+          boardPack.logicAssurance?.assuranceLevel === "unsafe" ? DOCX_COLORS.red : DOCX_COLORS.lightBlue
+        ),
+        buildDocxTable(["Check", "Status", "Findings", "Data Gaps"], assuranceRows.length ? assuranceRows : [{ Check: "No logic assurance checks", Status: "", Findings: "", "Data Gaps": "" }]),
       ],
     }],
   });
@@ -3500,6 +3529,16 @@ async function buildBoardPackXlsxBuffer(boardPack) {
       }))),
       widths: [16, 34, 28, 70],
     },
+    {
+      name: "Logic Assurance",
+      rows: rowsFromObjects(["Check", "Status", "Findings", "Data Gaps"], (boardPack.logicAssurance?.checks || []).map((item) => ({
+        Check: item.id || "",
+        Status: item.status || "",
+        Findings: item.findings ?? "",
+        "Data Gaps": item.dataGaps ?? "",
+      }))),
+      widths: [34, 14, 12, 14],
+    },
   ];
   zip.file("[Content_Types].xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
@@ -3798,6 +3837,8 @@ module.exports = {
   PMO_PROJECT_EXPORT_VERSION,
   MAXIMUM_USP_IDS: projectIntelligence.MAXIMUM_USP_IDS,
   PMO_USP_IDS: projectIntelligence.PMO_USP_IDS,
+  LOGIC_ASSURANCE_USP_IDS: projectIntelligence.LOGIC_ASSURANCE_USP_IDS,
+  LOGIC_VALIDATION_CHECK_IDS: projectIntelligence.LOGIC_VALIDATION_CHECK_IDS,
   STATUS_API_FEATURE_VERSION,
   STATUS_UPDATE_ENTITY_LOGICAL_NAME_CANDIDATES,
   PROJECT_ACTIVE_STATE_FILTER,
@@ -3867,6 +3908,9 @@ module.exports = {
   buildGovernanceReplay: projectIntelligence.buildGovernanceReplay,
   buildHumanConfirmationAnalytics: projectIntelligence.buildHumanConfirmationAnalytics,
   buildLiveDynamicsRunPlan: projectIntelligence.buildLiveDynamicsRunPlan,
+  buildLogicAssuranceUspLayer: projectIntelligence.buildLogicAssuranceUspLayer,
+  buildLogicValidationReport: projectIntelligence.buildLogicValidationReport,
+  buildLogicValidationSuite: projectIntelligence.buildLogicValidationSuite,
   buildManagementActionExportRows: projectIntelligence.buildManagementActionExportRows,
   buildMaximumUspLayer: projectIntelligence.buildMaximumUspLayer,
   buildPmoUspLayer: projectIntelligence.buildPmoUspLayer,

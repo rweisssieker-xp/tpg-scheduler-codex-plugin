@@ -86,6 +86,9 @@ If Dynamics asks for login, pause and let the user complete Microsoft login manu
   - `buildPmoProjectControls(project, projects, options)`
   - `buildPmoControlTower(projects, options)`
   - `buildBoardPack(projects, options)`
+  - `buildLogicValidationSuite(projects, options)`
+  - `buildLogicValidationReport(projects, options)`
+  - `buildLogicAssuranceUspLayer(projects, options)`
   - `buildStatusUpdateDraft(statusText, options)`
   - `buildMonthlyStatusReportDraft(project, statusText, options)`
   - `buildMonthlyStatusReportRun(projects, options)`
@@ -253,6 +256,8 @@ If Dynamics asks for login, pause and let the user complete Microsoft login manu
      - `maximumUsps`: 12 implemented advisory differentiators with proof metrics, runtime signals, trust controls, and USP scores
     - `pmoUsps`: 15 PMO-operational USPs with command queue, evidence ledger, data gaps, and runtime proof metrics
     - `boardPack`: Full Board Pack / Steering Pack with executive, PMO, project-leader, evidence, data-gap, and safety sections
+    - `logicValidation`: Maximum Logic Assurance checks with assurance level, evidence trace, false-positive risks, data gaps, and recommended actions
+    - `logicAssuranceUsps`: 12 implemented logic-assurance USPs
      - `executiveOnePager`: Markdown one-pager for leadership review
 
 ## Advanced USP Helpers
@@ -300,6 +305,8 @@ If Dynamics asks for login, pause and let the user complete Microsoft login manu
 - `buildMaximumUspLayer` exposes the 12 Maximum USPs as implemented, advisory-only JSON objects backed by runtime signals and proof metrics.
 - `buildPmoUspLayer` exposes the 15 PMO USPs as implemented, advisory-only JSON objects backed by command queues, evidence ledgers, data gaps, and proof metrics.
 - `buildBoardPack` exposes the Full Board Pack / Steering Pack as an advisory management pack backed by live D365 API data or explicit offline fallback snapshots.
+- `buildLogicValidationSuite` exposes the 15 Maximum Logic Assurance checks and should be shown before status work when management confidence or writeback safety is relevant.
+- `buildLogicAssuranceUspLayer` exposes the 12 logic-assurance USPs as implemented, advisory-only JSON objects.
 4. For every matching project:
    - open the project record by double-clicking the project name gridcell from the current visible DOM snapshot
    - or open the record URL built from `buildDynamicsProjectRecordUrl(projectId)` when the candidate came from Dataverse
@@ -360,6 +367,7 @@ If Dynamics asks for login, pause and let the user complete Microsoft login manu
 
 - Default to dry-run when uncertain.
 - Show the project safety level and material failed/critical gates before asking for status input or staging a CRM draft.
+- Show material Logic Assurance findings, especially false-green signals, risky `kv`, unsupported claims, decision SLA gaps, and writeback negative findings.
 - Show material PMO control findings when a project needs PMO, CIO, or CEO attention.
 - Treat generated risk lists, nudges, decision radar, and executive reports as advisory until the user confirms the source data and wording.
 - Treat `kv_blocked` as a warning, not a hard stop: the project leader may still choose `kv`, but the report must show the evidence codes that made it risky.

@@ -647,6 +647,82 @@
       "crmWritesIncluded": false
     }
   },
+  "logicValidation": {
+    "reportType": "logic_validation",
+    "generatedAt": "2026-05-13T00:00:00.000Z",
+    "summary": {
+      "projectsReviewed": 2,
+      "checkCount": 15,
+      "findings": 2,
+      "criticalFindings": 0,
+      "failFindings": 1,
+      "warningFindings": 1,
+      "dataGaps": 2,
+      "assuranceLevel": "weak",
+      "safetyPosture": "advisory_only_confirmation_gated"
+    },
+    "checks": [
+      { "id": "schema_deep_validation", "status": "pass", "findings": 0, "dataGaps": 0, "advisoryOnly": true },
+      { "id": "evidence_to_claim_trace", "status": "pass", "findings": 0, "dataGaps": 0, "advisoryOnly": true },
+      { "id": "false_green_detector", "status": "fail", "findings": 1, "dataGaps": 0, "advisoryOnly": true },
+      { "id": "false_red_detector", "status": "pass", "findings": 0, "dataGaps": 0, "advisoryOnly": true },
+      { "id": "kv_logic_guard", "status": "warning", "findings": 1, "dataGaps": 0, "advisoryOnly": true },
+      { "id": "status_suggestion_consistency", "status": "pass", "findings": 0, "dataGaps": 0, "advisoryOnly": true },
+      { "id": "decision_sla_consistency", "status": "pass", "findings": 0, "dataGaps": 0, "advisoryOnly": true },
+      { "id": "board_pack_completeness", "status": "pass", "findings": 0, "dataGaps": 0, "advisoryOnly": true },
+      { "id": "report_cross_consistency", "status": "pass", "findings": 0, "dataGaps": 0, "advisoryOnly": true },
+      { "id": "d365_api_path_assurance", "status": "pass", "findings": 0, "dataGaps": 0, "advisoryOnly": true },
+      { "id": "writeback_negative_assurance", "status": "pass", "findings": 0, "dataGaps": 0, "advisoryOnly": true },
+      { "id": "time_series_logic", "status": "warning", "findings": 0, "dataGaps": 2, "advisoryOnly": true },
+      { "id": "pagination_scale_guard", "status": "pass", "findings": 0, "dataGaps": 0, "advisoryOnly": true },
+      { "id": "data_privacy_guard", "status": "pass", "findings": 0, "dataGaps": 0, "advisoryOnly": true },
+      { "id": "golden_output_guard", "status": "pass", "findings": 0, "dataGaps": 0, "advisoryOnly": true }
+    ],
+    "projectFindings": [
+      { "checkId": "false_green_detector", "projectId": "2024-9999", "name": "ERP Cutover", "severity": "fail", "message": "Green KPI conflicts with blocker evidence.", "evidenceCode": "false_green", "sourceField": "overallKpiLabel" }
+    ],
+    "portfolioFindings": [],
+    "evidenceTrace": [
+      { "checkId": "false_green_detector", "projectId": "2024-9999", "name": "ERP Cutover", "evidenceCode": "false_green", "sourceField": "overallKpiLabel" }
+    ],
+    "falsePositiveRisks": [
+      { "projectId": "2024-9999", "name": "ERP Cutover", "type": "false_green", "reason": "Green KPI conflicts with risk signals." }
+    ],
+    "dataGaps": [
+      { "checkId": "time_series_logic", "field": "previousSnapshots", "message": "Previous snapshots are missing." },
+      { "checkId": "time_series_logic", "field": "previousPack", "message": "Previous Board Pack is missing." }
+    ],
+    "recommendedActions": [
+      { "checkId": "false_green_detector", "projectId": "2024-9999", "action": "Review the finding before management reporting." }
+    ],
+    "assuranceLevel": "weak"
+  },
+  "logicAssuranceUsps": {
+    "layerType": "logic_assurance_usps",
+    "summary": {
+      "uspCount": 12,
+      "implemented": 12,
+      "projectsReviewed": 2,
+      "assuranceLevel": "weak",
+      "findings": 2,
+      "dataGaps": 2,
+      "safetyPosture": "advisory_only_confirmation_gated"
+    },
+    "usps": [
+      { "id": "evidence_to_decision_trace", "title": "Evidence-to-Decision Trace", "targetUser": "PMO lead and CIO", "painSolved": "Management asks lack traceability.", "concreteBenefit": "Links decisions to evidence, fields, project IDs, and actions.", "technicalMechanism": "Uses decision log, evidence trace, and Board Pack evidence ledger.", "requiredData": ["decisions", "evidenceLedger"], "runtimeSignals": { "currentValue": 0 }, "recommendedActions": ["Keep assurance checks in the management workflow."], "dataGaps": [], "proofMetric": { "name": "unsupported_claims", "currentValue": 0, "target": "Zero unreviewed management logic findings", "status": "ready" }, "risksAndTrustControls": ["advisory_only", "evidence_backed", "confirmation_gated"], "implementationStatus": "implemented", "advisoryOnly": true },
+      { "id": "false_green_radar", "title": "False-Green Radar", "targetUser": "PMO quality owner", "painSolved": "Green projects can hide blockers.", "concreteBenefit": "Flags green KPI contradictions before steering.", "technicalMechanism": "Compares KPI with blockers, schedule, decisions, and safety gates.", "requiredData": ["overallKpiLabel", "finish", "obstaclesAndMeasures"], "runtimeSignals": { "currentValue": 1 }, "recommendedActions": ["Review related logic assurance findings."], "dataGaps": [], "proofMetric": { "name": "false_green_findings", "currentValue": 1, "target": "Zero unreviewed management logic findings", "status": "watch" }, "risksAndTrustControls": ["advisory_only", "evidence_backed", "confirmation_gated"], "implementationStatus": "implemented", "advisoryOnly": true },
+      { "id": "kv_safety_lock", "title": "KV Safety Lock", "targetUser": "Project leader and PMO", "painSolved": "`kv` can hide material change.", "concreteBenefit": "Shows when unchanged-status input is risky.", "technicalMechanism": "Checks KPI, blockers, decisions, and overdue finish before allowing `kv` as low-risk.", "requiredData": ["proposedStatusText", "overallKpiLabel"], "runtimeSignals": { "currentValue": 1 }, "recommendedActions": ["Review related logic assurance findings."], "dataGaps": [], "proofMetric": { "name": "kv_blockers", "currentValue": 1, "target": "Zero unreviewed management logic findings", "status": "watch" }, "risksAndTrustControls": ["advisory_only", "evidence_backed", "confirmation_gated"], "implementationStatus": "implemented", "advisoryOnly": true },
+      { "id": "board_pack_consistency_engine", "title": "Board Pack Consistency Engine", "targetUser": "PMO lead", "painSolved": "Audience packs drift apart.", "concreteBenefit": "Keeps executive, PMO, and project-leader views aligned.", "technicalMechanism": "Cross-checks Board Pack, PMO suite, safety gates, and project intelligence counts.", "requiredData": ["boardPack", "pmoReportSuite"], "runtimeSignals": { "currentValue": 0 }, "recommendedActions": ["Keep assurance checks in the management workflow."], "dataGaps": [], "proofMetric": { "name": "pack_consistency_findings", "currentValue": 0, "target": "Zero unreviewed management logic findings", "status": "ready" }, "risksAndTrustControls": ["advisory_only", "evidence_backed", "confirmation_gated"], "implementationStatus": "implemented", "advisoryOnly": true },
+      { "id": "decision_sla_integrity", "title": "Decision SLA Integrity", "targetUser": "CIO and PMO lead", "painSolved": "Overdue decisions disappear from management views.", "concreteBenefit": "Makes SLA gaps visible across queue, questions, and reports.", "technicalMechanism": "Combines Decision SLA Cockpit, closure items, and PMO queue checks.", "requiredData": ["decisions", "decisionDueDate"], "runtimeSignals": { "currentValue": 0 }, "recommendedActions": ["Keep assurance checks in the management workflow."], "dataGaps": [], "proofMetric": { "name": "decision_sla_findings", "currentValue": 0, "target": "Zero unreviewed management logic findings", "status": "ready" }, "risksAndTrustControls": ["advisory_only", "evidence_backed", "confirmation_gated"], "implementationStatus": "implemented", "advisoryOnly": true },
+      { "id": "d365_api_trust_mode", "title": "D365 API Trust Mode", "targetUser": "CIO and audit reviewer", "painSolved": "Exports can become stale or manipulated.", "concreteBenefit": "Proves whether productive data came from live D365 API helpers.", "technicalMechanism": "Checks source markers, sample blocking, and offline fallback flags.", "requiredData": ["source", "allowOfflineInput"], "runtimeSignals": { "currentValue": 0 }, "recommendedActions": ["Keep assurance checks in the management workflow."], "dataGaps": [], "proofMetric": { "name": "d365_source_findings", "currentValue": 0, "target": "Zero unreviewed management logic findings", "status": "ready" }, "risksAndTrustControls": ["advisory_only", "evidence_backed", "confirmation_gated"], "implementationStatus": "implemented", "advisoryOnly": true },
+      { "id": "no_silent_critical_project", "title": "No Silent Critical Project", "targetUser": "CEO, CIO, and PMO", "painSolved": "Critical projects can be hidden in detail tables.", "concreteBenefit": "Requires critical projects to appear in management surfaces.", "technicalMechanism": "Checks Safety Gates against Executive risks, PMO queue, risk register, and evidence ledger.", "requiredData": ["projectSafetyGates", "boardPack"], "runtimeSignals": { "currentValue": 0 }, "recommendedActions": ["Keep assurance checks in the management workflow."], "dataGaps": [], "proofMetric": { "name": "silent_critical_projects", "currentValue": 0, "target": "Zero unreviewed management logic findings", "status": "ready" }, "risksAndTrustControls": ["advisory_only", "evidence_backed", "confirmation_gated"], "implementationStatus": "implemented", "advisoryOnly": true },
+      { "id": "schema_backed_management_reports", "title": "Schema-Backed Management Reports", "targetUser": "PMO analyst", "painSolved": "Reports can be hard to consume reliably.", "concreteBenefit": "Validates report contracts for automation and dashboards.", "technicalMechanism": "Checks runtime output against required schema anchors without CRM writes.", "requiredData": ["schemas", "runtimeOutput"], "runtimeSignals": { "currentValue": 0 }, "recommendedActions": ["Keep assurance checks in the management workflow."], "dataGaps": [], "proofMetric": { "name": "schema_findings", "currentValue": 0, "target": "Zero unreviewed management logic findings", "status": "ready" }, "risksAndTrustControls": ["advisory_only", "evidence_backed", "confirmation_gated"], "implementationStatus": "implemented", "advisoryOnly": true },
+      { "id": "writeback_failure_firewall", "title": "Writeback Failure Firewall", "targetUser": "CRM process owner", "painSolved": "Negative writeback cases can be missed.", "concreteBenefit": "Surfaces confirmation, email, submitted-to, duplicate, and PM verification blockers.", "technicalMechanism": "Reuses writeback safety gates and safe writeback simulation outputs.", "requiredData": ["draft", "confirmation", "permissions"], "runtimeSignals": { "currentValue": 0 }, "recommendedActions": ["Keep assurance checks in the management workflow."], "dataGaps": [], "proofMetric": { "name": "writeback_blockers", "currentValue": 0, "target": "Zero unreviewed management logic findings", "status": "ready" }, "risksAndTrustControls": ["advisory_only", "evidence_backed", "confirmation_gated"], "implementationStatus": "implemented", "advisoryOnly": true },
+      { "id": "timeline_drift_intelligence", "title": "Timeline Drift Intelligence", "targetUser": "PMO scheduler", "painSolved": "Risk and baseline drift needs history.", "concreteBenefit": "Detects drift when snapshots exist and exposes gaps when they do not.", "technicalMechanism": "Uses previousSnapshots, previousPack, risk narrative drift, and baseline signals.", "requiredData": ["previousSnapshots", "previousPack"], "runtimeSignals": { "currentValue": 0 }, "recommendedActions": ["Provide previous snapshots and previous Board Pack."], "dataGaps": [{ "field": "previousSnapshots" }, { "field": "previousPack" }], "proofMetric": { "name": "timeline_findings", "currentValue": 0, "target": "Zero unreviewed management logic findings", "status": "needs_data" }, "risksAndTrustControls": ["advisory_only", "evidence_backed", "confirmation_gated"], "implementationStatus": "implemented", "advisoryOnly": true },
+      { "id": "pmo_audit_confidence_score", "title": "PMO Audit Confidence Score", "targetUser": "Audit reviewer", "painSolved": "Auditability varies per project.", "concreteBenefit": "Shows how many findings are evidence-backed versus gap-driven.", "technicalMechanism": "Uses evidence trace, data gaps, and privacy checks.", "requiredData": ["evidenceTrace", "dataGaps"], "runtimeSignals": { "currentValue": 1 }, "recommendedActions": ["Review related logic assurance findings."], "dataGaps": [], "proofMetric": { "name": "evidence_trace_items", "currentValue": 1, "target": "Zero unreviewed management logic findings", "status": "watch" }, "risksAndTrustControls": ["advisory_only", "evidence_backed", "confirmation_gated"], "implementationStatus": "implemented", "advisoryOnly": true },
+      { "id": "golden_report_assurance", "title": "Golden Report Assurance", "targetUser": "PMO report owner", "painSolved": "Word and Excel layout can regress.", "concreteBenefit": "Tracks whether core DOCX/XLSX structure is protected by golden checks.", "technicalMechanism": "Uses report golden-output guard and CLI workbook inspections.", "requiredData": ["docx", "xlsx"], "runtimeSignals": { "currentValue": 0 }, "recommendedActions": ["Keep assurance checks in the management workflow."], "dataGaps": [], "proofMetric": { "name": "golden_output_findings", "currentValue": 0, "target": "Zero unreviewed management logic findings", "status": "ready" }, "risksAndTrustControls": ["advisory_only", "evidence_backed", "confirmation_gated"], "implementationStatus": "implemented", "advisoryOnly": true }
+    ]
+  },
   "pmoUsps": {
     "layerType": "pmo_usps",
     "summary": {

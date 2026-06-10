@@ -20,6 +20,7 @@ For PMO reporting, the Full Board Pack / Steering Pack, portfolio management pac
 - Show project safety level and PMO control findings before collecting or staging a status update.
 - When generating intelligence JSON, include and explain `maximumUsps` if the user asks for USPs, differentiation, PMO/CIO/CEO value, or product positioning.
 - When the user asks for PMO-specific value, operational PMO workflows, steering, board packs, audit, or CIO/CEO PMO outcomes, include and explain `pmoUsps` and `boardPack`.
+- Show `logicValidation.assuranceLevel` and material Logic Assurance findings before collecting or staging status when intelligence data is available.
 - Treat `kv` as the configured unchanged-status shortcut.
 - Never save, submit, send, delete, change ownership, or change CRM state without explicit user confirmation.
 - Treat Email Status Update as a separate high-risk setting that must be reviewed before any save.
@@ -47,6 +48,7 @@ Before staging any CRM draft, show:
 - PMO intervention recommendation
 - maximum USP signals when relevant
 - PMO USP command queue, evidence ledger, and data gaps when relevant
+- Logic Assurance level, evidence trace issues, false-green warnings, `kv` blockers, and writeback negative findings when relevant
 - Board Pack safety, project links, evidence ledger, and data gaps when relevant
 - required evidence gaps
 - exact status text and email setting that would be staged

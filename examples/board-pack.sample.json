@@ -94,6 +94,34 @@
     { "projectId": "2024-9999", "field": "previousPack", "message": "Previous board pack is missing, so pack diff is not available." }
   ],
   "accessIssues": [],
+  "logicAssurance": {
+    "summary": {
+      "projectsReviewed": 2,
+      "checkCount": 15,
+      "findings": 1,
+      "dataGaps": 2,
+      "assuranceLevel": "review",
+      "safetyPosture": "advisory_only_confirmation_gated"
+    },
+    "checks": [
+      { "id": "schema_deep_validation", "status": "pass", "findings": 0, "dataGaps": 0, "advisoryOnly": true },
+      { "id": "evidence_to_claim_trace", "status": "pass", "findings": 0, "dataGaps": 0, "advisoryOnly": true },
+      { "id": "false_green_detector", "status": "pass", "findings": 0, "dataGaps": 0, "advisoryOnly": true },
+      { "id": "false_red_detector", "status": "pass", "findings": 0, "dataGaps": 0, "advisoryOnly": true },
+      { "id": "kv_logic_guard", "status": "pass", "findings": 0, "dataGaps": 0, "advisoryOnly": true },
+      { "id": "status_suggestion_consistency", "status": "pass", "findings": 0, "dataGaps": 0, "advisoryOnly": true },
+      { "id": "decision_sla_consistency", "status": "warning", "findings": 1, "dataGaps": 0, "advisoryOnly": true },
+      { "id": "board_pack_completeness", "status": "pass", "findings": 0, "dataGaps": 0, "advisoryOnly": true },
+      { "id": "report_cross_consistency", "status": "pass", "findings": 0, "dataGaps": 0, "advisoryOnly": true },
+      { "id": "d365_api_path_assurance", "status": "pass", "findings": 0, "dataGaps": 0, "advisoryOnly": true },
+      { "id": "writeback_negative_assurance", "status": "pass", "findings": 0, "dataGaps": 0, "advisoryOnly": true },
+      { "id": "time_series_logic", "status": "warning", "findings": 0, "dataGaps": 2, "advisoryOnly": true },
+      { "id": "pagination_scale_guard", "status": "pass", "findings": 0, "dataGaps": 0, "advisoryOnly": true },
+      { "id": "data_privacy_guard", "status": "pass", "findings": 0, "dataGaps": 0, "advisoryOnly": true },
+      { "id": "golden_output_guard", "status": "pass", "findings": 0, "dataGaps": 0, "advisoryOnly": true }
+    ],
+    "assuranceLevel": "review"
+  },
   "safety": {
     "advisoryOnly": true,
     "canAutoSave": false,

@@ -44,6 +44,7 @@ node ./scripts/statusbericht.js --intelligence <snapshot.json> --allow-offline-i
 The JSON includes `maximumUsps`, a 12-item Maximum USP Layer with implementation status, proof metrics, runtime signals, required data, trust controls, and USP scores.
 It also includes `pmoUsps`, a 15-item PMO USP Layer with operational PMO command queues, evidence ledger entries, data gaps, runtime signals, proof metrics, and advisory-only trust controls.
 It includes `boardPack`, the Full Board Pack / Steering Pack contract for executive, PMO, and project-leader review.
+It also includes `logicValidation` and `logicAssuranceUsps`, the Maximum Logic Assurance layer for management logic, evidence traceability, source posture, writeback safety, and report consistency.
 
 Emit CSV-ready export payloads:
 
@@ -93,6 +94,17 @@ node ./scripts/statusbericht.js --board-pack <snapshot.json> --allow-offline-inp
 ```
 
 The DOCX file contains executive callouts and highlighted tables. The XLSX workbook contains separate sheets for executive dashboard, PMO control, project-leader queue, steering agenda, risks, decisions, status suggestions, project links, evidence, and data gaps.
+Board Pack DOCX and XLSX output also includes Logic Assurance findings so PMO reviewers can see whether the pack is trusted, needs review, weak, or unsafe.
+
+## Maximum Logic Assurance
+
+Use `--intelligence --json` to consume the assurance layer:
+
+```powershell
+node ./scripts/statusbericht.js --intelligence <snapshot.json> --allow-offline-input --json
+```
+
+Read `logicValidation.summary.assuranceLevel`, `logicValidation.checks`, `logicValidation.projectFindings`, `logicValidation.evidenceTrace`, and `logicValidation.dataGaps`. The Markdown output includes `## Logic Assurance`; Board Pack files include the same assurance signal for management review.
 
 Filter by project status:
 
@@ -263,6 +275,7 @@ Offline fallback accepts either a reviewed Dataverse snapshot envelope or a JSON
 - PMO Status Report output with filters for project status and last status report date/text.
 - Maximum USP Layer with 12 implemented differentiators and runtime proof metrics.
 - 15 PMO USP Layer with command queue, evidence ledger, board-pack diff readiness, and data gaps.
+- Maximum Logic Assurance with 15 validation groups, evidence trace, false-positive risks, data gaps, and 12 logic-assurance USPs.
 - DOCX and XLSX PMO report files.
 - Risk ledger rows.
 - PMO nudges and manual review drafts.
@@ -277,11 +290,14 @@ Use `maximumUsps.summary` to see how many differentiators are implemented and re
 
 Use `pmoUsps.summary` to inspect operational PMO value, `pmoUsps.commandQueue` for prioritized PMO work, `pmoUsps.evidenceLedger` for audit evidence, and `pmoUsps.dataGaps` for missing snapshot, baseline, report, or evidence inputs.
 
+Use `logicValidation.summary.assuranceLevel` to inspect management logic confidence and `logicAssuranceUsps.usps[*]` to inspect the implemented assurance differentiators.
+
 ## Stable Contracts
 
 Machine-readable contracts are stored in `schemas/`:
 
 - `project-intelligence.schema.json`
+- `logic-validation.schema.json`
 - `project-safety-gates.schema.json`
 - `pmo-control-tower.schema.json`
 

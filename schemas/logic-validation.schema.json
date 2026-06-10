@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/rweisssieker-xp/tpg-scheduler-codex-plugin/schemas/logic-validation.schema.json",
+  "title": "Maximum Logic Assurance",
+  "type": "object",
+  "required": [
+    "summary",
+    "checks",
+    "projectFindings",
+    "portfolioFindings",
+    "evidenceTrace",
+    "falsePositiveRisks",
+    "dataGaps",
+    "recommendedActions",
+    "assuranceLevel"
+  ],
+  "additionalProperties": true,
+  "properties": {
+    "summary": {
+      "type": "object",
+      "required": ["projectsReviewed", "checkCount", "findings", "dataGaps", "assuranceLevel", "safetyPosture"],
+      "additionalProperties": true
+    },
+    "checks": {
+      "type": "array",
+      "minItems": 15,
+      "items": {
+        "type": "object",
+        "required": ["id", "status", "findings", "dataGaps", "advisoryOnly"],
+        "additionalProperties": true
+      }
+    },
+    "projectFindings": { "type": "array" },
+    "portfolioFindings": { "type": "array" },
+    "evidenceTrace": { "type": "array" },
+    "falsePositiveRisks": { "type": "array" },
+    "dataGaps": { "type": "array" },
+    "recommendedActions": { "type": "array" },
+    "assuranceLevel": { "enum": ["trusted", "review", "weak", "unsafe"] }
+  }
+}

@@ -18,6 +18,7 @@
     "evidenceLedger",
     "dataGaps",
     "accessIssues",
+    "logicAssurance",
     "safety"
   ],
   "additionalProperties": true,
@@ -60,6 +61,11 @@
     "evidenceLedger": { "type": "array" },
     "dataGaps": { "type": "array" },
     "accessIssues": { "type": "array" },
+    "logicAssurance": {
+      "type": "object",
+      "required": ["summary", "checks", "assuranceLevel"],
+      "additionalProperties": true
+    },
     "safety": {
       "type": "object",
       "required": ["advisoryOnly", "canAutoSave", "crmWritesIncluded"],

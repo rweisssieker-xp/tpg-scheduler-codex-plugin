@@ -65,6 +65,7 @@ assert.match(skill, /buildLivePmoControlCenterFromD365/);
 assert.match(skill, /retrieveMonthlyPmSelfServiceFlowFromD365/);
 assert.match(skill, /retrieveStatusSuggestionReportFromD365/);
 assert.match(skill, /retrieveBoardPackFromD365/);
+assert.match(skill, /Logic Assurance|buildLogicValidationSuite/);
 const pmoSkill = assertFile("plugins/tpg-scheduler-codex-plugin/skills/pmo-report-suite/SKILL.md");
 const rootPmoSkill = assertFile("skills/pmo-report-suite/SKILL.md");
 assert.match(pmoSkill, /^---\nname: pmo-report-suite\n/m);
@@ -79,6 +80,8 @@ assert.match(pmoSkill, /status-suggestion-report/);
 assert.match(rootPmoSkill, /retrieveStatusSuggestionReportFromD365/);
 assert.match(pmoSkill, /retrieveBoardPackFromD365/);
 assert.match(rootPmoSkill, /retrieveBoardPackFromD365/);
+assert.match(pmoSkill, /Logic Assurance|buildLogicValidationSuite/);
+assert.match(rootPmoSkill, /Logic Assurance|buildLogicValidationSuite/);
 for (const reportType of [
   "portfolio_steering",
   "decision_action_aging",
@@ -122,6 +125,7 @@ const requiredDocs = [
   "skills/status-report/SKILL.md",
   "skills/pmo-report-suite/SKILL.md",
   "schemas/board-pack.schema.json",
+  "schemas/logic-validation.schema.json",
   "schemas/project-intelligence.schema.json",
   "schemas/project-safety-gates.schema.json",
   "schemas/pmo-control-tower.schema.json",
@@ -131,6 +135,7 @@ const requiredDocs = [
   "schemas/status-writeback-audit-event.schema.json",
   "schemas/status-update-duplicate-check.schema.json",
   "examples/board-pack.sample.json",
+  "examples/logic-validation.sample.json",
   "examples/project-intelligence.sample.json",
   "examples/status-api-max.sample.json",
   "plugins/tpg-scheduler-codex-plugin/README.md",
@@ -185,10 +190,12 @@ for (const d365ApiFeature of [
   assert.match(publicDocs, new RegExp(d365ApiFeature), `public docs must document ${d365ApiFeature}`);
 }
 assert.match(publicDocs, /Full Board Pack|Steering Pack/, "public docs must document Board Pack");
+assert.match(publicDocs, /Maximum Logic Assurance/, "public docs must document Maximum Logic Assurance");
 
 for (const schemaPath of [
   "schemas/project-intelligence.schema.json",
   "schemas/board-pack.schema.json",
+  "schemas/logic-validation.schema.json",
   "schemas/project-safety-gates.schema.json",
   "schemas/pmo-control-tower.schema.json",
   "schemas/status-api-envelope.schema.json",
@@ -213,9 +220,14 @@ assert.equal(Boolean(intelligenceSchema.properties.pmoStatusReport), true, "proj
 assert.equal(Boolean(intelligenceSchema.properties.statusSuggestionReport), true, "project intelligence schema must include statusSuggestionReport");
 assert.equal(Boolean(intelligenceSchema.properties.pmoReportSuite), true, "project intelligence schema must include pmoReportSuite");
 assert.equal(Boolean(intelligenceSchema.properties.boardPack), true, "project intelligence schema must include boardPack");
+assert.equal(Boolean(intelligenceSchema.properties.logicValidation), true, "project intelligence schema must include logicValidation");
+assert.equal(Boolean(intelligenceSchema.properties.logicAssuranceUsps), true, "project intelligence schema must include logicAssuranceUsps");
 
 const boardPackSchema = JSON.parse(assertFile("schemas/board-pack.schema.json"));
 assert.equal(boardPackSchema.properties.packType.const, "full_board_pack", "board pack schema must define packType");
+assert.equal(Boolean(boardPackSchema.properties.logicAssurance), true, "board pack schema must include logicAssurance");
+const logicValidationSchema = JSON.parse(assertFile("schemas/logic-validation.schema.json"));
+assert.equal(logicValidationSchema.properties.checks.minItems, 15, "logic validation schema must require 15 check groups");
 
 const safetySchema = JSON.parse(assertFile("schemas/project-safety-gates.schema.json"));
 assert.deepEqual(safetySchema.properties.projects.items.required, [
@@ -240,6 +252,10 @@ assert.equal(sample.maximumUsps?.summary?.uspCount, 12, "sample output must incl
 assert.equal(sample.maximumUsps?.usps?.length, 12, "sample output must include 12 maximum USP entries");
 assert.equal(sample.pmoUsps?.summary?.uspCount, 15, "sample output must include the 15 PMO USPs");
 assert.equal(sample.pmoUsps?.usps?.length, 15, "sample output must include 15 PMO USP entries");
+assert.equal(sample.logicValidation?.summary?.checkCount, 15, "sample output must include 15 logic validation checks");
+assert.equal(sample.logicValidation?.checks?.length, 15, "sample output must include 15 logic validation check entries");
+assert.equal(sample.logicAssuranceUsps?.summary?.uspCount, 12, "sample output must include the 12 logic assurance USPs");
+assert.equal(sample.logicAssuranceUsps?.usps?.length, 12, "sample output must include 12 logic assurance USP entries");
 assert.equal(sample.boardPack?.packType, "full_board_pack", "sample output must include boardPack");
 assert.equal(sample.boardPack?.safety?.canAutoSave, false, "sample board pack must be review-only");
 assert.equal(sample.pmoControlTower.summary.checksPerProject, 25, "sample output must show 25 PMO checks");
@@ -248,6 +264,9 @@ assert.equal(sample.pmoControlTower.projects[0].checks.length, 25, "sample outpu
 const boardPackSample = JSON.parse(assertFile("examples/board-pack.sample.json"));
 assert.equal(boardPackSample.packType, "full_board_pack", "board pack sample must use full_board_pack");
 assert.equal(boardPackSample.safety.canAutoSave, false, "board pack sample must be review-only");
+const logicValidationSample = JSON.parse(assertFile("examples/logic-validation.sample.json"));
+assert.equal(logicValidationSample.summary.checkCount, 15, "logic validation sample must use 15 check groups");
+assert.equal(logicValidationSample.checks.length, 15, "logic validation sample must include all 15 check groups");
 
 const statusApiSample = JSON.parse(assertFile("examples/status-api-max.sample.json"));
 assert.equal(statusApiSample.apiEnvelope.api, "tpg_status_api", "status API sample must include API envelope");

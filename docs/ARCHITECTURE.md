@@ -12,6 +12,7 @@ The plugin separates browser workflow guidance from deterministic project intell
 - The Maximum USP layer turns the strongest 12 differentiators into a machine-readable advisory contract backed by runtime signals and proof metrics.
 - The PMO USP layer turns 15 operational PMO differentiators into command queues, evidence ledgers, board-pack diffs, and runtime proof metrics.
 - The Full Board Pack / Steering Pack layer combines executive, PMO, and project-leader views into one advisory management pack.
+- The Maximum Logic Assurance layer validates management logic across intelligence, Board Pack, PMO reports, status suggestions, D365 API source posture, writeback blockers, timeline inputs, privacy, and report structure.
 - `schemas/` defines stable JSON contracts for downstream PMO and executive tooling.
 - `examples/` contains synthetic output for documentation and consumer tests only; productive CLI paths reject sample files.
 - Tests validate normalization, CLI behavior, and project intelligence outputs without requiring Dynamics access.
@@ -103,6 +104,14 @@ The live production path is `TPGProjectAssist.retrieveStatusSuggestionReportFrom
 
 The Board Pack is review-only: it reports `safety.advisoryOnly: true`, `safety.canAutoSave: false`, and `safety.crmWritesIncluded: false`. It never creates CRM data and treats missing history, baselines, prior packs, or optional PMO fields as visible data gaps.
 
+## Maximum Logic Assurance
+
+`buildLogicValidationSuite(projects, options)` returns a 15-group advisory validation suite with `summary`, `checks`, `projectFindings`, `portfolioFindings`, `evidenceTrace`, `falsePositiveRisks`, `dataGaps`, `recommendedActions`, and `assuranceLevel`.
+
+`buildProjectIntelligence(projects, options)` includes this output as `logicValidation` and adds `logicAssuranceUsps` with 12 implemented USPs. `buildBoardPack(projects, options)` embeds the same validation as `logicAssurance`, so DOCX/XLSX Board Pack output can show whether the pack is trusted, needs review, weak, or unsafe.
+
+The validation groups cover schema contract anchors, evidence-to-claim traceability, false green/red detection, `kv` safety, status suggestion consistency, decision SLA consistency, Board Pack completeness, cross-report consistency, D365 API source posture, writeback negative cases, time-series inputs, scale/paging signals, privacy, and golden report output guards.
+
 ## Status API Max Layer
 
 The API layer adds production-oriented integration helpers around the monthly status workflow:
@@ -159,6 +168,7 @@ The schema layer documents output contracts without adding runtime dependencies.
 - Project intelligence includes `maximumUsps` with exactly 12 implemented USP entries.
 - Project intelligence includes `pmoUsps` with exactly 15 implemented PMO USP entries.
 - Project intelligence includes `boardPack` with Full Board Pack / Steering Pack sections.
+- Project intelligence includes `logicValidation` and `logicAssuranceUsps` for Maximum Logic Assurance.
 - Safety gate projects expose safety score, level, management attention, writeback risk, gates, evidence, and actions.
 - PMO control tower summaries declare exactly 25 checks per project.
 

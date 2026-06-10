@@ -19,6 +19,7 @@ TPG-Scheduler-Codex-Plugin is a Codex plugin for confirmation-gated Dynamics 365
 - Confirmation-gated monthly Status Update creation for project leaders, including duplicate checks, idempotency, audit events, and exact confirmation text.
 - PMO-ready DOCX/XLSX/JSON reporting with filters, management styling, and 12 dedicated report types.
 - Full Board Pack / Steering Pack for executive, PMO, and project-leader audiences with DOCX/XLSX/JSON output and live D365 API retrieval.
+- Maximum Logic Assurance with 15 validation groups and 12 logic-assurance USPs for evidence traceability, false-green detection, `kv` safety, report consistency, D365 API trust, writeback blockers, timeline gaps, privacy, and golden output checks.
 - Maximum Project Safety Gates across data integrity, status truth, delivery, governance, finance/resources, escalation, report quality, and writeback safety.
 - Status API Max Layer for metadata discovery, permission probes, status history, delta reads, writeback queues, schemas, and Dataverse error mapping.
 - Maximum USP Layer with 12 concrete, technically implemented differentiators exposed as `maximumUsps` in the project intelligence JSON.
@@ -37,6 +38,7 @@ TPG-Scheduler-Codex-Plugin is a Codex plugin for confirmation-gated Dynamics 365
 - PMO Word/Excel Export: writes polished filtered PMO reports as `.docx` and `.xlsx` files with executive callouts, KPI cards, filter scope, status legend, project spotlight, highlighted project rows, and PMO findings from live D365 API data or explicit offline snapshots.
 - Excel reports include styled worksheets with frozen headers, autofilters, wrapped cells, signal colors, PMO finding sheets, and clickable `Open Project` hyperlinks when D365 record URLs are available.
 - Full Board Pack / Steering Pack: combines executive summary, PMO control queue, project-leader status suggestions, steering agenda, decision log, risk register, evidence ledger, data gaps, and project hyperlinks into one review-only management pack.
+- Maximum Logic Assurance: validates project intelligence, Board Packs, PMO reports, status suggestions, D365 API source posture, writeback failure cases, time-series inputs, privacy, and DOCX/XLSX structure.
 - D365 API-First PMO Data: builds intelligence and monthly status plans directly from the logged-in Dynamics browser session through `Xrm.WebApi`; local JSON snapshots require explicit offline fallback mode.
 - D365 API Max Features: adds 15 live browser-context helpers for field discovery, PMO control center, status entity resolution, monthly PM self-service, writeback dry-runs, Submitted-To lookup resolution, status history, duplicate prevention, executive steering packs, PMO data-gap worklists, CIO/CFO/CEO risk routing, Power BI-ready output, detailed permission probes, audit evidence packs, and safe pilot writeback.
 - Decision Debt Analysis: measures open decisions, due dates, blocked projects, and decision-debt score.
@@ -86,6 +88,12 @@ The 15 PMO USPs are PMO Command Queue, Steering Committee Auto-Pack, Decision SL
 `buildBoardPack(projects, options)` and `buildProjectIntelligence(projects, options).boardPack` create a review-only steering pack for executive, PMO, and project-leader audiences. The production path is `TPGProjectAssist.retrieveBoardPackFromD365({ today: "YYYY-MM-DD" })`, which reads `tpg_projects` through the authenticated Dynamics browser context and does not require a downloaded export file.
 
 The pack includes executive risk and decision summaries, PMO command queue items, status suggestions, steering agenda, decision log, risk register, project spotlights, evidence ledger, data gaps, and `safety.canAutoSave: false`. Offline file generation is available only with explicit fallback flags and can write DOCX/XLSX files for review.
+
+## Maximum Logic Assurance
+
+`buildLogicValidationSuite(projects, options)`, `buildLogicValidationReport(projects, options)`, and `buildProjectIntelligence(projects, options).logicValidation` expose 15 advisory validation groups. `buildLogicAssuranceUspLayer(projects, options)` and `logicAssuranceUsps` expose 12 implemented USPs: Evidence-to-Decision Trace, False-Green Radar, KV Safety Lock, Board Pack Consistency Engine, Decision SLA Integrity, D365 API Trust Mode, No Silent Critical Project, Schema-Backed Management Reports, Writeback Failure Firewall, Timeline Drift Intelligence, PMO Audit Confidence Score, and Golden Report Assurance.
+
+The layer reports `assuranceLevel`, findings, evidence trace, false-positive risks, data gaps, and recommended actions without changing CRM data.
 
 ## Repository Layout
 

@@ -26,6 +26,8 @@ Use the `pmo-report-suite` skill for PMO management reports, the 12-report suite
 
 Production PMO packs should use the authenticated Dynamics browser helper `TPGProjectAssist.retrieveBoardPackFromD365({ today: "YYYY-MM-DD" })`. Local JSON input is an explicit offline fallback only.
 
+Maximum Logic Assurance is included in project intelligence and Board Pack output. It adds advisory logic validation, evidence traceability, and 12 logic-assurance USPs without changing CRM data.
+
 ## Safety
 
 This package does not provide an unattended CRM writer. It prepares evidence-backed drafts, reports, and decision-support outputs. Saving in Dynamics remains a user-confirmed browser action.
