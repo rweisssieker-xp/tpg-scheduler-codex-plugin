@@ -8,6 +8,7 @@ This plugin package contains the Codex skill, metadata, scripts, tests, and fixt
 npm run validate
 npm test
 npm run status-report:help
+node ./scripts/statusbericht.js --board-pack <real-project-export.json> --docx reports/board-pack.docx --xlsx reports/board-pack.xlsx
 node ./scripts/statusbericht.js --intelligence <real-project-export.json>
 node ./scripts/statusbericht.js --pmo-report <real-project-export.json> --project-status "In Progress"
 node ./scripts/statusbericht.js --pmo-report <real-project-export.json> --pmo-report-type executive_exception --json
@@ -21,7 +22,9 @@ The legacy `statusbericht:*` npm script names are kept as compatibility aliases.
 
 Use the `status-report` skill for the Dynamics workflow. The skill requires the Codex in-app Browser, verifies the configured project manager, and keeps all CRM writes behind explicit confirmation.
 
-Use the `pmo-report-suite` skill for PMO management reports, the 12-report suite, and DOCX/XLSX portfolio outputs.
+Use the `pmo-report-suite` skill for PMO management reports, the 12-report suite, the Full Board Pack / Steering Pack, and DOCX/XLSX portfolio outputs.
+
+Production PMO packs should use the authenticated Dynamics browser helper `TPGProjectAssist.retrieveBoardPackFromD365({ today: "YYYY-MM-DD" })`. Local JSON input is an explicit offline fallback only.
 
 ## Safety
 

@@ -5,7 +5,7 @@ description: Use when creating PMO management reports, PMO report suites, filter
 
 # PMO Report Suite
 
-Use this skill when the user asks for PMO reports, portfolio steering packs, management reports, Word reports, Excel reports, or any of the 12 PMO report types.
+Use this skill when the user asks for PMO reports, Full Board Pack / Steering Pack output, portfolio steering packs, management reports, Word reports, Excel reports, or any of the 12 PMO report types.
 
 If the user asks for USPs, differentiation, CIO/CEO value, or maximum product value, use `buildProjectIntelligence(...).maximumUsps` or `buildMaximumUspLayer(projects, options)` alongside the PMO reports.
 If the user asks for PMO-specific USPs, operational PMO value, steering committee preparation, audit readiness, or PMO work queues, use `buildProjectIntelligence(...).pmoUsps` or `buildPmoUspLayer(projects, options)`.
@@ -13,7 +13,7 @@ If the user asks for PMO-specific USPs, operational PMO value, steering committe
 ## Ground Rules
 
 - Use real Dynamics 365 TPG project data from the authenticated D365 API context.
-- Prefer direct D365 API helpers from the authenticated Dynamics browser: `TPGProjectAssist.retrieveProjectIntelligenceFromD365()`, `retrieveBatchProjectPreviewFromD365()`, `retrieveMonthlyStatusPlanFromD365()`, `buildLivePmoControlCenterFromD365()`, `retrieveExecutiveSteeringPackFromD365()`, or `retrievePmoDataGapWorklistFromD365()`.
+- Prefer direct D365 API helpers from the authenticated Dynamics browser: `TPGProjectAssist.retrieveBoardPackFromD365()`, `retrieveProjectIntelligenceFromD365()`, `retrieveBatchProjectPreviewFromD365()`, `retrieveMonthlyStatusPlanFromD365()`, `buildLivePmoControlCenterFromD365()`, `retrieveExecutiveSteeringPackFromD365()`, or `retrievePmoDataGapWorklistFromD365()`.
 - For automatic status wording, use `TPGProjectAssist.retrieveStatusSuggestionReportFromD365()` or offline fallback `--status-suggestion-report`.
 - Do not use sample, fixture, synthetic, or mock data for productive PMO reporting.
 - Keep outputs advisory and evidence-backed.
@@ -74,6 +74,16 @@ The PMO report suite can also be paired with `pmoUsps`:
 - Dependency Blast Radius
 - PMO Board Pack Diff
 
+## Full Board Pack / Steering Pack
+
+Use `TPGProjectAssist.retrieveBoardPackFromD365({ today: "YYYY-MM-DD" })` for production packs. It reads live D365 project data and returns executive, PMO, project-leader, steering agenda, decision log, risk register, status suggestion, project link, evidence, data-gap, and safety sections.
+
+Offline fallback is allowed only with `--allow-offline-input`:
+
+```powershell
+node ./scripts/statusbericht.js --board-pack <snapshot.json> --allow-offline-input --docx reports/board-pack.docx --xlsx reports/board-pack.xlsx --json
+```
+
 ## Commands
 
 ```powershell
@@ -81,6 +91,7 @@ cd plugins/tpg-scheduler-codex-plugin
 npm run status-report:dataverse
 // In the authenticated Dynamics browser:
 await TPGProjectAssist.retrieveProjectIntelligenceFromD365({ today: "YYYY-MM-DD" })
+await TPGProjectAssist.retrieveBoardPackFromD365({ today: "YYYY-MM-DD" })
 await TPGProjectAssist.retrieveStatusSuggestionReportFromD365({ today: "YYYY-MM-DD" })
 await TPGProjectAssist.buildLivePmoControlCenterFromD365({ today: "YYYY-MM-DD" })
 await TPGProjectAssist.retrieveExecutiveSteeringPackFromD365({ today: "YYYY-MM-DD" })

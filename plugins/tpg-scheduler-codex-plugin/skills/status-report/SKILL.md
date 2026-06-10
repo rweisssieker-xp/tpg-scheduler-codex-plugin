@@ -7,7 +7,7 @@ description: Use when drafting confirmation-gated Dynamics 365 TPG project statu
 
 Use this skill when the user asks to create, draft, collect, or update status reports for TPG projects in Dynamics 365.
 
-For PMO reporting, portfolio management packs, the 12-report PMO suite, or DOCX/XLSX management reports, use the `pmo-report-suite` skill instead.
+For PMO reporting, the Full Board Pack / Steering Pack, portfolio management packs, the 12-report PMO suite, or DOCX/XLSX management reports, use the `pmo-report-suite` skill instead.
 
 ## Ground Rules
 
@@ -85,6 +85,7 @@ If Dynamics asks for login, pause and let the user complete Microsoft login manu
   - `buildProjectSafetyGateSuite(projects, options)`
   - `buildPmoProjectControls(project, projects, options)`
   - `buildPmoControlTower(projects, options)`
+  - `buildBoardPack(projects, options)`
   - `buildStatusUpdateDraft(statusText, options)`
   - `buildMonthlyStatusReportDraft(project, statusText, options)`
   - `buildMonthlyStatusReportRun(projects, options)`
@@ -99,6 +100,7 @@ If Dynamics asks for login, pause and let the user complete Microsoft login manu
   - `getDataverseBrowserSnippet()`
 - When PMO or status-plan data is needed, load the Dataverse snippet and use direct D365 API helpers:
   - `await TPGProjectAssist.retrieveProjectIntelligenceFromD365({ today: "YYYY-MM-DD" })`
+  - `await TPGProjectAssist.retrieveBoardPackFromD365({ today: "YYYY-MM-DD" })`
   - `await TPGProjectAssist.retrieveBatchProjectPreviewFromD365({ today: "YYYY-MM-DD" })`
   - `await TPGProjectAssist.retrieveStatusSuggestionReportFromD365({ today: "YYYY-MM-DD" })`
   - `await TPGProjectAssist.retrieveMonthlyStatusPlanFromD365({ month: "YYYY-MM", statusText: "kv" })`
@@ -110,6 +112,8 @@ If Dynamics asks for login, pause and let the user complete Microsoft login manu
   Then run that JavaScript in the in-app Browser page context. It exposes `window.TPGProjectAssist`.
 - To generate an offline fallback project intelligence report from reviewed local JSON, run:
   `node ./scripts/statusbericht.js --intelligence <snapshot.json> --allow-offline-input --today YYYY-MM-DD`
+- To generate an offline fallback Board Pack / Steering Pack with Word and Excel output, run:
+  `node ./scripts/statusbericht.js --board-pack <snapshot.json> --allow-offline-input --docx reports/board-pack.docx --xlsx reports/board-pack.xlsx`
 - To generate an offline fallback PMO report with filters, run:
   `node ./scripts/statusbericht.js --pmo-report <snapshot.json> --allow-offline-input --project-status "In Progress" --last-status-before YYYY-MM-DD`
 - To write PMO Word and Excel files, add:
@@ -124,6 +128,7 @@ If Dynamics asks for login, pause and let the user complete Microsoft login manu
 - Available browser helper methods after injection:
   - `TPGProjectAssist.retrieveActiveProjects({ top })`
   - `TPGProjectAssist.retrieveProjectIntelligenceFromD365({ today })`
+  - `TPGProjectAssist.retrieveBoardPackFromD365({ today })`
   - `TPGProjectAssist.retrieveStatusSuggestionReportFromD365({ today })`
   - `TPGProjectAssist.retrieveBatchProjectPreviewFromD365({ today })`
   - `TPGProjectAssist.retrieveMonthlyStatusPlanFromD365({ month, statusText })`
@@ -131,6 +136,7 @@ If Dynamics asks for login, pause and let the user complete Microsoft login manu
   - `TPGProjectAssist.buildBatchProjectPreview(projects, { today })`
   - `TPGProjectAssist.evaluateProjectStatusQuality(project, { today })`
   - `TPGProjectAssist.buildProjectIntelligence(projects, { today })`
+  - `TPGProjectAssist.buildBoardPack(projects, { today })`
   - `TPGProjectAssist.buildStatusSuggestionReport(projects, { today })`
   - `TPGProjectAssist.buildStatusReportSuggestion(project, { today })`
   - `TPGProjectAssist.buildPortfolioRiskList(projects, { today })`
@@ -245,7 +251,8 @@ If Dynamics asks for login, pause and let the user complete Microsoft login manu
      - `projectSafetyGates`: advisory safety gates that must be shown before status collection or CRM staging
      - `pmoControlTower`: PMO governance and portfolio-control routines per project
      - `maximumUsps`: 12 implemented advisory differentiators with proof metrics, runtime signals, trust controls, and USP scores
-     - `pmoUsps`: 15 PMO-operational USPs with command queue, evidence ledger, data gaps, and runtime proof metrics
+    - `pmoUsps`: 15 PMO-operational USPs with command queue, evidence ledger, data gaps, and runtime proof metrics
+    - `boardPack`: Full Board Pack / Steering Pack with executive, PMO, project-leader, evidence, data-gap, and safety sections
      - `executiveOnePager`: Markdown one-pager for leadership review
 
 ## Advanced USP Helpers
@@ -292,6 +299,7 @@ If Dynamics asks for login, pause and let the user complete Microsoft login manu
 - `buildPmoControlTower` aggregates PMO project controls and is included in `buildProjectIntelligence`.
 - `buildMaximumUspLayer` exposes the 12 Maximum USPs as implemented, advisory-only JSON objects backed by runtime signals and proof metrics.
 - `buildPmoUspLayer` exposes the 15 PMO USPs as implemented, advisory-only JSON objects backed by command queues, evidence ledgers, data gaps, and proof metrics.
+- `buildBoardPack` exposes the Full Board Pack / Steering Pack as an advisory management pack backed by live D365 API data or explicit offline fallback snapshots.
 4. For every matching project:
    - open the project record by double-clicking the project name gridcell from the current visible DOM snapshot
    - or open the record URL built from `buildDynamicsProjectRecordUrl(projectId)` when the candidate came from Dataverse

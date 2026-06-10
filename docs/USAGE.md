@@ -21,6 +21,7 @@ Paste the printed snippet into the authenticated Dynamics browser console, then 
 
 ```javascript
 await TPGProjectAssist.retrieveProjectIntelligenceFromD365({ today: "YYYY-MM-DD" })
+await TPGProjectAssist.retrieveBoardPackFromD365({ today: "YYYY-MM-DD" })
 await TPGProjectAssist.retrieveBatchProjectPreviewFromD365({ today: "YYYY-MM-DD" })
 await TPGProjectAssist.retrieveMonthlyStatusPlanFromD365({ month: "YYYY-MM", statusText: "kv" })
 ```
@@ -42,6 +43,7 @@ node ./scripts/statusbericht.js --intelligence <snapshot.json> --allow-offline-i
 
 The JSON includes `maximumUsps`, a 12-item Maximum USP Layer with implementation status, proof metrics, runtime signals, required data, trust controls, and USP scores.
 It also includes `pmoUsps`, a 15-item PMO USP Layer with operational PMO command queues, evidence ledger entries, data gaps, runtime signals, proof metrics, and advisory-only trust controls.
+It includes `boardPack`, the Full Board Pack / Steering Pack contract for executive, PMO, and project-leader review.
 
 Emit CSV-ready export payloads:
 
@@ -72,6 +74,25 @@ node ./scripts/statusbericht.js --pmo-suite <snapshot.json> --allow-offline-inpu
 ```
 
 Use the `pmo-report-suite` skill for PMO reports and the `status-report` skill for Dynamics status-entry work.
+
+## Full Board Pack / Steering Pack
+
+Use the Board Pack when management needs one evidence-backed pack for executive review, PMO control, and project-leader status preparation:
+
+```javascript
+await TPGProjectAssist.retrieveBoardPackFromD365({ today: "2026-06-09" })
+```
+
+The live helper reads projects through the authenticated Dynamics API context and returns `packType: "full_board_pack"`, executive summaries, top risks, open decisions, PMO work queue, status suggestions, steering agenda, project spotlights, evidence ledger, data gaps, and `safety.canAutoSave: false`.
+
+Offline fallback for reviewed snapshots:
+
+```powershell
+node ./scripts/statusbericht.js --board-pack <snapshot.json> --allow-offline-input --json
+node ./scripts/statusbericht.js --board-pack <snapshot.json> --allow-offline-input --docx reports/board-pack.docx --xlsx reports/board-pack.xlsx
+```
+
+The DOCX file contains executive callouts and highlighted tables. The XLSX workbook contains separate sheets for executive dashboard, PMO control, project-leader queue, steering agenda, risks, decisions, status suggestions, project links, evidence, and data gaps.
 
 Filter by project status:
 
@@ -167,6 +188,7 @@ The status API layer exposes these integration helpers for real Dynamics workflo
 
 - `retrieveAllRecords`: paginated Dataverse reads.
 - `retrieveStatusSuggestionReportFromD365`: automatic status suggestion report from live project fields and planning data.
+- `retrieveBoardPackFromD365`: Full Board Pack / Steering Pack from live project fields, PMO controls, status suggestions, risks, decisions, evidence, and data gaps.
 - `retrieveProjectDelta`: active project changes since `modifiedon`.
 - `retrieveStatusUpdates`: status history by project and month.
 - `discoverStatusUpdateMetadata`: entity metadata, entity set, attributes, and privileges.

@@ -16,6 +16,7 @@ Initial public release for confirmation-gated Dynamics 365 TPG project status re
 - Post-release `main` adds the 15 PMO USP Layer with command queue, evidence ledger, data gaps, and `pmoUsps`.
 - Post-release `main` adds 15 D365 API Max Features on `window.TPGProjectAssist`, including live PMO control center, status timeline, duplicate prevention, PM self-service flow, steering pack, data-gap worklist, Power BI-ready output, audit evidence pack, and confirmation-gated pilot writeback.
 - Post-release `main` adds the Automatic Status Suggestion Report for review-only status wording from D365 project fields and planning data, including JSON/DOCX/XLSX output and live `retrieveStatusSuggestionReportFromD365`.
+- Post-release `main` adds the Full Board Pack / Steering Pack with live `retrieveBoardPackFromD365`, JSON/DOCX/XLSX output, audience sections, evidence ledger, project links, and review-only safety flags.
 
 ## Safety
 

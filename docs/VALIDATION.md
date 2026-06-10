@@ -16,6 +16,7 @@ This runs:
 - PMO control tower tests.
 - PMO status report filter tests.
 - Automatic status suggestion report tests for generated wording, `kv` eligibility, data gaps, and review-only writeback posture.
+- Full Board Pack / Steering Pack tests for JSON output, DOCX generation, XLSX sheets, project hyperlinks, evidence, data gaps, and review-only safety flags.
 - PMO DOCX and XLSX file export tests.
 - PMO report suite tests for all 12 report types.
 - Maximum USP Layer tests for all 12 implemented advisory differentiators.
@@ -51,11 +52,13 @@ The validation script checks:
 - Critical CRM write-safety language remains present.
 - Public docs use en-US wording, except for the fixed German CRM `kv` phrase where explicitly documented.
 - JSON schemas parse and expose the required project safety and PMO contract anchors.
+- Board Pack schema and sample output parse and expose `packType: "full_board_pack"` with `canAutoSave: false`.
 - Status API schemas parse and expose queue, create-plan, duplicate-check, audit-event, and envelope contracts.
 - The synthetic sample output includes `projectSafetyGates` and `pmoControlTower`.
 - The synthetic sample output includes `maximumUsps` with 12 implemented USP entries.
 - The synthetic sample output includes `pmoUsps` with 15 implemented PMO USP entries.
 - The project intelligence schema includes `statusSuggestionReport` for automatic status wording reports.
+- The project intelligence schema includes `boardPack` for Full Board Pack / Steering Pack output.
 - Productive npm intelligence scripts do not point at sample or fixture data.
 - No npm script exposes demo, mock, sample, or fixture data as an active command.
 - DOCX and XLSX export dependencies are validated, and the vulnerable `exceljs` dependency tree is disallowed.

@@ -11,6 +11,7 @@ The plugin separates browser workflow guidance from deterministic project intell
 - The PMO control tower layer evaluates each project across 25 governance and portfolio-control routines for PMO review.
 - The Maximum USP layer turns the strongest 12 differentiators into a machine-readable advisory contract backed by runtime signals and proof metrics.
 - The PMO USP layer turns 15 operational PMO differentiators into command queues, evidence ledgers, board-pack diffs, and runtime proof metrics.
+- The Full Board Pack / Steering Pack layer combines executive, PMO, and project-leader views into one advisory management pack.
 - `schemas/` defines stable JSON contracts for downstream PMO and executive tooling.
 - `examples/` contains synthetic output for documentation and consumer tests only; productive CLI paths reject sample files.
 - Tests validate normalization, CLI behavior, and project intelligence outputs without requiring Dynamics access.
@@ -29,7 +30,7 @@ The primary project data path is the authenticated Dynamics browser context:
 
 1. Codex opens Dynamics and lets the user complete login.
 2. `npm run status-report:dataverse` prints a browser snippet that uses `Xrm.WebApi.retrieveMultipleRecords`.
-3. `TPGProjectAssist.retrieveProjectIntelligenceFromD365()`, `retrieveBatchProjectPreviewFromD365()`, `retrieveMonthlyStatusPlanFromD365()`, `retrieveStatusSuggestionReportFromD365()`, and the D365 API Max helpers read `tpg_projects` directly in the authenticated Dynamics context.
+3. `TPGProjectAssist.retrieveProjectIntelligenceFromD365()`, `retrieveBoardPackFromD365()`, `retrieveBatchProjectPreviewFromD365()`, `retrieveMonthlyStatusPlanFromD365()`, `retrieveStatusSuggestionReportFromD365()`, and the D365 API Max helpers read `tpg_projects` directly in the authenticated Dynamics context.
 4. CLI file commands are an explicit offline fallback for reviewed local snapshots and require `--allow-offline-input`.
 
 Visual UI scraping is only a fallback for navigation, field verification, and explicit save confirmation. The plugin does not add service-principal authentication or background CRM writes.
@@ -44,6 +45,7 @@ Visual UI scraping is only a fallback for navigation, field verification, and ex
 - status update draft helpers
 - monthly project-leader status writeback plans
 - automatic status suggestion reports from D365 fields and planning data
+- Full Board Pack / Steering Pack generation from the same D365 API project data
 - 15 D365 API Max helpers for field discovery, live control center, status entity resolution, PM self-service, dry-runs, Submitted-To lookup, status history, duplicate prevention, steering packs, data-gap worklists, executive routing, Power BI output, permission probes, audit evidence, and pilot writeback
 - public exports for project intelligence functions
 - plugin validation checks
@@ -92,6 +94,14 @@ The production path calls `TPGProjectAssist.retrieveMonthlyStatusPlanFromD365({ 
 `buildStatusSuggestionReport(projects, options)` returns a report envelope with `reportType: "status_suggestion"`, summary counts, rows, evidence, and data gaps. `buildProjectIntelligence(projects, options)` includes the same report as `statusSuggestionReport`.
 
 The live production path is `TPGProjectAssist.retrieveStatusSuggestionReportFromD365({ today: "YYYY-MM-DD" })`. File-based CLI generation is offline fallback only and requires `--allow-offline-input`.
+
+## Full Board Pack / Steering Pack
+
+`buildBoardPack(projects, options)` creates one advisory pack for executive, PMO, and project-leader audiences. It reuses Project Safety Gates, PMO Control Tower, PMO Report Suite, status suggestions, portfolio risk lists, decision radar, no-surprise forecast, steering agenda, risk ledger, and compact evidence ledgers.
+
+`buildProjectIntelligence(projects, options)` includes the same output as `boardPack`. The production path is `TPGProjectAssist.retrieveBoardPackFromD365({ today: "YYYY-MM-DD" })`, which reads live `tpg_projects` through `Xrm.WebApi` in the authenticated Dynamics browser context. File-based `--board-pack` output is offline fallback only and can write DOCX/XLSX review files.
+
+The Board Pack is review-only: it reports `safety.advisoryOnly: true`, `safety.canAutoSave: false`, and `safety.crmWritesIncluded: false`. It never creates CRM data and treats missing history, baselines, prior packs, or optional PMO fields as visible data gaps.
 
 ## Status API Max Layer
 
@@ -148,6 +158,7 @@ The schema layer documents output contracts without adding runtime dependencies.
 - Project intelligence includes `projectSafetyGates` and `pmoControlTower`.
 - Project intelligence includes `maximumUsps` with exactly 12 implemented USP entries.
 - Project intelligence includes `pmoUsps` with exactly 15 implemented PMO USP entries.
+- Project intelligence includes `boardPack` with Full Board Pack / Steering Pack sections.
 - Safety gate projects expose safety score, level, management attention, writeback risk, gates, evidence, and actions.
 - PMO control tower summaries declare exactly 25 checks per project.
 

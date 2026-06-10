@@ -43,6 +43,7 @@ The JSON payload includes:
 - `evidenceGapDetector`
 - `executiveQuestionGenerator`
 - `reportQualityBenchmark`
+- `boardPack`
 
 A compact synthetic sample is stored at `examples/project-intelligence.sample.json` for documentation and consumer tests only. Productive CLI runs reject sample and fixture paths.
 
@@ -100,11 +101,29 @@ Create a single dedicated report:
 node ./scripts/statusbericht.js --pmo-report <snapshot.json> --allow-offline-input --pmo-report-type decision_action_aging --json
 ```
 
+## Full Board Pack / Steering Pack
+
+Use live D365 API data in the authenticated browser for production runs:
+
+```javascript
+await TPGProjectAssist.retrieveBoardPackFromD365({ today: "2026-06-09" })
+```
+
+Offline fallback for reviewed snapshots:
+
+```powershell
+node ./scripts/statusbericht.js --board-pack <snapshot.json> --allow-offline-input --json
+node ./scripts/statusbericht.js --board-pack <snapshot.json> --allow-offline-input --docx reports/board-pack.docx --xlsx reports/board-pack.xlsx
+```
+
+The JSON payload includes `executive`, `pmo`, `projectLeader`, `steeringAgenda`, `decisionLog`, `riskRegister`, `statusSuggestions`, `projectSpotlights`, `evidenceLedger`, `dataGaps`, `accessIssues`, and `safety`. A compact synthetic sample is stored at `examples/board-pack.sample.json` for documentation and consumer tests only.
+
 ## Schema-Aware Consumers
 
 Consumer tools should start with:
 
 - `schemas/project-intelligence.schema.json`
+- `schemas/board-pack.schema.json`
 - `schemas/project-safety-gates.schema.json`
 - `schemas/pmo-control-tower.schema.json`
 - `schemas/status-api-envelope.schema.json`

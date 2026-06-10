@@ -5,6 +5,7 @@ The plugin exposes stable JSON contracts for offline reports and downstream PMO 
 ## Files
 
 - `schemas/project-intelligence.schema.json`: top-level project intelligence output for D365 API data and explicit offline fallback snapshots.
+- `schemas/board-pack.schema.json`: Full Board Pack / Steering Pack output for executive, PMO, and project-leader review.
 - `schemas/project-safety-gates.schema.json`: advisory safety gate suite output.
 - `schemas/pmo-control-tower.schema.json`: PMO control tower output with 25 checks per project.
 - `schemas/status-api-envelope.schema.json`: versioned Status API envelope.
@@ -17,9 +18,10 @@ The top-level project intelligence schema also includes the filtered `pmoStatusR
 The PMO report suite adds uniform report objects with `reportType`, `title`, `generatedAt`, `filters`, `summary`, `sections`, `rows`, `evidence`, and `dataGaps`.
 The Maximum USP layer adds `maximumUsps` with exactly 12 implemented advisory differentiators, each carrying implementation status, proof metric, required data, trust controls, and runtime signals.
 The PMO USP layer adds `pmoUsps` with exactly 15 implemented operational PMO differentiators plus `commandQueue`, `evidenceLedger`, and `dataGaps`.
+The Board Pack layer adds `boardPack` with `packType: "full_board_pack"`, audience sections, steering agenda, decision log, risk register, status suggestions, evidence ledger, data gaps, access issues, and review-only safety flags.
 The preferred production data path is live D365 API retrieval through the authenticated Dynamics browser context. Local JSON envelopes or bare project arrays are offline fallback inputs and require `--allow-offline-input`.
 
-DOCX and XLSX exports serialize the same report objects, including `pmoStatusReport` and `statusSuggestionReport`; the schema therefore remains the source contract for file-generation consumers.
+DOCX and XLSX exports serialize the same report objects, including `pmoStatusReport`, `statusSuggestionReport`, and Board Pack output; the schema therefore remains the source contract for file-generation consumers.
 The Status API Max Layer uses separate schemas so integrations can validate writeback queues and create plans without granting CRM write access.
 
 ## Contract Principles

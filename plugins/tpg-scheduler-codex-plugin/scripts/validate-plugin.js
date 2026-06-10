@@ -64,6 +64,7 @@ assert.match(skill, /buildStatusWritebackQueue/);
 assert.match(skill, /buildLivePmoControlCenterFromD365/);
 assert.match(skill, /retrieveMonthlyPmSelfServiceFlowFromD365/);
 assert.match(skill, /retrieveStatusSuggestionReportFromD365/);
+assert.match(skill, /retrieveBoardPackFromD365/);
 const pmoSkill = assertFile("plugins/tpg-scheduler-codex-plugin/skills/pmo-report-suite/SKILL.md");
 const rootPmoSkill = assertFile("skills/pmo-report-suite/SKILL.md");
 assert.match(pmoSkill, /^---\nname: pmo-report-suite\n/m);
@@ -76,6 +77,8 @@ assert.match(pmoSkill, /retrievePowerBiReadyPortfolioFromD365/);
 assert.match(rootPmoSkill, /retrievePowerBiReadyPortfolioFromD365/);
 assert.match(pmoSkill, /status-suggestion-report/);
 assert.match(rootPmoSkill, /retrieveStatusSuggestionReportFromD365/);
+assert.match(pmoSkill, /retrieveBoardPackFromD365/);
+assert.match(rootPmoSkill, /retrieveBoardPackFromD365/);
 for (const reportType of [
   "portfolio_steering",
   "decision_action_aging",
@@ -177,9 +180,11 @@ for (const d365ApiFeature of [
   "buildAuditEvidencePackFromD365",
   "pilotStatusWritebackFromD365",
   "retrieveStatusSuggestionReportFromD365",
+  "retrieveBoardPackFromD365",
 ]) {
   assert.match(publicDocs, new RegExp(d365ApiFeature), `public docs must document ${d365ApiFeature}`);
 }
+assert.match(publicDocs, /Full Board Pack|Steering Pack/, "public docs must document Board Pack");
 
 for (const schemaPath of [
   "schemas/project-intelligence.schema.json",

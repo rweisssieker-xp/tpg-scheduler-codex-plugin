@@ -18,6 +18,7 @@ TPG-Scheduler-Codex-Plugin is a Codex plugin for confirmation-gated Dynamics 365
 - Dataverse-first, browser-authenticated project data access without separate service-principal setup.
 - Confirmation-gated monthly Status Update creation for project leaders, including duplicate checks, idempotency, audit events, and exact confirmation text.
 - PMO-ready DOCX/XLSX/JSON reporting with filters, management styling, and 12 dedicated report types.
+- Full Board Pack / Steering Pack for executive, PMO, and project-leader audiences with DOCX/XLSX/JSON output and live D365 API retrieval.
 - Maximum Project Safety Gates across data integrity, status truth, delivery, governance, finance/resources, escalation, report quality, and writeback safety.
 - Status API Max Layer for metadata discovery, permission probes, status history, delta reads, writeback queues, schemas, and Dataverse error mapping.
 - Maximum USP Layer with 12 concrete, technically implemented differentiators exposed as `maximumUsps` in the project intelligence JSON.
@@ -35,6 +36,7 @@ TPG-Scheduler-Codex-Plugin is a Codex plugin for confirmation-gated Dynamics 365
 - PMO Report Suite: generates 12 dedicated PMO management reports through the `pmo-report-suite` skill.
 - PMO Word/Excel Export: writes polished filtered PMO reports as `.docx` and `.xlsx` files with executive callouts, KPI cards, filter scope, status legend, project spotlight, highlighted project rows, and PMO findings from live D365 API data or explicit offline snapshots.
 - Excel reports include styled worksheets with frozen headers, autofilters, wrapped cells, signal colors, PMO finding sheets, and clickable `Open Project` hyperlinks when D365 record URLs are available.
+- Full Board Pack / Steering Pack: combines executive summary, PMO control queue, project-leader status suggestions, steering agenda, decision log, risk register, evidence ledger, data gaps, and project hyperlinks into one review-only management pack.
 - D365 API-First PMO Data: builds intelligence and monthly status plans directly from the logged-in Dynamics browser session through `Xrm.WebApi`; local JSON snapshots require explicit offline fallback mode.
 - D365 API Max Features: adds 15 live browser-context helpers for field discovery, PMO control center, status entity resolution, monthly PM self-service, writeback dry-runs, Submitted-To lookup resolution, status history, duplicate prevention, executive steering packs, PMO data-gap worklists, CIO/CFO/CEO risk routing, Power BI-ready output, detailed permission probes, audit evidence packs, and safe pilot writeback.
 - Decision Debt Analysis: measures open decisions, due dates, blocked projects, and decision-debt score.
@@ -79,6 +81,12 @@ TPG-Scheduler-Codex-Plugin is a Codex plugin for confirmation-gated Dynamics 365
 
 The 15 PMO USPs are PMO Command Queue, Steering Committee Auto-Pack, Decision SLA Enforcement, Risk Aging Memory, PM Quality Coaching, Portfolio Bottleneck Detector, Governance Exception Radar, PMO Data Quality Score, Executive Attention Routing, Baseline Drift Watch, Writeback Audit Shield, PMO Evidence Ledger, No-Surprise Portfolio Forecast, Dependency Blast Radius, and PMO Board Pack Diff.
 
+## Full Board Pack / Steering Pack
+
+`buildBoardPack(projects, options)` and `buildProjectIntelligence(projects, options).boardPack` create a review-only steering pack for executive, PMO, and project-leader audiences. The production path is `TPGProjectAssist.retrieveBoardPackFromD365({ today: "YYYY-MM-DD" })`, which reads `tpg_projects` through the authenticated Dynamics browser context and does not require a downloaded export file.
+
+The pack includes executive risk and decision summaries, PMO command queue items, status suggestions, steering agenda, decision log, risk register, project spotlights, evidence ledger, data gaps, and `safety.canAutoSave: false`. Offline file generation is available only with explicit fallback flags and can write DOCX/XLSX files for review.
+
 ## Repository Layout
 
 ```text
@@ -109,6 +117,7 @@ npm run status-report:help
 npm run status-report:dataverse
 // In the authenticated Dynamics browser:
 await TPGProjectAssist.retrieveProjectIntelligenceFromD365({ today: "YYYY-MM-DD" })
+await TPGProjectAssist.retrieveBoardPackFromD365({ today: "YYYY-MM-DD" })
 await TPGProjectAssist.retrieveStatusSuggestionReportFromD365({ today: "YYYY-MM-DD" })
 await TPGProjectAssist.retrieveMonthlyStatusPlanFromD365({ month: "YYYY-MM", statusText: "kv" })
 await TPGProjectAssist.buildLivePmoControlCenterFromD365({ today: "YYYY-MM-DD" })
