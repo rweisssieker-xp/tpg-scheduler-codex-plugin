@@ -808,6 +808,25 @@ assert.equal(logicValidation.projectFindings.some((finding) => finding.checkId =
 assert.equal(logicValidation.dataGaps.some((gap) => gap.field === "previousSnapshots"), true);
 assert.equal(logicValidation.dataGaps.some((gap) => gap.field === "previousPack"), true);
 assert.equal(logicValidation.checks.find((check) => check.id === "schema_deep_validation").status, "pass");
+const brokenContractValidation = buildLogicValidationSuite(projects, {
+  today: "2026-05-13",
+  boardPack: {
+    packType: "broken_pack",
+    source: "export",
+    executive: { summary: {} },
+    pmo: { workQueue: "not-array" },
+    projectLeader: { statusSuggestions: [] },
+    steeringAgenda: [],
+    decisionLog: [],
+    riskRegister: [],
+    evidenceLedger: [],
+    dataGaps: [],
+    safety: { advisoryOnly: true, canAutoSave: true, crmWritesIncluded: false },
+  },
+  skipBoardPackBuild: true,
+});
+assert.equal(brokenContractValidation.checks.find((check) => check.id === "schema_deep_validation").status, "fail");
+assert.equal(brokenContractValidation.portfolioFindings.some((finding) => finding.evidenceCode.includes("expected_const") || finding.evidenceCode.includes("not_array")), true);
 assert.equal(buildLogicValidationReport(projects, { today: "2026-05-13" }).title, "Maximum Logic Assurance Report");
 const logicAssuranceUsps = buildLogicAssuranceUspLayer(projects, { today: "2026-05-13" });
 assert.equal(LOGIC_ASSURANCE_USP_IDS.length, 12);

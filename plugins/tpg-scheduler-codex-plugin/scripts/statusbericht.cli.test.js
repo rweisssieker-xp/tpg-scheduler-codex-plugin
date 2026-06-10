@@ -314,6 +314,7 @@ Promise.all([
   const boardWorkbookXml = await boardXlsxZip.file("xl/workbook.xml").async("string");
   const boardProjectLinksXml = await boardXlsxZip.file("xl/worksheets/sheet8.xml").async("string");
   const boardProjectLinksRels = await boardXlsxZip.file("xl/worksheets/_rels/sheet8.xml.rels").async("string");
+  const boardLogicAssuranceXml = await boardXlsxZip.file("xl/worksheets/sheet11.xml").async("string");
   assert.match(docXml, /PMO Executive Status Report/);
   assert.match(docXml, /Executive attention/);
   assert.match(docXml, /Filter Scope/);
@@ -338,6 +339,11 @@ Promise.all([
   assert.match(boardWorkbookXml, /Evidence/);
   assert.match(boardWorkbookXml, /Data Gaps/);
   assert.match(boardWorkbookXml, /Logic Assurance/);
+  assert.match(boardLogicAssuranceXml, /schema_deep_validation/);
+  assert.match(boardLogicAssuranceXml, /false_green_detector/);
+  assert.match(boardLogicAssuranceXml, /golden_output_guard/);
+  assert.match(boardLogicAssuranceXml, /autoFilter ref="A1:D16"/);
+  assert.match(boardLogicAssuranceXml, /<pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"\/>/);
   assert.match(boardProjectLinksXml, /Open Project/);
   assert.match(boardProjectLinksXml, /<hyperlinks>/);
   assert.match(boardProjectLinksRels, /TargetMode="External"/);

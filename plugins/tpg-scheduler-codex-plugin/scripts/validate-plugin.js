@@ -191,6 +191,9 @@ for (const d365ApiFeature of [
 }
 assert.match(publicDocs, /Full Board Pack|Steering Pack/, "public docs must document Board Pack");
 assert.match(publicDocs, /Maximum Logic Assurance/, "public docs must document Maximum Logic Assurance");
+const dynamicsRunbook = assertFile("docs/DYNAMICS_E2E_RUNBOOK.md");
+assert.match(dynamicsRunbook, /retrieveBoardPackFromD365/, "Dynamics runbook must verify live Board Pack retrieval");
+assert.match(dynamicsRunbook, /logicValidation\.checks/, "Dynamics runbook must verify Logic Assurance checks");
 
 for (const schemaPath of [
   "schemas/project-intelligence.schema.json",

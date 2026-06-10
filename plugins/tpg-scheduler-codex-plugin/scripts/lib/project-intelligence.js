@@ -2060,6 +2060,47 @@ function requiredContractMissing(name, object, fields) {
   }).map((field) => ({ name, field }));
 }
 
+function getPathValue(object, field) {
+  return String(field).split(".").reduce((current, part) => current?.[part], object);
+}
+
+function validateContractShape(name, object, rules) {
+  const findings = [];
+  for (const rule of rules) {
+    const value = getPathValue(object, rule.field);
+    if (value === undefined || value === null) {
+      findings.push({ name, field: rule.field, reason: "missing" });
+      continue;
+    }
+    if (rule.type === "array" && !Array.isArray(value)) {
+      findings.push({ name, field: rule.field, reason: "not_array" });
+    }
+    if (rule.type === "object" && (typeof value !== "object" || Array.isArray(value))) {
+      findings.push({ name, field: rule.field, reason: "not_object" });
+    }
+    if (rule.type === "string" && typeof value !== "string") {
+      findings.push({ name, field: rule.field, reason: "not_string" });
+    }
+    if (rule.type === "boolean" && typeof value !== "boolean") {
+      findings.push({ name, field: rule.field, reason: "not_boolean" });
+    }
+    if (rule.const !== undefined && value !== rule.const) {
+      findings.push({ name, field: rule.field, reason: `expected_const_${rule.const}` });
+    }
+    if (rule.enum && !rule.enum.includes(value)) {
+      findings.push({ name, field: rule.field, reason: `not_in_enum_${rule.enum.join("_")}` });
+    }
+    if (rule.minItems !== undefined && Array.isArray(value) && value.length < rule.minItems) {
+      findings.push({ name, field: rule.field, reason: `min_items_${rule.minItems}` });
+    }
+  }
+  return findings;
+}
+
+function asArray(value) {
+  return Array.isArray(value) ? value : [];
+}
+
 function classifyAssuranceLevel(findings, dataGaps) {
   if (findings.some((finding) => finding.severity === "critical")) return "unsafe";
   if (findings.some((finding) => finding.severity === "fail")) return "weak";
@@ -2104,18 +2145,44 @@ function buildLogicValidationSuite(projects, options = {}) {
     return finding;
   };
 
-  for (const missing of [
+  for (const issue of [
     ...requiredContractMissing("projectIntelligence", { preview: [], projectSafetyGates: safety, pmoControlTower: pmo, pmoReportSuite: pmoSuite, statusSuggestionReport, boardPack }, ["preview", "projectSafetyGates.summary", "pmoControlTower.summary", "pmoReportSuite.summary", "statusSuggestionReport.summary", "boardPack.packType"]),
     ...requiredContractMissing("boardPack", boardPack || {}, ["packType", "executive.summary", "pmo.workQueue", "projectLeader.statusSuggestions", "safety.canAutoSave"]),
+    ...validateContractShape("boardPack", boardPack || {}, [
+      { field: "packType", type: "string", const: "full_board_pack" },
+      { field: "source", type: "string", enum: ["d365_api", "offline_reviewed_snapshot"] },
+      { field: "executive.summary", type: "object" },
+      { field: "pmo.workQueue", type: "array" },
+      { field: "projectLeader.statusSuggestions", type: "array" },
+      { field: "steeringAgenda", type: "array" },
+      { field: "decisionLog", type: "array" },
+      { field: "riskRegister", type: "array" },
+      { field: "evidenceLedger", type: "array" },
+      { field: "dataGaps", type: "array" },
+      { field: "safety.advisoryOnly", type: "boolean", const: true },
+      { field: "safety.canAutoSave", type: "boolean", const: false },
+      { field: "safety.crmWritesIncluded", type: "boolean", const: false },
+    ]),
+    ...validateContractShape("statusSuggestionReport", statusSuggestionReport, [
+      { field: "reportType", type: "string", const: "status_suggestion" },
+      { field: "rows", type: "array" },
+      { field: "evidence", type: "array" },
+      { field: "dataGaps", type: "array" },
+      { field: "summary.canAutoSave", type: "boolean", const: false },
+    ]),
+    ...validateContractShape("pmoReportSuite", pmoSuite, [
+      { field: "reports", type: "array", minItems: 12 },
+      { field: "summary.reportCount", const: 12 },
+    ]),
   ]) {
-    addPortfolioFinding("schema_deep_validation", "fail", `${missing.name} is missing required contract field ${missing.field}.`, { evidenceCode: "missing_contract_field", sourceField: missing.field });
+    addPortfolioFinding("schema_deep_validation", "fail", `${issue.name} contract issue at ${issue.field}: ${issue.reason || "missing"}.`, { evidenceCode: issue.reason || "missing_contract_field", sourceField: issue.field });
   }
 
   const safetyById = new Map((safety.projects || []).map((item) => [item.projectId, item]));
-  const pmoQueueIds = new Set((boardPack?.pmo?.workQueue || []).map((item) => item.projectId).filter(Boolean));
-  const riskIds = new Set((boardPack?.riskRegister || []).map((item) => item.projectId).filter(Boolean));
-  const evidenceIds = new Set((boardPack?.evidenceLedger || []).map((item) => item.projectId).filter(Boolean));
-  const executiveRiskIds = new Set((boardPack?.executive?.topRisks || []).map((item) => item.projectId).filter(Boolean));
+  const pmoQueueIds = new Set(asArray(boardPack?.pmo?.workQueue).map((item) => item.projectId).filter(Boolean));
+  const riskIds = new Set(asArray(boardPack?.riskRegister).map((item) => item.projectId).filter(Boolean));
+  const evidenceIds = new Set(asArray(boardPack?.evidenceLedger).map((item) => item.projectId).filter(Boolean));
+  const executiveRiskIds = new Set(asArray(boardPack?.executive?.topRisks).map((item) => item.projectId).filter(Boolean));
 
   for (const project of sourceProjects) {
     const projectId = project.projectId || project.id || null;
@@ -2169,7 +2236,7 @@ function buildLogicValidationSuite(projects, options = {}) {
     }
   }
 
-  for (const risk of boardPack?.riskRegister || []) {
+  for (const risk of asArray(boardPack?.riskRegister)) {
     if (!risk.evidenceCode && !risk.code && !risk.field) {
       addProjectFinding("evidence_to_claim_trace", risk, "warning", "Management risk claim has no evidence code or source field.", { evidenceCode: "unsupported_claim", sourceField: "riskRegister" });
     }
@@ -2230,7 +2297,7 @@ function buildLogicValidationSuite(projects, options = {}) {
   if (options.goldenOutputVerified === false) {
     addPortfolioFinding("golden_output_guard", "warning", "Golden output checks were not verified for the generated DOCX/XLSX pack.", { evidenceCode: "golden_output_not_verified", sourceField: "goldenOutputVerified" });
   }
-  if (decisionSla.summary?.overdue > 0 && !(boardPack?.pmo?.workQueue || []).length) {
+  if (decisionSla.summary?.overdue > 0 && !asArray(boardPack?.pmo?.workQueue).length) {
     addPortfolioFinding("decision_sla_consistency", "fail", "Overdue decisions exist but the PMO queue is empty.", { evidenceCode: "overdue_decision_not_queued", sourceField: "decisionSlaCockpit.summary.overdue" });
   }
 
