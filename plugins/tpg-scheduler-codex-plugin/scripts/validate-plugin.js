@@ -118,6 +118,7 @@ const requiredDocs = [
   ".github/workflows/release.yml",
   "skills/status-report/SKILL.md",
   "skills/pmo-report-suite/SKILL.md",
+  "schemas/board-pack.schema.json",
   "schemas/project-intelligence.schema.json",
   "schemas/project-safety-gates.schema.json",
   "schemas/pmo-control-tower.schema.json",
@@ -126,6 +127,7 @@ const requiredDocs = [
   "schemas/status-update-create-plan.schema.json",
   "schemas/status-writeback-audit-event.schema.json",
   "schemas/status-update-duplicate-check.schema.json",
+  "examples/board-pack.sample.json",
   "examples/project-intelligence.sample.json",
   "examples/status-api-max.sample.json",
   "plugins/tpg-scheduler-codex-plugin/README.md",
@@ -181,6 +183,7 @@ for (const d365ApiFeature of [
 
 for (const schemaPath of [
   "schemas/project-intelligence.schema.json",
+  "schemas/board-pack.schema.json",
   "schemas/project-safety-gates.schema.json",
   "schemas/pmo-control-tower.schema.json",
   "schemas/status-api-envelope.schema.json",
@@ -204,6 +207,10 @@ assert.equal(Boolean(intelligenceSchema.properties.pmoUsps), true, "project inte
 assert.equal(Boolean(intelligenceSchema.properties.pmoStatusReport), true, "project intelligence schema must include pmoStatusReport");
 assert.equal(Boolean(intelligenceSchema.properties.statusSuggestionReport), true, "project intelligence schema must include statusSuggestionReport");
 assert.equal(Boolean(intelligenceSchema.properties.pmoReportSuite), true, "project intelligence schema must include pmoReportSuite");
+assert.equal(Boolean(intelligenceSchema.properties.boardPack), true, "project intelligence schema must include boardPack");
+
+const boardPackSchema = JSON.parse(assertFile("schemas/board-pack.schema.json"));
+assert.equal(boardPackSchema.properties.packType.const, "full_board_pack", "board pack schema must define packType");
 
 const safetySchema = JSON.parse(assertFile("schemas/project-safety-gates.schema.json"));
 assert.deepEqual(safetySchema.properties.projects.items.required, [
@@ -228,8 +235,14 @@ assert.equal(sample.maximumUsps?.summary?.uspCount, 12, "sample output must incl
 assert.equal(sample.maximumUsps?.usps?.length, 12, "sample output must include 12 maximum USP entries");
 assert.equal(sample.pmoUsps?.summary?.uspCount, 15, "sample output must include the 15 PMO USPs");
 assert.equal(sample.pmoUsps?.usps?.length, 15, "sample output must include 15 PMO USP entries");
+assert.equal(sample.boardPack?.packType, "full_board_pack", "sample output must include boardPack");
+assert.equal(sample.boardPack?.safety?.canAutoSave, false, "sample board pack must be review-only");
 assert.equal(sample.pmoControlTower.summary.checksPerProject, 25, "sample output must show 25 PMO checks");
 assert.equal(sample.pmoControlTower.projects[0].checks.length, 25, "sample output must include 25 PMO checks for the example project");
+
+const boardPackSample = JSON.parse(assertFile("examples/board-pack.sample.json"));
+assert.equal(boardPackSample.packType, "full_board_pack", "board pack sample must use full_board_pack");
+assert.equal(boardPackSample.safety.canAutoSave, false, "board pack sample must be review-only");
 
 const statusApiSample = JSON.parse(assertFile("examples/status-api-max.sample.json"));
 assert.equal(statusApiSample.apiEnvelope.api, "tpg_status_api", "status API sample must include API envelope");

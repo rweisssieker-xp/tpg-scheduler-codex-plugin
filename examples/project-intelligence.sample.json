@@ -545,6 +545,108 @@
     "evidence": [{ "projectId": "2024-1058", "code": "red_kpi", "field": "overallKpiLabel" }],
     "dataGaps": []
   },
+  "boardPack": {
+    "packType": "full_board_pack",
+    "source": "offline_reviewed_snapshot",
+    "generatedAt": "2026-05-13T00:00:00.000Z",
+    "today": "2026-05-13",
+    "executive": {
+      "summary": {
+        "projectsReviewed": 2,
+        "criticalProjects": 1,
+        "unsafeProjects": 0,
+        "ceoAttention": 1,
+        "cioAttention": 1,
+        "topRisks": 1,
+        "openDecisions": 1
+      },
+      "topRisks": [
+        { "projectId": "2024-9999", "name": "ERP Cutover", "riskLevel": "critical", "reason": "Vendor delivery blocked." }
+      ],
+      "topDecisions": [
+        { "projectId": "2024-9999", "name": "ERP Cutover", "managementAsk": "Approve fallback interface.", "severity": "critical" }
+      ],
+      "questions": [
+        { "projectId": "2024-9999", "question": "Which recovery option should be approved before the next steering meeting?" }
+      ],
+      "noSurpriseForecast": [
+        { "projectId": "2024-9999", "name": "ERP Cutover", "signal": "likely_escalation", "severity": "critical" }
+      ]
+    },
+    "pmo": {
+      "summary": {
+        "projectsReviewed": 2,
+        "workQueueItems": 1,
+        "criticalFindings": 1,
+        "dataGaps": 1
+      },
+      "workQueue": [
+        { "projectId": "2024-9999", "name": "ERP Cutover", "action": "Prepare escalation pack.", "owner": "PMO", "priority": "critical" }
+      ],
+      "controlFindings": [
+        { "projectId": "2024-9999", "name": "ERP Cutover", "id": "finish_overdue", "severity": "critical", "message": "Finish date is overdue." }
+      ],
+      "reportSuiteSummary": {
+        "reportCount": 12,
+        "projectsReviewed": 2
+      }
+    },
+    "projectLeader": {
+      "summary": {
+        "projectsReviewed": 2,
+        "suggestions": 2,
+        "needsReview": 2,
+        "canAutoSave": false
+      },
+      "statusSuggestions": [
+        {
+          "projectId": "2024-9999",
+          "name": "ERP Cutover",
+          "statusType": "critical_escalation",
+          "proposedStatusText": "The project requires management review because vendor delivery is blocked and a fallback interface decision is needed.",
+          "requiresReview": true,
+          "canAutoSave": false
+        }
+      ],
+      "queue": [
+        { "projectId": "2024-9999", "name": "ERP Cutover", "nextAction": "Review proposed escalation text.", "owner": "Project Manager" }
+      ]
+    },
+    "steeringAgenda": [
+      { "projectId": "2024-9999", "name": "ERP Cutover", "topic": "Fallback interface decision", "owner": "CIO" }
+    ],
+    "decisionLog": [
+      { "projectId": "2024-9999", "name": "ERP Cutover", "decision": "Approve fallback interface.", "status": "open" }
+    ],
+    "riskRegister": [
+      { "projectId": "2024-9999", "name": "ERP Cutover", "risk": "Vendor delivery blocked.", "severity": "critical" }
+    ],
+    "statusSuggestions": [
+      { "projectId": "2024-9999", "name": "ERP Cutover", "statusType": "critical_escalation", "canAutoSave": false }
+    ],
+    "projectSpotlights": [
+      {
+        "projectId": "2024-9999",
+        "name": "ERP Cutover",
+        "recordUrl": "https://posp365.crm4.dynamics.com/main.aspx?pagetype=entityrecord&etn=msdyn_project&id=2024-9999",
+        "safetyLevel": "critical",
+        "managementAttention": "ceo",
+        "recommendedAction": "Prepare an escalation pack before status staging."
+      }
+    ],
+    "evidenceLedger": [
+      { "projectId": "2024-9999", "name": "ERP Cutover", "code": "delivery_risk.finish_overdue", "severity": "critical", "recordUrl": "https://posp365.crm4.dynamics.com/main.aspx?pagetype=entityrecord&etn=msdyn_project&id=2024-9999" }
+    ],
+    "dataGaps": [
+      { "projectId": "2024-9999", "field": "previousPack", "message": "Previous board pack is missing, so pack diff is not available." }
+    ],
+    "accessIssues": [],
+    "safety": {
+      "advisoryOnly": true,
+      "canAutoSave": false,
+      "crmWritesIncluded": false
+    }
+  },
   "pmoUsps": {
     "layerType": "pmo_usps",
     "summary": {

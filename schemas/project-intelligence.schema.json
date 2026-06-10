@@ -3,7 +3,7 @@
   "$id": "https://github.com/rweisssieker-xp/tpg-scheduler-codex-plugin/schemas/project-intelligence.schema.json",
   "title": "Project Intelligence Pack",
   "type": "object",
-  "required": ["preview", "portfolioRisks", "decisionRadar", "projectSafetyGates", "pmoControlTower", "maximumUsps", "pmoUsps"],
+  "required": ["preview", "portfolioRisks", "decisionRadar", "projectSafetyGates", "pmoControlTower", "maximumUsps", "pmoUsps", "boardPack"],
   "additionalProperties": true,
   "properties": {
     "preview": { "type": "array" },
@@ -90,6 +90,40 @@
             "type": "object",
             "required": ["reportType", "title", "generatedAt", "filters", "summary", "sections", "rows", "evidence", "dataGaps"],
             "additionalProperties": true
+          }
+        }
+      }
+    },
+    "boardPack": {
+      "type": "object",
+      "required": ["packType", "source", "executive", "pmo", "projectLeader", "safety"],
+      "additionalProperties": true,
+      "properties": {
+        "packType": { "const": "full_board_pack" },
+        "source": { "enum": ["d365_api", "offline_reviewed_snapshot"] },
+        "executive": {
+          "type": "object",
+          "required": ["summary", "topRisks", "topDecisions", "questions", "noSurpriseForecast"],
+          "additionalProperties": true
+        },
+        "pmo": {
+          "type": "object",
+          "required": ["summary", "workQueue", "controlFindings", "reportSuiteSummary"],
+          "additionalProperties": true
+        },
+        "projectLeader": {
+          "type": "object",
+          "required": ["summary", "statusSuggestions", "queue"],
+          "additionalProperties": true
+        },
+        "safety": {
+          "type": "object",
+          "required": ["advisoryOnly", "canAutoSave", "crmWritesIncluded"],
+          "additionalProperties": true,
+          "properties": {
+            "advisoryOnly": { "const": true },
+            "canAutoSave": { "const": false },
+            "crmWritesIncluded": { "const": false }
           }
         }
       }
